@@ -542,3 +542,9 @@ body[data-view=amigos] #p-amigos{display:block}
 .pj-link{cursor:pointer}.pj-link:hover .am-n,.board li.pj-link:hover{background:rgba(62,230,255,.06)}.pj-link:focus-visible{outline:2px solid var(--cyan);outline-offset:2px}
 .pj-nv .lj-nv{transform:scale(1.45)}.pj-nv{overflow:hidden}
 #jogador{z-index:30}
+
+/* ---------- selos ---------- */
+.sel{font-size:.78em;margin-left:5px;flex:none}.sel-t0{color:#4a5a70}.sel-t1{color:#cd7f32}.sel-t2{color:#cfd8e3}.sel-t3{color:#ffd45e;text-shadow:0 0 8px rgba(255,212,94,.7)}
+.sel-top1{color:#ffd45e;text-shadow:0 0 8px rgba(255,212,94,.8)}.sel-ls{color:#ff7a2e;text-shadow:0 0 8px rgba(255,122,46,.6)}.sel-lm{color:#b085ff;text-shadow:0 0 8px rgba(176,133,255,.6)}
+.sel-row{display:flex;flex-wrap:wrap;gap:4px;margin:4px 0 2px}.sel-chip{display:inline-flex;align-items:center;gap:5px;padding:2px 8px;border:1px solid currentColor;border-radius:999px;font-size:.74rem;background:rgba(255,255,255,.04)}.sel-chip i{font-size:.85em}
+.pj-sel{display:grid;grid-template-columns:1fr 1fr;gap:8px}.pj-selo{border:1px solid var(--line);border-radius:10px;padding:8px;background:rgba(255,255,255,.03);display:flex;flex-direction:column;gap:2px}.pj-selo i{font-size:1.2rem}.pj-selo b{font-size:.85rem}.pj-selo small{color:var(--mt);font-size:.7rem;line-height:1.25}.pj-selo.off b{color:var(--mt)}

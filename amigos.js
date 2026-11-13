@@ -14,6 +14,15 @@ async function amLoad(force) {
   if (!TOK || !CLOUD() || amBusy || (!force && Date.now() - amAt < 30000)) return; amBusy = true;
   try { AM = await api('/amigos'); AM.convites = AM.convites || []; amAt = Date.now(); } catch { amAt = Date.now(); } amBusy = false;
 }
+
+/* ---- selos: o servidor manda só o código (ex.: camp2 = Campeão nível II); os nomes, ícones e metas ficam aqui ---- */
+const SEL = { camp: { n: 'Campeão', ic: 'fa-trophy', un: 'vitórias em torneios', lim: [1, 5, 20] }, premio: { n: 'Premiado', ic: 'fa-sack-dollar', un: 'Cr em prêmios de torneios', lim: [5000, 50000, 500000] }, luc: { n: 'Mercador', ic: 'fa-chart-line', un: 'Cr de lucro total', lim: [10000, 100000, 1000000] }, vet: { n: 'Veterano', ic: 'fa-shield-halved', un: 'dias de conta', lim: [7, 30, 90] } };
+const SEL_ESP = { top1: { n: 'Nº 1 do ranking', ic: 'fa-crown' }, ls: { n: 'Líder da semana', ic: 'fa-fire' }, lm: { n: 'Líder do mês', ic: 'fa-star' } }, ROM = ['', 'I', 'II', 'III'];
+function selChip(cod, grande) {
+  if (!cod) return ''; const e = SEL_ESP[cod], m = /^(camp|premio|luc|vet)([1-3])$/.exec(cod); if (!e && !m) return '';
+  const nome = e ? e.n : SEL[m[1]].n + ' ' + ROM[m[2]], ic = e ? e.ic : SEL[m[1]].ic, cl = e ? 'sel-' + cod : 'sel-t' + m[2];
+  return grande ? `<span class="sel-chip ${cl}"><i class="fa-solid ${ic}"></i>${rkEsc(nome)}</span>` : `<i class="fa-solid ${ic} sel ${cl}" title="${rkEsc(nome)}" role="img" aria-label="${rkEsc(nome)}"></i>`;
+}
 const rkFalta = fim => { const ms = fim - Date.now(); if (ms <= 0) return 'terminando'; const d = Math.floor(ms / 864e5), h = Math.floor(ms % 864e5 / 36e5), m = Math.floor(ms % 36e5 / 6e4); return d ? `${d}d ${h}h` : h ? `${h}h ${m}min` : `${m}min`; };
 const rkFmt = (w, per) => per ? (w > 0 ? '+' : w < 0 ? '−' : '') + fmt(Math.abs(w)).replace(',00', '') : fmt(w).replace(',00', '');
 function rkCard() {
@@ -25,7 +34,7 @@ function rkCard() {
   if (RK.tab === 'global') h += `<div class="rk-sub">${[['pat', 'Patrimônio'], ['lucro', 'Lucro total']].map(([q, t]) => `<button type="button" data-rkg="${q}" class="${RK.g === q ? 'on' : ''}">${t}</button>`).join('')}</div>`;
   if (!d) return h + '<p class="empty">Carregando ranking…</p></div>';
   let rows = '', foot = '';
-  const li = (i, r, me) => `<li class="${me ? 'me' : ''}${r.i ? ' pj-link' : ''}"${r.i ? ` data-pj="${r.i}" role="button" tabindex="0"` : ''}><span><i class="pos">${i}</i> ${avImg(r.a)}${rkEsc(r.n)}</span><b class="mono ${per ? (r.w > 0 ? 'rk-up' : r.w < 0 ? 'rk-dn' : '') : ''}">${rkFmt(r.w, per)}</b></li>`;
+  const li = (i, r, me) => `<li class="${me ? 'me' : ''}${r.i ? ' pj-link' : ''}"${r.i ? ` data-pj="${r.i}" role="button" tabindex="0"` : ''}><span><i class="pos">${i}</i> ${avImg(r.a)}${rkEsc(r.n)}${selChip(r.t)}</span><b class="mono ${per ? (r.w > 0 ? 'rk-up' : r.w < 0 ? 'rk-dn' : '') : ''}">${rkFmt(r.w, per)}</b></li>`;
   if (RK.tab === 'amigos') {
     const L = d.lista || []; rows = L.slice(0, 8).map((r, i) => li(i + 1, r, r.eu)).join('');
     const eu = L.findIndex(r => r.eu); if (eu >= 8) rows += `<li class="gap"><span>…</span></li>` + li(eu + 1, L[eu], true);
@@ -57,7 +66,7 @@ function amRender() {
   amBadge(); if (!amV || document.body.dataset.view !== 'amigos') return;
   if (!AM) { amV.innerHTML = '<p class="empty">Carregando…</p>'; return; }
   const foc = document.activeElement && document.activeElement.id, val = foc === 'amv-q' ? document.activeElement.value : null;
-  const lin = (p, bt, ex) => `<li><span class="am-n pj-link" data-pj="${p.id}" role="button" tabindex="0">${avImg(p.a)}${rkEsc(p.n)}${ex || (p.w ? `<small>${fmt(p.w).replace(',00', '')} Cr</small>` : '')}</span><span class="am-b">${bt}</span></li>`;
+  const lin = (p, bt, ex) => `<li><span class="am-n pj-link" data-pj="${p.id}" role="button" tabindex="0">${avImg(p.a)}${rkEsc(p.n)}${selChip(p.t)}${ex || (p.w ? `<small>${fmt(p.w).replace(',00', '')} Cr</small>` : '')}</span><span class="am-b">${bt}</span></li>`;
   const bt = (k, t, c, i, x) => `<button type="button" class="${c}" data-ac="${k}" data-i="${i}"${x || ''}>${t}</button>`;
   const tab = (k, t, n) => `<button type="button" data-t="${k}" class="${AV.tab === k ? 'on' : ''}">${t}${n ? `<i class="rk-b">${n}</i>` : ''}</button>`;
   let h = `<div class="amv-eu"><span>Seu ID: <b class="mono">#${AM.meuId}</b></span><button type="button" class="buy" id="am-copy"><i class="fa-solid fa-share-nodes"></i> Compartilhar meu link</button></div>`
@@ -135,9 +144,10 @@ function pjRender() {
   else if (d.rel === 'enviado') ac = '<span class="tag">Pedido enviado</span>';
   else if (d.rel === 'recebido') ac = '<button type="button" class="buy" data-pa="sim">Aceitar pedido</button><button type="button" class="ghost" data-pa="nao">Recusar</button>';
   else ac = '<button type="button" class="buy" data-pa="add"><i class="fa-solid fa-user-plus"></i> Adicionar como amigo</button>';
-  pjB.innerHTML = `<div class="pj-hero"><img class="hm-av mo-${rkEsc(d.m)}" src="${avSrc(d.a)}" alt="" width="84" height="84"><div class="pj-id"><h2>${rkEsc(d.n)}</h2><b>${rkEsc(d.patente)}</b>${d.desde ? `<small>Piloto desde ${pjData(d.desde)}</small>` : ''}</div></div>`
+  pjB.innerHTML = `<div class="pj-hero"><img class="hm-av mo-${rkEsc(d.m)}" src="${avSrc(d.a)}" alt="" width="84" height="84"><div class="pj-id"><h2>${rkEsc(d.n)}</h2><b>${rkEsc(d.patente)}</b><div class="sel-row">${(d.lider || []).map(x => selChip(x, 1)).join('')}${selChip(d.titulo, 1)}</div>${d.desde ? `<small>Piloto desde ${pjData(d.desde)}</small>` : ''}</div></div>`
     + `<div class="pj-grid">${st('fa-coins', pjFmt(d.pat) + ' Cr', 'Patrimônio')}${st('fa-chart-line', (d.lucro > 0 ? '+' : '') + pjFmt(d.lucro) + ' Cr', 'Lucro total')}${st('fa-ranking-star', d.pos ? d.pos + 'º' : '—', 'Ranking global')}</div>`
     + (nv ? `<h3>Nave atual</h3><div class="pj-nave"><div class="pj-nv">${ljMiniNave(nv, d.nave)}</div><div><b>${rkEsc(nv.nome)}</b><p>Porão ${d.nave.cap} · Motor ${d.nave.eng.toFixed(1)} · Armas ${d.nave.wp.toFixed(1)}</p><small>Nível ${d.nave.c}/${d.nave.m}/${d.nave.a} · ${d.frota} ${d.frota === 1 ? 'nave' : 'naves'} na frota${d.gal ? ` · em ${rkEsc(d.gal)}` : ''}</small></div></div>` : '')
+    + `<h3>Selos</h3><div class="pj-sel">${(d.selos || []).map(e => { const S0 = SEL[e.f]; if (!S0) return ''; const prox = S0.lim[e.n]; return `<div class="pj-selo${e.n ? '' : ' off'}"><i class="fa-solid ${S0.ic} sel-t${e.n || 0}"></i><b>${S0.n}${e.n ? ' ' + ROM[e.n] : ''}</b><small>${prox ? `Próximo: ${fmt(prox).replace(',00', '')} ${S0.un} (${fmt(Math.min(e.v, prox)).replace(',00', '')}/${fmt(prox).replace(',00', '')})` : 'Nível máximo!'}</small></div>`; }).join('')}</div>`
     + `<h3>Troféus</h3><div class="pj-grid pj-tro">${st('fa-trophy', T.vitorias, T.vitorias === 1 ? 'Vitória' : 'Vitórias')}${st('fa-medal', T.podios, T.podios === 1 ? 'Pódio' : 'Pódios')}${st('fa-flag-checkered', T.jogados, T.jogados === 1 ? 'Torneio' : 'Torneios')}</div>`
     + (T.premios ? `<p class="pj-sub">Prêmios ganhos: <b>${pjFmt(T.premios)} Cr</b></p>` : '')
     + (T.recentes.length ? `<ul class="pj-rec">${T.recentes.map(r => `<li><span>${r.pos === 1 ? '🥇' : r.pos === 2 ? '🥈' : r.pos === 3 ? '🥉' : '🏁'} ${r.pos}º de ${r.de}</span><small>${r.quando ? new Date(r.quando).toLocaleDateString('pt-BR') : ''}</small></li>`).join('')}</ul>` : '<p class="empty">Ainda não disputou torneios.</p>')

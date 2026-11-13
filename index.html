@@ -71,6 +71,10 @@
     <h2>Partidas</h2><div id="play"></div>
   </section>
 
+  <section class="card-panel view" id="p-amigos">
+    <h2>Amigos</h2><div id="amv"></div>
+  </section>
+
   <section class="card-panel view" id="p-fleet">
     <h2>Frotas</h2><canvas id="shipview" class="shipview" aria-label="Sua nave"></canvas>
     <p class="empty" id="pvlabel"></p>
@@ -111,6 +115,7 @@
   <button data-view="market"><i class="fa-solid fa-chart-line"></i>Negociação</button>
   <button data-view="play"><i class="fa-solid fa-trophy"></i>Torneios</button>
   <button data-view="fleet"><i class="fa-solid fa-rocket"></i>Frotas</button>
+  <button data-view="amigos" id="nav-am"><i class="fa-solid fa-user-group"></i>Amigos</button>
   <button data-view="settings" id="nav-set" hidden><i class="fa-solid fa-gear"></i>Config.</button>
 </nav>
 
@@ -148,13 +153,6 @@
   </div>
   <p class="au-err" id="lj-err" role="alert"></p>
   <p class="pf-sub">Avatares e molduras são só aparência. Naves mudam o jogo, mas dependem da patente.</p>
-</div></div>
-<div class="modal" id="amigos" hidden><div class="card-panel am" role="dialog" aria-label="Amigos">
-  <div class="lj-top"><h2>Amigos</h2><button type="button" class="ghost" id="am-x" aria-label="Fechar">✕</button></div>
-  <div class="am-eu"><span>Seu ID: <b id="am-id" class="mono">#</b></span><button type="button" class="buy" id="am-copy"><i class="fa-solid fa-share-nodes"></i> Compartilhar meu link</button></div>
-  <form id="am-form" class="am-form"><input id="am-in" class="pf-in" placeholder="Apelido ou ID (ex.: #123)" autocomplete="off" aria-label="Apelido ou ID do amigo"><button type="submit" class="buy">Enviar pedido</button></form>
-  <p class="au-err" id="am-err" role="alert"></p>
-  <div id="am-lista"></div>
 </div></div>
 <div class="modal" id="suporte" hidden><div class="card-panel">
   <h2>Falar com o suporte</h2>

@@ -27,7 +27,7 @@ input[type=radio],input[type=checkbox],input[type=range]{accent-color:var(--neon
 /* views: mobile mostra uma por vez */
 .view{display:none}
 body[data-view=market] #p-map,body[data-view=market] #p-market,body[data-view=fleet] #p-fleet,
-body[data-view=settings] #p-settings,body[data-view=market] #p-notes{display:block}
+body[data-view=settings] #p-settings,body[data-view=amigos] #p-amigos,body[data-view=market] #p-notes{display:block}
 
 .map{position:relative;min-height:220px;border-radius:4px;overflow:hidden;background:radial-gradient(circle at 50% 50%,#12365a,#07101f);border:1px solid var(--line)}
 .map img{width:100%;height:100%;min-height:220px;object-fit:cover;display:block}
@@ -503,3 +503,17 @@ body.histon{overflow:hidden}
 #am-lista h3{font-size:.85rem;color:var(--cyan);margin:14px 0 6px}.am-ul{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:6px}
 .am-ul li{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:8px 10px;border:1px solid var(--line);border-radius:8px;background:rgba(5,14,26,.5)}
 .am-n{display:flex;align-items:center;gap:6px;min-width:0}.am-n small{color:var(--mt);margin-left:6px;font-size:.72rem}.am-b{display:flex;gap:4px;flex:none}.am-b .buy{padding:5px 10px;font-size:.8rem}.am-b .ghost{font-size:.8rem}
+
+/* ---------- aba Amigos ---------- */
+.nav button{position:relative}.nav .rk-b{top:3px;right:calc(50% - 22px)}
+body[data-view=amigos] #p-amigos{display:block}
+@media (min-width:900px),(orientation:landscape) and (min-width:640px){
+  #p-amigos{display:none}body[data-view=amigos] #p-amigos{display:block;grid-column:2;grid-row:1/span 2}
+  body[data-view=amigos] #p-market{display:none}
+}
+.amv-eu{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:10px}.amv-eu .buy{padding:7px 12px;font-size:.85rem}
+.amv-tabs{display:flex;gap:6px;margin:6px 0 8px;padding-top:8px;overflow-x:auto}.amv-tabs button{flex:1;position:relative;white-space:nowrap;padding:8px 10px;border:1px solid var(--line);border-radius:8px;background:none;color:var(--mt);font-size:.85rem}
+.amv-tabs button.on{border-color:var(--cyan);color:var(--cyan);background:rgba(62,230,255,.1)}.amv-tabs .rk-b{top:-6px;right:-4px}
+.amv-busca{margin:0 0 8px;width:100%}
+.amv-sub{font-size:.8rem;color:var(--mt);margin:2px 0 8px}
+.am-ul .buy,.am-ul .ghost{padding:6px 10px;font-size:.8rem}.am-ul .tag{font-size:.78rem;color:var(--mt);padding:0 6px}.am-ul .tag.ok{color:var(--neon)}

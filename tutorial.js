@@ -24,7 +24,7 @@
     // meta sempre visível: progresso até a próxima patente
     const g = $('#goal'); if (g) { if (CLOUD() && TOK && MODE !== 'partida' && READY && S.rank + 1 < RANKS.length) { const a = RANKS[S.rank][0], b = RANKS[S.rank + 1][0], w = patTotal(); g.hidden = false; $('#goal-t').innerHTML = `Próxima patente: <b>${RANKS[S.rank + 1][1]}</b> · ${fmt(Math.min(w, b)).replace(',00', '')} / ${fmt(b).replace(',00', '')} Cr`; $('#goal-i').style.width = clamp((w - a) / (b - a) * 100, 0, 100) + '%'; } else g.hidden = true; }
     if (!ativo()) { el.hidden = true; document.body.classList.remove('tuton'); return; }
-    if (i < 0) { const s = rd(); if (s === 'done') return; if (s === null) { if (!novata()) { wr('done'); return; } passo(0); } else i = +s; if (!(i >= 0 && i <= 16)) { fim(); return; } }
+    if (i < 0) { const s = rd(); if (s === 'done') return; if (s === null) { if (!novata()) { wr('done'); return; } passo(0); } else i = +s; if (!(i >= 0 && i <= 18)) { fim(); return; } }
     el.hidden = false; document.body.classList.add('tuton');
     const seg = i >= 6 && i <= 10, j = seg ? i - 5 : i;   // a 2ª viagem (passos 6 a 10) repete a lógica dos passos 1 a 5, com o encontro com piratas
     if (i === 0) { mark(null); say2('Bem-vindo a bordo, comandante! Eu sou o Capitão. Nas estrelas lucra quem <b>compra barato</b> e <b>vende caro</b>. Vou te mostrar em 1 minuto.', 'Vamos lá!'); }
@@ -57,18 +57,20 @@
     } else if (i === 10) {
       mark(null);
       say2('Você enfrentou piratas e venceu: o <b>saque</b> vai para o seu caixa. Nem toda luta termina assim: se o poder deles for maior, você perde <b>carga e casco</b>. Compare o número antes de viajar (verde vence, amarelo é incerto, vermelho é perigo) e melhore as <b>armas</b> em Frotas.', 'Continuar');
-    } else if (i >= 11 && i <= 16) {
-      const T = TOUR[i - 11]; mark(T.m); say2(T.t, i === 16 ? 'Concluir' : 'Próximo');
+    } else if (i >= 11 && i <= 18) {
+      const T = TOUR[i - 11]; mark(T.m); say2(T.t, i === 18 ? 'Vamos jogar!' : 'Próximo');
     }
   }
-  /* visita guiada pelos menus (passos 11 a 16): cada passo troca de tela e destaca o botão */
+  /* visita guiada pelos menus (passos 11 a 18): cada passo troca de tela e destaca o botão */
   const TOUR = [
     { v: 'home', m: '.nav [data-view=home]', t: '<b>Início</b>: seu perfil, patente, missões do dia e atalhos. É o seu ponto de partida sempre que abrir o jogo.' },
     { v: 'market', m: '.nav [data-view=market]', t: '<b>Negociação</b>: o mapa e o mercado. Compre barato, venda caro e viaje entre planetas e galáxias.' },
     { v: 'play', m: '.nav [data-view=play]', t: '<b>Torneios</b>: salas contra outros pilotos, com prêmio para os melhores. Também dá para criar uma partida com amigos.' },
     { v: 'fleet', m: '.nav [data-view=fleet]', t: '<b>Frotas</b>: reparo do casco e melhorias da sua nave (porão, motor e armas).' },
     { v: 'home', m: '[data-hm=loja]', t: '<b>Loja</b> (no Início): naves novas, avatares e molduras, tudo comprado com os créditos do jogo.' },
-    { v: 'settings', m: '#acct', t: 'Seu nome, no topo, abre as <b>Configurações</b>: sons e música, rever este tutorial e falar com o suporte. Boa sorte, comandante!' }
+    { v: 'amigos', m: '.nav [data-view=amigos]', t: '<b>Amigos</b>: veja todos os pilotos, adicione amigos, aceite pedidos e receba <b>convites para partidas</b>. No Início há o ranking entre amigos, por semana e por mês.' },
+    { v: 'settings', m: '#acct', t: 'Seu nome, no topo, abre as <b>Configurações</b>: sons e música, rever este tutorial e falar com o suporte.' },
+    { v: 'market', m: '.nav [data-view=market]', t: 'Pronto! Agora é com você: <b>compre barato, venda caro</b> e suba no ranking. Boa sorte, comandante!' }
   ];
   let tutSel = 0;
   const vai = v => { const b = document.querySelector(`.nav [data-view=${v}]`); if (b) b.click(); };
@@ -77,8 +79,8 @@
     if (i === 0) { if (soTour) { passo(11); vai(TOUR[0].v); } else { passo(1); vai('market'); } }
     else if (i === 5) { passo(6); rec = null; tutSel = 0; c0 = S.credits; }
     else if (i === 10) { passo(11); vai(TOUR[0].v); }
-    else if (i >= 11 && i < 16) { const prox = TOUR[i - 10].v; passo(i + 1); vai(prox); }
-    else if (i === 16) fim();
+    else if (i >= 11 && i < 18) { const prox = TOUR[i - 10].v; passo(i + 1); vai(prox); }
+    else if (i === 18) { fim(); vai('market'); }
   };
   $('#tut-skip').onclick = fim;
   const redo = $('#tut-redo'); if (redo) redo.onclick = () => { rec = null; tutSel = 0; soTour = !(S.tv !== undefined && S.tv < 2); wr(0); i = 0; shown = ''; document.querySelector('.nav [data-view=market]').click(); tick(); };

@@ -108,6 +108,7 @@ function lobbyHtml() {
   const c = PT.cfg, link = location.origin + location.pathname + '?sala=' + PT.codigo, hum = PT.jogadores.length;
   return `<h3>${PT.modo === 'torneio' ? '🏆 Torneio' : '🤝 Sala entre amigos'} · aguardando</h3>
   <div class="pcode"><small>Código da sala</small><b class="mono">${PT.codigo}</b><button type="button" id="l-cp">Copiar convite</button></div>
+  <div class="prow"><button type="button" class="buy" id="l-inv"><i class="fa-solid fa-user-group"></i> Convidar amigos</button></div>
   <p class="empty">${esc(resumo(c))}${PT.modo === 'torneio' ? ` · taxa ${fmt(c.taxa).replace(',00', '')} Cr` : ''}</p>
   <ul class="board">${PT.jogadores.map(j => `<li class="${j.eu ? 'me' : ''}"><span>${esc(j.n)}${j.host ? ' 👑' : ''}</span></li>`).join('')}<li class="tot"><span>${hum} de ${c.jogadores} vagas${c.bots ? ` · ${c.jogadores - hum} bot(s) entram ao iniciar` : ''}</span></li></ul>
   <p class="err" id="l-err"></p>
@@ -138,6 +139,7 @@ async function pedir(btn, caminho, corpo, errId) {
 }
 $('#play').addEventListener('click', async e => {
   const b = e.target.closest('button'); if (!b) return;
+  if (b.id === 'l-inv') { if (typeof AV !== 'undefined') AV.tab = 'amigos'; return document.querySelector('.nav [data-view=amigos]').click(); }
   if (b.dataset.p === 'carreira') return document.querySelector('.nav [data-view=market]').click();
   if (b.dataset.p === 'jogar') return document.querySelector('.nav [data-view=market]').click();
   if (b.dataset.p === 'entrar') { ficouCarreira = ''; return entrarModoPartida(); }

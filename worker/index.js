@@ -229,6 +229,20 @@ async function partidasManutencao(env) {   // roda no Cron: fecha partidas venci
   await env.DB.prepare("DELETE FROM partida_jog WHERE codigo IN (SELECT codigo FROM partidas WHERE (estado IN ('fim','cancelada') AND COALESCE(fim, criada) < ?))").bind(now - 7 * DIA).run();
   await env.DB.prepare("DELETE FROM partidas WHERE estado IN ('fim','cancelada') AND COALESCE(fim, criada) < ?").bind(now - 7 * DIA).run();
 }
+/** Conclui a chegada de uma viagem (e o bônus de fim de trajeto) do jogador na partida, para a tela nunca ficar presa "em trânsito". */
+async function partidaResolver(env, p, id) {
+  for (let i = 0; i < 4; i++) {
+    const now = Date.now(), row = await pj(env, p.codigo, id);
+    if (!row?.estado || now >= p.fim) return [];
+    const S = JSON.parse(row.estado);
+    if (!precisaResolver(S, now)) return [];
+    const c = { now, feed: await feedAtual(env) }, msgs = [];
+    resolver(S, c, msgs); fechar(S, c, msgs);
+    const r = await env.DB.prepare('UPDATE partida_jog SET estado = ?, patrimonio = ?, atualizado = ? WHERE codigo = ? AND usuario = ? AND atualizado = ?').bind(JSON.stringify(S), patrimonio(S, c), Math.max(now, row.atualizado + 1), p.codigo, id, row.atualizado).run();
+    if (r.meta?.changes > 0) return msgs;
+  }
+  return [];
+}
 async function vista(env, p, id, v) {
   const now = Date.now(), cfg = JSON.parse(p.cfg), js = await nomes(env, p.codigo), eu = js.find((j) => j.id === id);
   const base = { codigo: p.codigo, modo: p.modo, estado: p.estado, cfg, host: p.criador === id, criada: p.criada, inicio: p.inicio, fim: p.fim, agora: now, bots: p.bots, vagas: cfg.jogadores };
@@ -239,6 +253,7 @@ async function vista(env, p, id, v) {
   tab.sort((a, b) => b.w - a.w); tab.forEach((t) => { t.w = Math.round(t.w * 100) / 100; });
   const out = { ...base, placar: tab };
   if (eu) {
+    const msgs = await partidaResolver(env, p, id); if (msgs.length) out.msgs = msgs;
     const row = await pj(env, p.codigo, id);
     if (row?.estado) { const S = JSON.parse(row.estado); out.v = row.atualizado; if (!(v && v === row.atualizado)) { out.estado_jogo = publico(S); out.feed = await feedAtual(env); } }
   }

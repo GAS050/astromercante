@@ -258,9 +258,9 @@ function upRowsNave() {   // melhorias da nave equipada (níveis 1 a 5)
   if (!S.frota || !S.frota[S.nave]) return '';
   const n = NAVES[S.nave - 1], f = S.frota[S.nave], val = { cap:L => capDe(n, L), eng:L => engDe(n, L).toFixed(1), wp:L => wpDe(n, L).toFixed(1) }, dica = { cap:'capacidade', eng:'classe do motor (viagens mais rápidas)', wp:'poder de fogo contra piratas' };
   const outra = pvShip && pvShip !== S.nave;   // olhando a prévia de outra nave: os upgrades abaixo continuam sendo da nave equipada
-  return (outra ? `<p class="avisoup">Os upgrades abaixo são da sua nave equipada (${n.nome}). Para melhorar outra nave, equipe-a primeiro.</p>` : '') + `<div class="${outra ? 'dim' : ''}"><h3 class="nave-t">${n.nome} <small>nave ${S.nave} de ${NAVES.length}</small></h3><p class="empty">Porão ${used()}/${S.cap} · motor ${S.engLv.toFixed(1)} · armas ${S.wpLv.toFixed(1)}</p>` + ['cap', 'eng', 'wp'].map(k => {
+  return `<div class="${outra ? 'dim' : ''}"><h3 class="nave-t">${n.nome} <small>nave ${S.nave} de ${NAVES.length}</small></h3><p class="empty">Porão ${used()}/${S.cap} · motor ${S.engLv.toFixed(1)} · armas ${S.wpLv.toFixed(1)}</p>` + ['cap', 'eng', 'wp'].map(k => {
     const L = f[PVK[k]], max = L >= 5;
-    return `<div class="up"><div><b>${ROTULO[k]} nv.${L}/5</b><small>${dica[k]}: ${val[k](L)}${max ? '' : ' → ' + val[k](L + 1)}</small></div><button class="pv" data-pv="${k}" aria-label="Ver prévia">👁</button><button class="buy" data-up="${k}" ${max ? 'disabled' : ''}>${max ? 'MÁX' : fmt(upCusto(n, k, L)) + ' Cr'}</button></div>`;
+    return `<div class="up"><div><b>${ROTULO[k]} nv.${L}/5</b><small>${dica[k]}: ${val[k](L)}${max ? '' : ' → ' + val[k](L + 1)}</small></div><button class="buy" data-up="${k}" ${max ? 'disabled' : ''}>${max ? 'MÁX' : fmt(upCusto(n, k, L)) + ' Cr'}</button></div>`;
   }).join('') + '</div>';
 }
 let hangarSig = '', hangarTab = 'minhas';
@@ -293,9 +293,9 @@ function renderWorld() {
     <div class="up"><div><b>Reparar casco</b><small>Cada reparo desgasta 1% da integridade máxima</small></div><button class="buy" data-up="fix" ${S.hull >= S.maxHull ? 'disabled' : ''}>${fmt(fixCost())} Cr</button></div>
     <div class="up"><div><b>Revisão completa</b><small>Restaura a integridade máxima a 100%</small></div><button class="buy" data-up="over" ${S.maxHull >= 100 ? 'disabled' : ''}>${fmt(overCost())} Cr</button></div>
     ${CLOUD() ? upRowsNave() : `<p class="empty">Porão: ${used()}/${S.cap} · Motor nv.${S.engLv}</p>
-    <div class="up"><div><b>Porão nv.${S.capLv}</b><small>+40 de capacidade</small></div><button class="pv" data-pv="cap" aria-label="Ver prévia">👁</button><button class="buy" data-up="cap">${fmt(1000 * S.capLv)} Cr</button></div>
-    <div class="up"><div><b>Motor nv.${S.engLv}</b><small>Viagens mais rápidas · alcance de ${S.engLv} salto(s) galáctico(s)</small></div><button class="pv" data-pv="eng" aria-label="Ver prévia">👁</button><button class="buy" data-up="eng" ${S.engLv >= 5 ? 'disabled' : ''}>${S.engLv >= 5 ? 'MÁX' : fmt(1200 * S.engLv) + ' Cr'}</button></div>
-    <div class="up"><div><b>Armamento nv.${S.wpLv}</b><small>Chance de repelir piratas e monstros aqui: ${Math.round(clamp(.4 + .13 * S.wpLv - .06 * GI(), .1, .9) * 100)}%</small></div><button class="pv" data-pv="wp" aria-label="Ver prévia">👁</button><button class="buy" data-up="wp">${fmt(1500 * S.wpLv)} Cr</button></div>`}`;
+    <div class="up"><div><b>Porão nv.${S.capLv}</b><small>+40 de capacidade</small></div><button class="buy" data-up="cap">${fmt(1000 * S.capLv)} Cr</button></div>
+    <div class="up"><div><b>Motor nv.${S.engLv}</b><small>Viagens mais rápidas · alcance de ${S.engLv} salto(s) galáctico(s)</small></div><button class="buy" data-up="eng" ${S.engLv >= 5 ? 'disabled' : ''}>${S.engLv >= 5 ? 'MÁX' : fmt(1200 * S.engLv) + ' Cr'}</button></div>
+    <div class="up"><div><b>Armamento nv.${S.wpLv}</b><small>Chance de repelir piratas e monstros aqui: ${Math.round(clamp(.4 + .13 * S.wpLv - .06 * GI(), .1, .9) * 100)}%</small></div><button class="buy" data-up="wp">${fmt(1500 * S.wpLv)} Cr</button></div>`}`;
   renderHangar();
   const e = $('#evt'); e.hidden = !S.ev; if (S.ev) e.textContent = `⚡ ${S.ev.t}${S.ev.p ? ' (só em ' + plan(S.ev.p).nome + ')' : ''} · ${S.ev.left} min`;
   let k = S.rank; const w = S.credits + cargo(); if (!CLOUD()) RANKS.forEach((r, i) => { if (w >= r[0] && i > k) k = i; });   // a patente só sobe: nunca fica abaixo da já conquistada
@@ -387,10 +387,10 @@ const PVN = { cap:'Porão', eng:'Motor', wp:'Armamento' };
 function shipFrame(ts) {
   requestAnimationFrame(shipFrame); if (document.hidden) return;
   const lv = shipLv(), k = pvHover || pvPin;
-  let o = lv, txt;
-  if (pvShip && pvShip !== lv.id) { o = { id:pvShip, c:1, m:1, a:1, hull:100, max:100, label:`PRÉVIA · ${NAVES[pvShip - 1].nome}` }; const nv = NAVES[pvShip - 1]; txt = S.frota[pvShip] ? `Prévia da ${nv.nome} (você tem esta nave). Equipe-a para melhorá-la.` : `Prévia da ${nv.nome}: você ainda não tem esta nave (${S.rank < nv.rank ? 'exige a patente ' + RANKS[nv.rank][1] : 'custa ' + fmt(nv.preco).replace(',00', '') + ' Cr'}).`; }
-  else if (k) { const f = PVK[k]; o = { ...lv, [f]:Math.min(5, lv[f] + 1), hl:f, label:'PRÉVIA' }; txt = `Prévia: ${PVN[k]} nv.${Math.min(5, lv[f] + 1)}`; }
-  else txt = 'Passe o mouse (ou toque no 👁) em um upgrade, ou toque numa nave da loja, para ver como ficaria.';
+  let o = lv, txt = '';
+  if (pvShip && pvShip !== lv.id) { const nv = NAVES[pvShip - 1], f = S.frota && S.frota[pvShip]; o = { id:pvShip, c:f ? f.c : 1, m:f ? f.m : 1, a:f ? f.a : 1, hull:f ? f.h : 100, max:100, label:nv.nome }; }
+  else if (k) { const f = PVK[k]; o = { ...lv, [f]:Math.min(5, lv[f] + 1), hl:f }; }
+  txt = '';
   drawHangar($('#shipview'), o, ts, true);
   drawHangar($('#shipmini'), lv, ts, false);
   if (txt !== pvShown) { pvShown = txt; $('#pvlabel').textContent = txt; }
@@ -686,9 +686,8 @@ $('#set-fx').checked = S.fx; $('#set-fx').onchange = e => { S.fx = e.target.chec
 $('#set-sound').checked = S.sound; $('#set-sound').onchange = e => { S.sound = e.target.checked; save(); };
 $('#mapinfo').addEventListener('click', e => { const b = e.target.closest('[data-go]'); if (b) goTo(b.dataset.go); const j = e.target.closest('[data-jump]'); if (j) jump(...j.dataset.jump.split(',').map(Number)); });
 $('#shipcard').onclick = () => document.querySelector('.nav [data-view=fleet]').click();
-$('#fleet').addEventListener('pointerover', e => { const b = e.target.closest('[data-up],[data-pv]'), k = b && (b.dataset.up || b.dataset.pv); pvHover = PVN[k] ? k : null; });
+$('#fleet').addEventListener('pointerover', e => { const b = e.target.closest('[data-up]'), k = b && b.dataset.up; pvHover = PVN[k] ? k : null; });
 $('#fleet').addEventListener('pointerleave', () => { pvHover = null; });
-$('#fleet').addEventListener('click', e => { const b = e.target.closest('[data-pv]'); if (b) { pvPin = pvPin === b.dataset.pv ? null : b.dataset.pv; pvShip = 0; renderWorld(); } });
 $('#fleet').addEventListener('click', e => { const b = e.target.closest('[data-up]'); if (b) upgrade(b.dataset.up); });
 $('#market').addEventListener('click', e => {
   const b = e.target.closest('[data-act]'); if (b) trade(b.closest('[data-id]').dataset.id, b.dataset.act);

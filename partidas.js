@@ -66,6 +66,7 @@ const resumo = c => `${c.duracao} min · saldo ${fmt(c.saldo).replace(',00', '')
   + ` · ${c.jogadores} jogadores${c.bots ? ' (bots completam, ' + DIFIC[c.dific] + ')' : ''}${c.eventos ? '' : ' · sem eventos'}${c.piratas ? '' : ' · sem piratas'}`;
 function renderPlay() {
   const el = $('#play'); if (!el) return;
+  const digitado = $('#join-cod') ? $('#join-cod').value : null, tinhaFoco = document.activeElement && document.activeElement.id === 'join-cod';   // a atualização da tela não pode apagar o que a pessoa está digitando
   if (!CLOUD()) { el.innerHTML = '<p class="empty">As partidas precisam do servidor do jogo (modo online).</p>'; return; }
   if (!TOK) { el.innerHTML = '<p class="empty">Entre na sua conta para jogar torneios e salas de amigos.</p>'; return; }
   if (PT && PT.estado === 'espera') { el.innerHTML = lobbyHtml(); return; }
@@ -80,7 +81,8 @@ function renderPlay() {
   <form class="prow" id="join"><label>Tem um código? <input id="join-cod" maxlength="6" autocomplete="off" placeholder="ABC123" value="${pre}"></label><button class="buy" type="submit">Entrar na sala</button></form>
   <p class="err" id="join-err">${esc(joinMsg)}</p>
   <p class="empty">Você só joga em galáxias que já desbloqueou. A partida usa sua nave atual (porão, motor e armamento), mas é um jogo à parte: seus créditos e itens da carreira não mudam, exceto a taxa e o prêmio do torneio.</p>`;
-}
+
+  if (digitado) { $('#join-cod').value = digitado; if (tinhaFoco) $('#join-cod').focus(); }}
 function formHtml() {
   const f = FORM, t = f.modo === 'torneio';
   return `<h3>${t ? '🏆 Novo torneio' : '🤝 Nova sala entre amigos'}</h3>

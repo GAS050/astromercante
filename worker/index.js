@@ -159,6 +159,10 @@ async function jogadorVer(env, eu, alvo) {   // perfil público: só o que já �
   if (pos === 1) lider.push('top1');
   return { selos, lider, titulo: tituloDe({ vit: Math.max(pf.vit || 0, tro.vitorias), premios: Math.max(pf.premios || 0, tro.premios), lucro, criado: r.criado }), id: r.id, n: r.ap, a: r.av || 'a1', m: r.mo || '', patente: RANKS[k][1], pat, lucro, pos, posL, desde: r.criado || 0, gal: S.gal != null && GALAXIES[S.gal] ? GALAXIES[S.gal].nome : '', nave: nv ? { id: nv.id, nome: nv.nome, c: f ? f.c : 1, m: f ? f.m : 1, a: f ? f.a : 1, cap: capDe(nv, f ? f.c : 1), eng: engDe(nv, f ? f.m : 1), wp: wpDe(nv, f ? f.a : 1) } : null, frota: S.frota ? Object.keys(S.frota).length : 0, tro, rel, eu: eu === alvo };
 }
+async function selosMeus(env, id) {   // leve (1 consulta): o aparelho compara com o que já viu e mostra o banner de conquista quando um selo sobe de nível
+  const r = await env.DB.prepare('SELECT u.criado AS cr, p.vit AS vit, p.premios AS pr, s.lucro AS lu FROM usuarios u LEFT JOIN perfis p ON p.usuario = u.id LEFT JOIN saves s ON s.usuario = u.id WHERE u.id = ?').bind(id).first() || {};
+  return { selos: selosDe({ vit: r.vit, premios: r.pr, lucro: r.lu, criado: r.cr }) };
+}
 async function jogadoresVer(env, id, q) {
   q = String(q || '').trim().toLowerCase().slice(0, 16); const like = '%' + q.replace(/[%_]/g, '') + '%';
   const r = await env.DB.prepare(`SELECT u.id AS id, u.criado AS cr, p.vit AS vit, p.premios AS pr, s.lucro AS lu, p.apelido AS ap, p.avatar AS av, p.moldura AS mo, s.patrimonio AS w FROM perfis p JOIN usuarios u ON u.id = p.usuario LEFT JOIN saves s ON s.usuario = u.id WHERE p.usuario != ? AND p.apelido != '' ${q ? 'AND LOWER(p.apelido) LIKE ?' : ''} ORDER BY s.patrimonio DESC LIMIT 30`).bind(...(q ? [id, like] : [id])).all();
@@ -703,6 +707,7 @@ async function rota(req, env, url) {
   if (p === '/amigos' && m === 'GET') return await amigosVer(env, eu.id);
   if (p === '/amigos/quem' && m === 'GET') { const i = Number(url.searchParams.get('id')), q = (await quemInfo(env, [i]))[i]; if (!q) throw new Erro(404, 'Piloto não encontrado.'); return { id: q.id, n: q.n, a: q.a }; }
   if (p === '/log' && m === 'POST') return await erroRegistrar(env, eu.id, corpo, req.headers.get('User-Agent'));
+  if (p === '/selos' && m === 'GET') return await selosMeus(env, eu.id);
   if (p === '/jogador' && m === 'GET') return await jogadorVer(env, eu.id, url.searchParams.get('id'));
   if (p === '/jogadores' && m === 'GET') return await jogadoresVer(env, eu.id, url.searchParams.get('q'));
   if (p === '/amigos/convidar' && m === 'POST') return await amigosConvidar(env, eu.id, corpo);

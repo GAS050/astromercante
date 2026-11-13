@@ -508,6 +508,23 @@ function drawPlanet(p, ts) {
   cx.fillStyle = here ? '#39ff88' : '#8fa3b8'; cx.font = '7px Chakra Petch, sans-serif';
   if (!dense || here || on || lock) cx.fillText(lock ? '🔒 ' + RANKS[p.t][1] : here ? '● você está aqui' : `${best && m[best] < 1 ? '▼' + SHORT[best] + ' ' : ''}⛽${trip(p.id).cost}`, s.x, ty + 10); cx.globalAlpha = 1;
 }
+
+/* ---------- tráfego ambiente: naves do jogo (decorativas) cruzando as rotas, menores e discretas para não confundir com a sua ---------- */
+const NPCS = Array.from({ length:8 }, (_, i) => ({ id:1 + Math.floor(Math.random() * 50), m:1 + Math.floor(Math.random() * 3), lane:Math.floor(Math.random() * 999), per:9000 + Math.random() * 9000, fase:Math.random() + i * .13, inv:i % 2 }));
+function trafego(ts) {
+  if (!lanes.length || cam.z < .5 || !S.fx) return;
+  cx.save(); cx.globalAlpha = .55;
+  NPCS.forEach(n => {
+    const [a, b] = lanes[n.lane % lanes.length], u = (ts / n.per + n.fase) % 1, d = n.inv ? 1 - u : u, p1 = a._s, p2 = b._s;
+    const x = p1.x + (p2.x - p1.x) * d, y = p1.y + (p2.y - p1.y) * d, ang = Math.atan2(p2.y - p1.y, p2.x - p1.x) + (n.inv ? Math.PI : 0), sc = (p1.sc + p2.sc) / 2;
+    const fade = Math.min(1, d * 6, (1 - d) * 6); cx.globalAlpha = .55 * fade;
+    cx.strokeStyle = 'rgba(127,233,255,.35)'; cx.lineWidth = Math.max(.6, sc * .8); cx.beginPath(); cx.moveTo(x, y); cx.lineTo(x - Math.cos(ang) * 14 * sc, y - Math.sin(ang) * 14 * sc); cx.stroke();
+    cx.save(); cx.translate(x, y); cx.rotate(ang + Math.PI / 2); const k = sc * .42 * .4, size = 150 - (n.id - 1) * .8; cx.scale(k, k);
+    [nsrc(n.id, 'motor', n.m), nsrc(n.id, 'casco')].forEach(src => { const im = nimg(src); if (im.complete && im.naturalWidth) cx.drawImage(im, -size / 2, -size / 2, size, size); });
+    cx.restore();
+  });
+  cx.restore();
+}
 function drawShip(ts) {
   const s = shipPos(ts);
   if (s.fly) { trail.push({ x:s.x, y:s.y }); if (trail.length > 36) trail.shift(); } else trail.length = 0;
@@ -566,9 +583,8 @@ function frame(ts) {
   const rf = t ? plan(t.from) : here, rt = t ? plan(t.to) : (sel && sel !== S.loc ? plan(sel) : null);
   if (rt) { const a = rf._s, b = rt._s; [[6, .16], [1.6, .9]].forEach(([lw, al]) => { cx.strokeStyle = `rgba(62,230,255,${al})`; cx.lineWidth = lw; cx.beginPath(); cx.moveTo(a.x, a.y); cx.lineTo(b.x, b.y); cx.stroke(); }); }
   cx.globalCompositeOperation = 'source-over';
+  trafego(ts);
   PL.slice().sort((a, b) => a._s.y - b._s.y).forEach(p => drawPlanet(p, ts));
-  if (lanes.length && cam.z >= .5) [0, 1, 2].forEach(i => { const [a, b] = lanes[(i * 3 + 1) % lanes.length], u = (ts / (7000 + i * 1700) + i * .33) % 1, d = i % 2 ? 1 - u : u, p1 = a._s, p2 = b._s;
-    miniShip(p1.x + (p2.x - p1.x) * d, p1.y + (p2.y - p1.y) * d, Math.atan2(p2.y - p1.y, p2.x - p1.x) + (i % 2 ? Math.PI : 0), .8, i % 2 ? '#ff8a3d' : '#7fe9ff'); });
   if (t) { const d = plan(t.to)._s, k = (ts / 25) % 30; cx.strokeStyle = `rgba(62,230,255,${1 - k / 30})`; cx.lineWidth = 1.2; cx.beginPath(); cx.ellipse(d.x, d.y + 14 * d.sc, k * d.sc, k * d.sc * .35, 0, 0, 7); cx.stroke(); }
   drawShip(ts);
   if (cam.z < .5) { const sp = shipPos(ts), k = (ts / 40) % 24; cx.strokeStyle = `rgba(57,255,136,${1 - k / 24})`; cx.lineWidth = 1.4; cx.beginPath(); cx.arc(sp.x, sp.y, 4 + k, 0, 7); cx.stroke(); cx.fillStyle = '#39ff88'; cx.beginPath(); cx.arc(sp.x, sp.y, 2.2, 0, 7); cx.fill(); }

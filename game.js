@@ -220,7 +220,7 @@ function arrive() {
   say(`Chegada em ${plan(S.loc).nome}.` + (deals.length ? ` Compre barato: ${deals.join(', ')}.` : ''), 'ok');
 }
 const fixCost = () => Math.round((S.maxHull - S.hull) * 12 * (1 + .25 * (S.capLv + S.engLv - 2)));
-const overCost = () => Math.round(2500 * (S.capLv + S.engLv - 1));
+const overCost = () => Math.round((100 - S.maxHull) * 12 * (1 + .25 * (S.capLv + S.engLv - 2)) * 10);
 function wear(d) {
   const D = GI();
   let dmg = Math.round((2 + Math.random() * 4) * d / 120 * (1 + (S.engLv - 1) * .1) * (1 + D * .2)), msg = '', kind = 'err';

@@ -116,7 +116,10 @@ export function preco(S, id, st, c) {
 const carga = (S, c) => Object.keys(S.inv).reduce((s, id) => s + S.inv[id].qty * preco(S, id, stk(S, id, c.now), c), 0);
 export const patrimonio = (S, c) => S.credits + carga(S, c);
 const fixCost = (S) => Math.round((S.maxHull - S.hull) * 12 * (1 + .25 * (S.capLv + S.engLv - 2)));
-const overCost = (S) => Math.round(2500 * (S.capLv + S.engLv - 1));
+const porPct = (S) => 12 * (1 + .25 * (S.capLv + S.engLv - 2));   // custo de reparo de 1% de casco: cresce com o tamanho da nave
+const overCost = (S) => Math.round((100 - S.maxHull) * porPct(S) * 10);   // revisão: cada ponto de integridade máxima perdido vale 10 reparos de 1%
+/** Desgaste normal de uma viagem: proporcional à distância, ~1% a cada 100 unidades, sem depender da galáxia (o risco de cada galáxia vêm dos inimigos). Arredondamento sorteado mantém a média exata com casco inteiro. */
+function desgasteViagem(S, d, teto) { const x = (.8 + Math.random()) * d / 100 * (1 + (S.engLv - 1) * .04) * (S.hull < 40 ? 1.3 : 1), b = Math.floor(x); return Math.min(teto || 99, b + (Math.random() < x - b ? 1 : 0)); }
 const hops = (S, i) => Math.max(1, Math.round(Math.hypot(GALAXIES[i].wx - GALAXIES[S.gal].wx, GALAXIES[i].wy - GALAXIES[S.gal].wy) / HOP));
 const jumpCost = (S, i) => Math.round(150 * (1 + i) * hops(S, i) * (1 + .3 * (S.engLv - 1) + .25 * (S.capLv - 1)) * (1 + (100 - S.hull) / 150));
 const tripInfo = (S, to) => { const d = dist(planeta(S, S.loc), planeta(S, to)); return { d, cost: Math.round(d * .8 * (1 + .3 * (S.engLv - 1) + .25 * (S.capLv - 1)) * (1 + (100 - S.hull) / 150)), secs: Math.max(3, Math.round(d / (18 + S.engLv * 7) * (S.hull < 40 ? 1.3 : 1))) }; };
@@ -170,7 +173,7 @@ function lutar(S, e, td, tc) {
   return o;
 }
 function chegada(S, d, msgs, enc) {
-  const D = S.gal; let dmg = Math.round((2 + Math.random() * 4) * d / 120 * (1 + (S.engLv - 1) * .1) * (1 + D * .2));
+  let dmg = desgasteViagem(S, d);
   for (const e of enc || []) {
     dmg += e.dmg;
     if (e.w === 1) { S.credits += e.loot; say(msgs, `${e.nm} (poder ${e.lv.toFixed(1)}) derrotados pelo seu poder de fogo ${S.wpLv.toFixed(1)}! Recompensa +${fmt(e.loot)} Cr.`, 'win'); }
@@ -189,7 +192,7 @@ function chegada(S, d, msgs, enc) {
 }
 
 function desgaste(S, d, msgs) {   // saltos entre galáxias: só desgaste do casco (piratas e monstros só existem onde você os vê, no mapa)
-  const D = S.gal, dmg = Math.round((2 + Math.random() * 4) * d / 120 * (1 + (S.engLv - 1) * .1) * (1 + D * .2));
+  const dmg = desgasteViagem(S, d, 12);
   S.hull = Math.max(0, S.hull - dmg);
   const rep = fixCost(S);
   if (dmg >= 8) say(msgs, `Casco -${dmg}% (agora ${S.hull}%).${rep ? ` Reparo: ${fmt(rep)} Cr.` : ''}`, 'err'); else note(msgs, `Casco -${dmg}% (agora ${S.hull}%).`);

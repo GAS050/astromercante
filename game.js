@@ -999,7 +999,12 @@ async function refrescar(force) {   // busca o estado da conta (outro aparelho j
   catch (e) { if (e.status === 401) { clearSession(); applyGate(); renderAccount(); openAuth('in', 'Sua sessão expirou. Entre novamente.'); } else syncMsg = 'Sem conexão com o servidor.'; }
   pulling = false; renderAccount();
 }
-document.addEventListener('visibilitychange', () => { if (!document.hidden) refrescar(); });
+/** Ao voltar para a aba, o navegador (principalmente no celular) pode ter descartado o conteúdo dos canvas pré-desenhados (planetas, naves, inimigos):
+ *  eles ficavam em branco e o mapa mostrava só os nomes. Descarta os caches; eles se refazem sozinhos em instantes. */
+function refazCaches() { for (const c of [IMGS, SPR, INIM]) for (const k in c) delete c[k]; }
+document.addEventListener('visibilitychange', () => { if (!document.hidden) { refazCaches(); refrescar(); } });
+addEventListener('pageshow', e => { if (e.persisted) refazCaches(); });
+addEventListener('focus', () => { if (!document.hidden) refazCaches(); });
 let lastInput = Date.now();   // sem toque há 5 min e nave parada: pausa a consulta periódica (ao voltar a interagir, atualiza na hora)
 ['pointerdown', 'keydown', 'wheel'].forEach(ev => addEventListener(ev, () => { const idle = Date.now() - lastInput > 300000; lastInput = Date.now(); if (idle) refrescar(true); }, { passive:true }));
 addEventListener('focus', () => refrescar());

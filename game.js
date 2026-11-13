@@ -287,8 +287,8 @@ function renderHangar() {   // hangar: minhas naves e loja (50 naves; patente e 
 }
 function renderWorld() {
   renderInfo(); renderShipCard();
-  $('#trip').textContent = S.trip ? `Em trânsito para ${plan(S.trip.to).nome}…` : '';
-  $('#p-market h2').textContent = 'Terminal de mercado · ' + (S.trip ? 'em trânsito' : plan(S.loc).nome);
+  $('#trip').textContent = S.trip ? `Em trânsito para ${plan(S.trip.to)?.nome || ''}…` : '';
+  $('#p-market h2').textContent = 'Terminal de mercado · ' + (S.trip ? 'em trânsito' : (plan(S.loc)?.nome || ''));
   $('#fleet').innerHTML = `<div class="hull ${S.hull < 30 ? 'low' : ''}"><span>Casco ${S.hull}% / máx. ${S.maxHull}%</span><i style="width:${S.hull}%"></i></div>
     <div class="up"><div><b>Reparar casco</b><small>Cada reparo desgasta 1% da integridade máxima</small></div><button class="buy" data-up="fix" ${S.hull >= S.maxHull ? 'disabled' : ''}>${fmt(fixCost())} Cr</button></div>
     <div class="up"><div><b>Revisão completa</b><small>Restaura a integridade máxima a 100%</small></div><button class="buy" data-up="over" ${S.maxHull >= 100 ? 'disabled' : ''}>${fmt(overCost())} Cr</button></div>
@@ -297,7 +297,7 @@ function renderWorld() {
     <div class="up"><div><b>Motor nv.${S.engLv}</b><small>Viagens mais rápidas · alcance de ${S.engLv} salto(s) galáctico(s)</small></div><button class="buy" data-up="eng" ${S.engLv >= 5 ? 'disabled' : ''}>${S.engLv >= 5 ? 'MÁX' : fmt(1200 * S.engLv) + ' Cr'}</button></div>
     <div class="up"><div><b>Armamento nv.${S.wpLv}</b><small>Chance de repelir piratas e monstros aqui: ${Math.round(clamp(.4 + .13 * S.wpLv - .06 * GI(), .1, .9) * 100)}%</small></div><button class="buy" data-up="wp">${fmt(1500 * S.wpLv)} Cr</button></div>`}`;
   renderHangar();
-  const e = $('#evt'); e.hidden = !S.ev; if (S.ev) e.textContent = `⚡ ${S.ev.t}${S.ev.p ? ' (só em ' + plan(S.ev.p).nome + ')' : ''} · ${S.ev.left} min`;
+  const e = $('#evt'); e.hidden = !S.ev || (!!S.ev.p && !plan(S.ev.p)); if (!e.hidden) e.textContent = `⚡ ${S.ev.t}${S.ev.p ? ' (só em ' + plan(S.ev.p).nome + ')' : ''} · ${S.ev.left} min`;
   let k = S.rank; const w = S.credits + cargo(); if (!CLOUD()) RANKS.forEach((r, i) => { if (w >= r[0] && i > k) k = i; });   // a patente só sobe: nunca fica abaixo da já conquistada
   $('#rank').textContent = RANKS[k][1];
   if (!CLOUD() && k > S.rank) { S.rank = k; save(); const nu = GALAXIES.flatMap(g => g.planetas).filter(p => p.t === k).map(p => p.nome).slice(0, 4).concat(RES.filter(r => r.t === k).map(r => r.nome)); say(`Nova patente: ${RANKS[k][1]}! Desbloqueado: ${nu.join(', ') || '—'}.`, 'win'); render(); }

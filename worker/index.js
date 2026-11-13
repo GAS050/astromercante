@@ -30,7 +30,7 @@ async function refresh(env) {
   const prev = JSON.parse((await env.PRECOS.get('latest')) || '{}');
   const next = { ...prev };
   const [cg, fx] = await Promise.allSettled([
-    fetch(CG, { headers: cgHeaders(env) }).then(json),
+    fetch(env.COINGECKO_KEY ? CG + '&x_cg_demo_api_key=' + encodeURIComponent(env.COINGECKO_KEY) : CG, { headers: cgHeaders(env) }).then(json),
     dolar(env),
   ]);
   if (cg.status === 'fulfilled') {
@@ -39,7 +39,7 @@ async function refresh(env) {
   }
   if (fx.status === 'fulfilled' && fx.value.n !== null) next.fx = fx.value.n;
   const err = (r) => (r.status === 'fulfilled' ? 'ok' : 'erro ' + String(r.reason?.message || r.reason).slice(0, 60));
-  next.diag = { cg: err(cg), fx: fx.status === 'fulfilled' ? 'ok via ' + fx.value.via : err(fx), faltando: FEED_KEYS.filter((k) => next[k] == null), quando: Date.now() };   // para conferir em /precos
+  next.diag = { chave_coingecko: !!env.COINGECKO_KEY, cg: err(cg), fx: fx.status === 'fulfilled' ? 'ok via ' + fx.value.via : err(fx), faltando: FEED_KEYS.filter((k) => next[k] == null), quando: Date.now() };   // para conferir em /precos
   // "updated" e "ant" só andam quando algo novo chegou; se as APIs falharem, o último valor bom continua valendo (e o aviso de dados velhos aparece)
   if (cg.status === 'fulfilled' || fx.status === 'fulfilled') { next.ant = {}; FEED_KEYS.forEach((k) => { if (prev[k] != null) next.ant[k] = prev[k]; }); next.updated = Date.now(); }
   await env.PRECOS.put('latest', JSON.stringify(next));

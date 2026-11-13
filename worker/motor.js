@@ -129,7 +129,7 @@ export const nIni = (g) => 2 + Math.min(g, 2);
 export const PT = (g) => (2 + .5 * g) * (1 + .02 * g);
 export function ini(g, k) {
   const h = HH(g * 977 + k * 131 + 7), h2 = HH(h + 1), m = g >= 2 && k % 3 === 2, tier = clamp(1 + Math.floor((g + (k % 3)) * .4), 1, 5);
-  const lv = Math.max(1, Math.round(m ? PT(g) * .96 : PT(g) * [.5, .8, .95][k % 3]));   // pirata fraco / médio / forte; monstro vale lv×1,2 ≈ 115% do poder típico
+  const lv = Math.max(1, Math.round(10 * (m ? PT(g) * 1.15 : PT(g) * [.5, .8, .95][k % 3])) / 10);   // poder de fogo do inimigo: pirata fraco / médio / forte; monstro ≈ 115% do poder típico
   return { g, k, T: 30000 + (h >> 4) % 25000, ph: ((h2 >> 6) % 1000) / 1000, m, lv, tier, R: m ? 38 : 26, nm: m ? (tier >= 3 ? 'Leviatã estelar' : 'Monstro do vazio') : (tier >= 3 ? 'Frota pirata' : 'Piratas') };
 }
 /** Rota em etapas: a cada etapa o inimigo sorteia (de forma fixa por relógio) o próximo planeta, então o caminho nunca se repete de forma previsível. */
@@ -153,7 +153,7 @@ function encontros(S, t0, t1) {
 }
 /** Poder de combate: arma da nave, enfraquecida por casco danificado, com bônus pequeno de patente. O inimigo vale o nível (monstro +20%). */
 export const poderJog = (S) => S.wpLv * (.6 + .4 * S.hull / 100) * (1 + .02 * S.rank);
-export const poderIni = (e) => e.lv * (e.m ? 1.2 : 1);
+export const poderIni = (e) => e.lv;
 /** Saque-base por galáxia: cresce ~38% a cada galáxia, então voltar a galáxias fáceis não compensa. */
 export const SAQUE = (g) => 130 * Math.pow(1.38, g);
 /** A luta é decidida pela razão de poder (com ±8% de "sorte do momento") e fica gravada: o que se vê no mapa é o que acontece.
@@ -164,19 +164,19 @@ function lutar(S, e, td, tc) {
   if (o.w === 1) {
     // vencer inimigo muito fraco paga pouco (clamp em .25): sem farmar monstro pequeno
     o.loot = Math.round(SAQUE(D) * clamp(q, .25, 1.4) * (e.m ? 1.8 : 1) * v(.88, 1.12));
-    o.dmg = Math.max(1, Math.round(5 * Math.min(q, 2) * (1 + D * .1) * v(.8, 1.2)));
-  } else if (o.w === 2) o.dmg = Math.round(10 * (1 + D * .1) * v(.85, 1.15));
-  else { o.dmg = Math.round((10 + 8 * Math.min(q, 2)) * (1 + D * .12) * v(.85, 1.15)); o.f = clamp(.08 + .08 * q, .1, .45); }
+    o.dmg = Math.max(1, Math.round(3 * Math.min(q, 2) * (1 + D * .05) * v(.8, 1.2)));
+  } else if (o.w === 2) o.dmg = Math.round(6 * (1 + D * .05) * v(.85, 1.15));
+  else { o.dmg = Math.min(22, Math.round((8 + 5 * Math.min(q, 2)) * (1 + D * .06) * v(.85, 1.15))); o.f = clamp(.08 + .08 * q, .1, .45); }
   return o;
 }
 function chegada(S, d, msgs, enc) {
   const D = S.gal; let dmg = Math.round((2 + Math.random() * 4) * d / 120 * (1 + (S.engLv - 1) * .1) * (1 + D * .2));
   for (const e of enc || []) {
     dmg += e.dmg;
-    if (e.w === 1) { S.credits += e.loot; say(msgs, `${e.nm} (nv.${e.lv}) derrotados pelo seu armamento nv.${S.wpLv}! Recompensa +${fmt(e.loot)} Cr.`, 'win'); }
-    else if (e.w === 2) say(msgs, `${e.nm} (nv.${e.lv}) recuaram: luta empatada, sem saque. Escapamos com avarias.`, 'ok');
+    if (e.w === 1) { S.credits += e.loot; say(msgs, `${e.nm} (poder ${e.lv.toFixed(1)}) derrotados pelo seu poder de fogo ${S.wpLv.toFixed(1)}! Recompensa +${fmt(e.loot)} Cr.`, 'win'); }
+    else if (e.w === 2) say(msgs, `${e.nm} (poder ${e.lv.toFixed(1)}) recuaram: luta empatada, sem saque. Escapamos com avarias.`, 'ok');
     else {
-      let m = `${e.nm} (nv.${e.lv}) venceram: seu armamento é nv.${S.wpLv}. `;
+      let m = `${e.nm} (poder ${e.lv.toFixed(1)}) venceram: seu poder de fogo é ${S.wpLv.toFixed(1)}. `;
       const own = Object.keys(S.inv).filter((x) => S.inv[x].qty > 0);
       if (own.length) { const x = own[Math.random() * own.length | 0], q = Math.max(1, Math.ceil(S.inv[x].qty * e.f)); S.inv[x].qty -= q; if (S.inv[x].qty <= 0) { S.inv[x].qty = 0; S.inv[x].avg = 0; } m += `Perdeu ${q} × ${RES_ID[x].nome}. `; }
       say(msgs, m.trim(), 'err');

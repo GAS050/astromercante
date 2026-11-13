@@ -544,7 +544,7 @@ const HH = n => { n = (n ^ 61) ^ (n >>> 16); n = Math.imul(n, 0x45d9f3b); n ^= n
 const PTG = g => (2 + .5 * g) * (1 + .02 * g);   // poder típico na galáxia (igual ao servidor)
 function iniG(g, k) {
   const h = HH(g * 977 + k * 131 + 7), h2 = HH(h + 1), m = g >= 2 && k % 3 === 2, tier = clamp(1 + Math.floor((g + (k % 3)) * .4), 1, 5);
-  const lv = Math.max(1, Math.round(m ? PTG(g) * .96 : PTG(g) * [.5, .8, .95][k % 3]));
+  const lv = Math.max(1, Math.round(10 * (m ? PTG(g) * 1.15 : PTG(g) * [.5, .8, .95][k % 3])) / 10);
   return { g, k, T:30000 + (h >> 4) % 25000, ph:((h2 >> 6) % 1000) / 1000, m, lv, tier, R:m ? 38 : 26 };
 }
 function iniAt(e, t) {
@@ -552,7 +552,7 @@ function iniAt(e, t) {
   return { a:q(n - 1), b:q(n), f:x * x * (3 - 2 * x) };
 }
 const poderJog = () => (S.wpLv || 1) * (.6 + .4 * (S.hull == null ? 100 : S.hull) / 100) * (1 + .02 * (S.rank || 0));
-const corNv = e => { const r = poderJog() / (e.lv * (e.m ? 1.2 : 1)); return r >= 1.09 ? '#6dff9f' : r >= .8 ? '#ffd24a' : '#ff6b6b'; };   // verde: vence; amarelo: incerto/empate; vermelho: perde
+const corNv = e => { const r = poderJog() / e.lv; return r >= 1.09 ? '#6dff9f' : r >= .8 ? '#ffd24a' : '#ff6b6b'; };   // verde: vence; amarelo: incerto/empate; vermelho: perde
 const PAUSA = 4800;   // igual ao servidor: tempo da luta, com a nave parada
 const iniOn = () => CLOUD() && !(S.partida && !S.partida.piratas);
 function iniTela(e, t) {
@@ -601,7 +601,7 @@ function desenhaInimigo(p, e, ts, alvo, forca) {   // p: posição na tela; alvo
     else { cx.rotate(e.m ? 0 : alvo + Math.PI / 2); cx.drawImage(im, -sz / 2, -sz / 2, sz, sz); }
   }
   cx.restore();
-  if (forca) { cx.save(); cx.font = '700 7px Chakra Petch, sans-serif'; cx.textAlign = 'center'; const tx = (e.m ? '☣ ' : '☠ ') + 'nv.' + e.lv, ty = p.y - (e.m ? 17 + (e.tier || tierDe(e.lv)) * 2.5 : 14 + (e.tier || tierDe(e.lv)) * 1.5) * p.sc; cx.lineWidth = 2; cx.strokeStyle = 'rgba(0,0,0,.7)'; cx.strokeText(tx, p.x, ty); cx.fillStyle = corNv(e); cx.fillText(tx, p.x, ty); cx.restore(); }
+  if (forca) { cx.save(); cx.font = '700 7px Chakra Petch, sans-serif'; cx.textAlign = 'center'; const tx = (e.m ? '☣ ' : '☠ ') + e.lv.toFixed(1), ty = p.y - (e.m ? 17 + (e.tier || tierDe(e.lv)) * 2.5 : 14 + (e.tier || tierDe(e.lv)) * 1.5) * p.sc; cx.lineWidth = 2; cx.strokeStyle = 'rgba(0,0,0,.7)'; cx.strokeText(tx, p.x, ty); cx.fillStyle = corNv(e); cx.fillText(tx, p.x, ty); cx.restore(); }
 }
 function inimigos(ts, fase) {   // fase 0: patrulha (desenhada ANTES dos planetas, nomes ficam por cima); fase 1: lutas (acima dos planetas, abaixo da nave)
   if (!iniOn() || !PL.length) return;
@@ -661,8 +661,8 @@ function alertas(now) {
   const diz = (n, ate, fn) => { if (!FL[n] && now >= ate - 1) { FL[n] = 1; if (now - ate < 2500) fn(); } };
   const cl = f.m ? 'mon' : 'on';
   if (now >= f.td && now < f.tc) setAlerta(cl); else if (now >= f.tc && now < f.tc + 3000) setAlerta(cl + ' fast'); else if (now >= f.tc + 3000 && now < f.tc + PAUSA) setAlerta(f.w === 1 ? 'win' : 'lose'); else setAlerta('');
-  diz(1, f.td, () => cap(`Comandante, ${f.nm} nv.${f.lv} na nossa cola! ${f.r >= 1.09 ? 'Podemos com eles.' : f.r >= .8 ? 'Vai ser equilibrado.' : 'Isso é perigoso!'}`, 'alert', 4500));
-  diz(2, f.tc, () => cap(`Armas nv.${S.wpLv} contra nv.${f.lv}. ${f.r >= 1.09 ? 'Vantagem nossa!' : f.r >= .8 ? 'Luta apertada!' : 'Estamos em desvantagem!'}`, 'alert', 3000));
+  diz(1, f.td, () => cap(`Comandante, ${f.nm} (poder ${f.lv.toFixed(1)}) na nossa cola! ${f.r >= 1.09 ? 'Podemos com eles.' : f.r >= .8 ? 'Vai ser equilibrado.' : 'Isso é perigoso!'}`, 'alert', 4500));
+  diz(2, f.tc, () => cap(`Poder de fogo ${(+S.wpLv).toFixed(1)} contra ${f.lv.toFixed(1)}. ${f.r >= 1.09 ? 'Vantagem nossa!' : f.r >= .8 ? 'Luta apertada!' : 'Estamos em desvantagem!'}`, 'alert', 3000));
   diz(3, f.tc + 3000, () => cap(f.w === 1 ? `${f.nm} eliminados! Saque: +${f.loot} Cr.` : f.w === 2 ? `Empate! ${f.nm} recuaram. Casco -${f.dmg}%.` : `Derrota! Casco -${f.dmg}% e carga perdida. Repare em Frotas.`, f.w === 1 ? 'win' : f.w === 2 ? 'alert' : 'lose', 5200));
   const w = $('.mapwrap');
   if (now < SHAKE) { shaking = true; w.style.transform = `translate(${(Math.random() - .5) * 4}px,${(Math.random() - .5) * 4}px)`; } else if (shaking) { shaking = false; w.style.transform = ''; }

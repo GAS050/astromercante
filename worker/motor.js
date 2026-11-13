@@ -123,7 +123,7 @@ const tripInfo = (S, to) => { const d = dist(planeta(S, S.loc), planeta(S, to));
 
 /* ---------- inimigos do mapa (piratas e monstros): patrulham por relógio, iguais para todos; o aparelho só desenha o que o servidor decide ---------- */
 const HH = (n) => { n = (n ^ 61) ^ (n >>> 16); n = Math.imul(n, 0x45d9f3b); n ^= n >>> 4; n = Math.imul(n, 0x45d9f3b); n ^= n >>> 15; return n >>> 0; };
-export const nIni = (g) => 3 + Math.min(g, 4);
+export const nIni = (g) => 2 + Math.min(g, 2);
 export function ini(g, k) {
   const h = HH(g * 977 + k * 131 + 7), h2 = HH(h + 1), m = g >= 2 && k % 3 === 2, lv = Math.min(9, 1 + Math.floor((g + (k % 3)) * .8) + (m ? 1 : 0));
   return { g, k, T: 30000 + (h >> 4) % 25000, ph: ((h2 >> 6) % 1000) / 1000, m, lv, R: m ? 38 : 26, nm: m ? (lv >= 5 ? 'Leviatã estelar' : 'Monstro do vazio') : (lv >= 4 ? 'Frota pirata' : 'Piratas') };

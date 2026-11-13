@@ -520,9 +520,9 @@ function sprite(id, m, armas) {
 }
 
 /* ---------- tráfego ambiente: naves do jogo (decorativas) cruzando as rotas, menores e discretas para não confundir com a sua ---------- */
-const NPCS = Array.from({ length:8 }, (_, i) => ({ id:1 + Math.floor(Math.random() * 50), m:1 + Math.floor(Math.random() * 3), a:null, b:null, t0:0, dur:0, wait:Math.random() * 6000 }));
+const NPCS = Array.from({ length:4 }, (_, i) => ({ id:1 + Math.floor(Math.random() * 50), m:1 + Math.floor(Math.random() * 3), a:null, b:null, t0:0, dur:0, wait:Math.random() * 6000 }));
 function trafego(ts) {
-  if (!PL.length || cam.z < .5 || !S.fx) return;
+  if (!PL.length || cam.z < .5 || !S.fx || S.trip) return;
   cx.save();
   NPCS.forEach(n => {
     let p1 = n.a && plan(n.a), p2 = n.b && plan(n.b);
@@ -533,7 +533,7 @@ function trafego(ts) {
     }
     const q = (ts - n.t0) / n.dur, d = q * q * (3 - 2 * q), a = p1._s, b = p2._s; if (!a || !b) return;
     const x = a.x + (b.x - a.x) * d, y = a.y + (b.y - a.y) * d, ang = Math.atan2(b.y - a.y, b.x - a.x), sc = (a.sc + b.sc) / 2, fade = Math.min(1, q * 8, (1 - q) * 8);
-    cx.globalAlpha = .55 * fade; cx.strokeStyle = 'rgba(127,233,255,.35)'; cx.lineWidth = Math.max(.6, sc * .8); cx.beginPath(); cx.moveTo(x, y); cx.lineTo(x - Math.cos(ang) * 14 * sc, y - Math.sin(ang) * 14 * sc); cx.stroke();
+    cx.globalAlpha = .42 * fade; cx.strokeStyle = 'rgba(127,233,255,.3)'; cx.lineWidth = Math.max(.6, sc * .8); cx.beginPath(); cx.moveTo(x, y); cx.lineTo(x - Math.cos(ang) * 14 * sc, y - Math.sin(ang) * 14 * sc); cx.stroke();
     const im = sprite(n.id, n.m, false); if (im) { cx.save(); cx.translate(x, y); cx.rotate(ang + Math.PI / 2); const k = sc * .42 * .4 * 1.5; cx.scale(k, k); cx.drawImage(im, -50, -50); cx.restore(); }
   });
   cx.restore();
@@ -586,27 +586,30 @@ function monstroAnim(L, sz, tm, t, k) {
   cx.globalCompositeOperation = 'lighter'; cx.globalAlpha = .55 + .45 * Math.sin(tm * 3 + k); lay(L.brilho); cx.restore();
 }
 function desenhaInimigo(p, e, ts, alvo, forca) {   // p: posição na tela; alvo: ângulo para onde olha (só os piratas giram)
-  const k = p.sc * (cam.z < .5 ? .7 : 1), tm = ts / 1000 + e.k * 1.7, tier = tierDe(e.lv), im = inimSprite(e.m, tier), sz = (e.m ? 26 + tier * 5 : 22 + tier * 3) * k;
+  const k = p.sc * (cam.z < .5 ? .7 : 1), tm = ts / 1000 + e.k * 1.7, tier = tierDe(e.lv), im = inimSprite(e.m, tier), sz = (e.m ? 26 + tier * 5 : 22 + tier * 3) * k * (tier >= 4 ? .85 : 1);
   cx.save(); cx.translate(p.x, p.y);
-  cx.fillStyle = e.m ? 'rgba(178,75,255,.11)' : 'rgba(255,50,50,.12)'; cx.beginPath(); cx.arc(0, 0, sz * .62, 0, 7); cx.fill();   // halo de aviso, sem shadowBlur
+  cx.fillStyle = e.m ? 'rgba(178,75,255,.08)' : 'rgba(255,50,50,.09)'; cx.beginPath(); cx.arc(0, 0, sz * .5, 0, 7); cx.fill();   // halo de aviso, sem shadowBlur
   if (im) {
     const st = INIM[(e.m ? 'monstro_' : 'pirata_') + tier];
     if (e.m && st && st.L) { cx.translate(Math.sin(tm * .8 + e.k) * sz * .03, Math.sin(tm * 1.1) * sz * .04); cx.rotate(Math.sin(tm * .9) * .05); monstroAnim(st.L, sz, tm, tier, e.k); }   // flutua e se mexe por camadas
     else { cx.rotate(e.m ? 0 : alvo + Math.PI / 2); cx.drawImage(im, -sz / 2, -sz / 2, sz, sz); }
   }
   cx.restore();
-  if (cam.z >= .5 || forca) { cx.save(); cx.font = '700 7px Chakra Petch, sans-serif'; cx.textAlign = 'center'; const tx = (e.m ? '☣ ' : '☠ ') + 'nv.' + e.lv, ty = p.y - (e.m ? 17 + tierDe(e.lv) * 2.5 : 14 + tierDe(e.lv) * 1.5) * p.sc; cx.lineWidth = 2; cx.strokeStyle = 'rgba(0,0,0,.7)'; cx.strokeText(tx, p.x, ty); cx.fillStyle = e.m ? '#e6b3ff' : '#ff8a8a'; cx.fillText(tx, p.x, ty); cx.restore(); }
+  if (forca) { cx.save(); cx.font = '700 7px Chakra Petch, sans-serif'; cx.textAlign = 'center'; const tx = (e.m ? '☣ ' : '☠ ') + 'nv.' + e.lv, ty = p.y - (e.m ? 17 + tierDe(e.lv) * 2.5 : 14 + tierDe(e.lv) * 1.5) * p.sc; cx.lineWidth = 2; cx.strokeStyle = 'rgba(0,0,0,.7)'; cx.strokeText(tx, p.x, ty); cx.fillStyle = e.m ? '#e6b3ff' : '#ff8a8a'; cx.fillText(tx, p.x, ty); cx.restore(); }
 }
-function inimigos(ts) {
+function inimigos(ts, fase) {   // fase 0: patrulha (desenhada ANTES dos planetas, nomes ficam por cima); fase 1: lutas (acima dos planetas, abaixo da nave)
   if (!iniOn() || !PL.length) return;
-  const now = NOW(), enc = S.trip?.enc || [], n = 3 + Math.min(S.gal, 4);
+  const now = NOW(), enc = S.trip?.enc || [], n = 2 + Math.min(S.gal, 2), sp = shipPos(ts), rs = !S.trip && sel && sel !== S.loc && plan(sel), rf = rs && plan(S.loc);
   for (let k = 0; k < n; k++) {
     const e = iniG(S.gal, k), f = enc.find(x => x.k === k), pos = iniTela(e, now); if (!pos) continue;
-    if (f && S.trip) { if (now >= f.tc + 3200) continue; if (now >= f.td) { desenhaLuta(e, f, now, ts); continue; } }
-    // anel de alcance (discreto) e o inimigo patrulhando
-    const rr = e.R * pos.k; cx.save(); cx.globalAlpha = .24 + .08 * Math.sin(ts / 500 + k); cx.strokeStyle = e.m ? '#b24bff' : '#ff4040'; cx.lineWidth = 1; cx.beginPath(); cx.arc(pos.x, pos.y, rr, 0, 7); cx.stroke(); cx.restore();
+    if (f && S.trip) { if (now >= f.tc + 3200) continue; if (now >= f.td) { if (fase === 1) desenhaLuta(e, f, now, ts); continue; } }
+    if (fase === 1) continue;
+    // perto da nave (ou da rota escolhida)? só então mostra o anel de alcance e o nível
+    const rr = e.R * pos.k; let perto = Math.hypot(pos.x - sp.x, pos.y - sp.y) < rr * 3.2;
+    if (!perto && rf && rf._s && rs._s) { const ax = rf._s.x, ay = rf._s.y, bx = rs._s.x, by = rs._s.y, L = Math.hypot(bx - ax, by - ay) || 1, u = clamp(((pos.x - ax) * (bx - ax) + (pos.y - ay) * (by - ay)) / (L * L), 0, 1); perto = Math.hypot(pos.x - (ax + (bx - ax) * u), pos.y - (ay + (by - ay) * u)) < rr * 1.6; }
+    if (perto) { cx.save(); cx.globalAlpha = .3 + .1 * Math.sin(ts / 500 + k); cx.strokeStyle = e.m ? '#b24bff' : '#ff4040'; cx.lineWidth = 1; cx.beginPath(); cx.arc(pos.x, pos.y, rr, 0, 7); cx.stroke(); cx.restore(); }
     const nx = iniTela(e, now + 400), ang = nx ? Math.atan2(nx.y - pos.y, nx.x - pos.x) : 0;
-    cx.save(); cx.globalAlpha = .9; desenhaInimigo(pos, e, ts, ang); cx.restore();
+    cx.save(); cx.globalAlpha = .92; desenhaInimigo(pos, e, ts, ang, perto); cx.restore();
   }
 }
 function desenhaLuta(e, f, now, ts) {
@@ -690,9 +693,10 @@ function frame(ts) {
   if (rt) { const a = rf._s, b = rt._s; [[6, .16], [1.6, .9]].forEach(([lw, al]) => { cx.strokeStyle = `rgba(62,230,255,${al})`; cx.lineWidth = lw; cx.beginPath(); cx.moveTo(a.x, a.y); cx.lineTo(b.x, b.y); cx.stroke(); }); }
   cx.globalCompositeOperation = 'source-over';
   trafego(ts);
+  inimigos(ts, 0);
   PL.slice().sort((a, b) => a._s.y - b._s.y).forEach(p => drawPlanet(p, ts));
   if (t) { const d = plan(t.to)._s, k = (ts / 25) % 30; cx.strokeStyle = `rgba(62,230,255,${1 - k / 30})`; cx.lineWidth = 1.2; cx.beginPath(); cx.ellipse(d.x, d.y + 14 * d.sc, k * d.sc, k * d.sc * .35, 0, 0, 7); cx.stroke(); }
-  inimigos(ts);
+  inimigos(ts, 1);
   drawShip(ts);
   if (cam.z < .5) { const sp = shipPos(ts), k = (ts / 40) % 24; cx.strokeStyle = `rgba(57,255,136,${1 - k / 24})`; cx.lineWidth = 1.4; cx.beginPath(); cx.arc(sp.x, sp.y, 4 + k, 0, 7); cx.stroke(); cx.fillStyle = '#39ff88'; cx.beginPath(); cx.arc(sp.x, sp.y, 2.2, 0, 7); cx.fill(); }
   const wk = (performance.now() - warpT) / 900; if (wk < 1) { g = cx.createRadialGradient(200, 150, 0, 200, 150, 300); g.addColorStop(0, '#fff'); g.addColorStop(1, '#3ee6ff'); cx.globalAlpha = 1 - wk; cx.fillStyle = g; cx.fillRect(0, 0, 400, 300); cx.globalAlpha = 1; }

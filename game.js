@@ -806,15 +806,11 @@ function renderInfo() {
 
 /* ---------- Vício: som, missões, ranking, gráfico ---------- */
 let AC;
-function sfx(k) {
+function sfx(k) {   // mesmo sistema de áudio dos efeitos (volume igual para todos)
   if (!S.sound) return;
   try {
-    AC = AC || new AudioContext();
-    const seq = { ok:[[660,.07],[880,.09]], err:[[160,.15]], win:[[523,.1],[659,.1],[784,.1],[1047,.25]], alert:[[440,.1],[330,.1],[440,.1]] }[k] || [];
-    let t = AC.currentTime;
-    seq.forEach(([f, d]) => { const o = AC.createOscillator(), g = AC.createGain(); o.type = k === 'err' ? 'sawtooth' : 'square'; o.frequency.value = f;
-      g.gain.setValueAtTime(.05, t); g.gain.exponentialRampToValueAtTime(.001, t + d); o.connect(g).connect(AC.destination); o.start(t); o.stop(t + d); t += d; });
-    if (seq.length) navigator.vibrate?.(k === 'err' ? [60, 40, 60] : k === 'win' ? [40, 30, 80] : 20);
+    const nome = { ok:'ok', err:'err', win:'win', alert:'alerta' }[k]; if (nome && window.SND) window.SND.toca(nome);
+    if (nome) navigator.vibrate?.(k === 'err' ? [60, 40, 60] : k === 'win' ? [40, 30, 80] : 20);
   } catch {}
 }
 const MIS = [

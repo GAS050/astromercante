@@ -29,6 +29,9 @@
     selo1: t => { [659, 880].forEach((f, i) => tom(t + i * .1, f, .22, { tipo: 'triangle', v: .12 })); tom(t + .22, 1319, .5, { v: .07 }); },
     selo2: t => { [523, 659, 784, 1047].forEach((f, i) => tom(t + i * .09, f, .24, { tipo: 'triangle', v: .12 })); [1047, 1319].forEach(f => tom(t + .4, f, .8, { v: .06 })); },
     selo3: t => { [523, 659, 784, 1047, 1319, 1568].forEach((f, i) => { tom(t + i * .08, f, .3, { tipo: 'square', v: .07 }); tom(t + i * .08, f / 2, .3, { tipo: 'triangle', v: .09 }); }); [1047, 1319, 1568, 2093].forEach((f, i) => tom(t + .55 + i * .02, f, 1.4, { v: .06 })); for (let i = 0; i < 6; i++) tom(t + .7 + i * .09, 2637 + i * 180, .12, { v: .04 }); },
+    ok: t => { [660, 880].forEach((f, i) => tom(t + i * .08, f, .1, { tipo: 'triangle', v: .12 })); },
+    err: t => { tom(t, 160, .18, { tipo: 'sawtooth', v: .1 }); },
+    win: t => { [523, 659, 784, 1047].forEach((f, i) => tom(t + i * .1, f, i === 3 ? .28 : .12, { tipo: 'triangle', v: .12 })); },
     alerta: t => { [440, 330, 440, 330].forEach((f, i) => tom(t + i * .14, f, .12, { tipo: 'square', v: .09 })); },
     tiro: t => { for (let i = 0; i < 3; i++) { const u = t + i * .13; tom(u, 1400 * rnd(.08), .11, { tipo: 'sawtooth', v: .09, f2: 160 }); ruido(u, .06, { v: .08, f0: 3000, f1: 900 }); } },
     vitoria: t => { [523, 659, 784].forEach((f, i) => tom(t + i * .1, f, .18, { tipo: 'square', v: .08 })); tom(t + .3, 1047, .5, { tipo: 'triangle', v: .12 }); },
@@ -41,16 +44,19 @@
     if (!cache[nome]) { const a = new Audio(ARQUIVOS[nome]); a.preload = 'auto'; cache[nome] = a; }
     const a = cache[nome].cloneNode(); a.volume = Math.min(1, cfg.vs * .6); a.play().catch(() => {});
   }
+  /* Todos os efeitos saem no mesmo volume: cada um tem um ganho medido (RMS alvo igual), para nenhum "estourar" mais que os outros. */
+  const NORM = { compra: .34, venda: .44, viagem: 1.09, chegada: .51, patente: .33, conquista: .35, selo1: .56, selo2: .49, selo3: .38, ok: .47, err: .66, win: .48, alerta: .47, tiro: .68, vitoria: .52, derrota: .8, rugido: .34 };
+  function sintetiza(nome, t) { const a = ac, m0 = mestre, bus = a.createGain(); bus.gain.value = NORM[nome] || .5; bus.connect(m0); mestre = bus; try { SINT[nome](t); } finally { mestre = m0; } }
   function toca(nome, atraso = 0) {
     if (typeof S === 'undefined' || !S.sound) return;
-    try { if (ARQUIVOS[nome]) { setTimeout(() => arquivo(nome), atraso * 1000); } else { const a = ctx(); if (SINT[nome]) SINT[nome](a.currentTime + atraso + .01); } } catch {}
+    try { if (ARQUIVOS[nome]) { setTimeout(() => arquivo(nome), atraso * 1000); } else { const a = ctx(); if (SINT[nome]) sintetiza(nome, a.currentTime + atraso + .01); } } catch {}
   }
   window.SND = { toca };
 
   /* música: em loop, baixinha, a faixa da abertura (história e tutorial) e a do jogo; pausa quando a aba some */
   const temMus = () => !!(MUSICAS.intro || MUSICAS.jogo);
   const faixas = {}; let atual = '', alvo = '';
-  const vol = () => (cfg.mus && S.sound !== false ? cfg.vm * .7 : 0);   // ganho geral mais baixo: o controle do jogador continua de 0 a 100%
+  const vol = () => (cfg.mus && S.sound !== false ? cfg.vm * .5 : 0);   // ganho geral mais baixo: o controle do jogador continua de 0 a 100%
   function faixa(k) { const src = MUSICAS[k] || MUSICAS.jogo || MUSICAS.intro; if (!src) return null; const id = src; if (!faixas[id]) { const a = new Audio(src); a.loop = true; a.volume = 0; a.preload = 'none'; a.onerror = () => { MUSICAS.intro = MUSICAS.jogo = null; }; faixas[id] = a; } return faixas[id]; }
   function musicaTick() {
     if (!temMus() || typeof S === 'undefined') return;

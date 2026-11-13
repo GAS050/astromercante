@@ -16,6 +16,13 @@
   let meu = null, meuT = 0, buscando = false;
   const carregarMeu = async () => { if (buscando || !PF || !PF.id || Date.now() - meuT < 90000) return; buscando = true; meuT = Date.now(); try { meu = await api('/jogador?id=' + PF.id); } catch { meuT = Date.now() - 60000; } buscando = false; };
   window.meuPerfilAtualizar = () => { meuT = 0; };
+  /* Noticiário Interplanetário: notícias fictícias inspiradas no noticiário real (vêm do Worker, geradas pela IA) */
+  const hA = t => { const m = Math.max(0, Math.round((Date.now() - t) / 60000)); return m < 2 ? 'agora' : m < 60 ? `há ${m} min` : `há ${Math.round(m / 60)} h`; };
+  const noticiasCard = () => {
+    const L = (typeof NOTICIAS !== 'undefined' ? NOTICIAS : []).slice(0, 5); if (!L.length) return '';
+    const nome = id => esc((RES.find(r => r.id === id) || {}).nome || id);
+    return `<div class="hm-card hm-news"><div class="hm-h"><b>📰 Noticiário Interplanetário</b><small>Ficção inspirada no mundo real</small></div><ul class="nw">` + L.map(n => `<li><div class="nw-t"><b>${esc(n.ti)}</b><small>${hA(n.t0)}</small></div><p>${esc(n.tx)}</p>${n.s && Date.now() < n.t1 ? `<div class="nw-c">${n.r.map(id => `<span class="${n.s > 0 ? 'up' : 'down'}">${n.s > 0 ? '▲' : '▼'} ${nome(id)}</span>`).join('')}</div>` : ''}</li>`).join('') + `</ul><small class="nw-f">Notícias fictícias. Não são recomendação financeira.</small></div>`;
+  };
   function render() {
     if (document.body.dataset.view !== 'home' || !TOK || !CLOUD() || !READY || typeof PF === 'undefined' || !PF) return;
     const emPartida = MODE === 'partida', n = NAVES[(S.nave || 1) - 1] || { nome: 'Nave' }, w = patTotal();
@@ -27,6 +34,7 @@
     if (noAr()) { const pos = PT.placar ? PT.placar.findIndex(x => x.eu) + 1 : 0; h += `<div class="hm-card hm-match"><div><b>${PT.modo === 'torneio' ? '🏆 Torneio' : '🤝 Partida entre amigos'} em andamento</b><small>Sala ${PT.codigo} · faltam ${mmss(PT.fim - NOW())}${pos ? ' · você está em ' + pos + 'º' : ''}</small></div><button type="button" data-hm="${MODE === 'partida' ? 'market' : 'volta'}">${MODE === 'partida' ? 'Jogar' : 'Voltar à partida'}</button></div>`; }
     const casco = S.hull == null ? 100 : S.hull;
     h += `<div class="hm-stats"><div><small>Créditos</small><b class="mono">${fmt(S.credits)}</b></div><div><small>Nave</small><b>${esc(n.nome)}</b></div><div><small>Casco</small><b class="${casco < 30 ? 'down' : ''}">${casco}%</b></div><div><small>Porão</small><b>${used()}/${S.cap}</b></div></div>`;
+    h += noticiasCard();
     if (!emPartida && S.daily && S.daily.p) {
       h += `<div class="hm-card"><div class="hm-h"><b>Missões do dia</b><small>Sequência de ${pl(S.streak || 0, 'dia')}</small></div><ul class="mis">` + MIS.map(m => { const t = Math.round(m.n()), v = Math.min(Math.round(S.daily.p[m.k] || 0), t); return `<li class="${S.daily.done[m.k] ? 'done' : ''}"><span>${m.t} <b class="mono">${v}/${t}</b></span><small>+${m.r} Cr</small><i style="width:${v / t * 100}%"></i></li>`; }).join('') + '</ul></div>';
     }

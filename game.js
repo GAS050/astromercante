@@ -37,16 +37,24 @@ const save = () => { try { localStorage.setItem(KEY, JSON.stringify(CLOUD() ? Ob
 
 /* ---------- Feed de dados ---------- */
 const STEP = 30000, FEED_KEY = 'astromercante_feed', cyc = t => Math.floor(t / STEP) * STEP;   // preço muda em ciclos fixos do relógio (:00 e :30), iguais para todos
-let change = {}, ant = {}, feedAt = 0, live = false, lastFeed = 0;
+let change = {}, ant = {}, feedAt = 0, live = false, lastFeed = 0, NEWS = [], NOTICIAS = [];   // NEWS: efeitos no preço; NOTICIAS: textos do painel
 try { const c = JSON.parse(localStorage.getItem(FEED_KEY) || 'null'); if (c && c.change) { change = c.change; ant = c.ant || {}; feedAt = c.feedAt || 0; live = Object.keys(change).length > 0; } } catch {}   // último feed conhecido: o preço não "pula" ao recarregar
 const get = async url => { const r = await fetch(url, { cache:'no-store', signal: AbortSignal.timeout(8000) }); if (!r.ok) throw 0; return r.json(); };
 
+function novasNoticias(lista) {   // avisa 1x cada notícia nova (não avisa as que já existiam quando o jogador abriu o jogo)
+  let vistas = []; try { vistas = JSON.parse(localStorage.getItem('astromercante_news') || 'null') || []; } catch {}
+  const primeira = !vistas.length && !NOTICIAS.length, novas = lista.filter(n => !vistas.includes(n.id));
+  if (!novas.length) return;
+  try { localStorage.setItem('astromercante_news', JSON.stringify(lista.map(n => n.id).slice(0, 30))); } catch {}
+  if (!primeira && NOTICIAS.length) { const n = novas[0], nome = id => (RES.find(r => r.id === id) || {}).nome || id; note(`📰 ${n.ti}${n.s ? ` (${n.s > 0 ? '▲' : '▼'} ${n.r.map(nome).join(', ')})` : ''}`, 'alert'); }
+}
 async function fetchFeed() {
   lastFeed = Date.now(); feedSlot = Math.floor((Date.now() - 20000) / FEED_EVERY);
   if (CONFIG.PRECOS_URL) {          // caminho principal: Worker com cache (veja worker/README.md)
     try {
       const d = await get(CONFIG.PRECOS_URL.replace(/\/$/, '') + '/precos'), c = {}, a = {};
       FEED_KEYS.forEach(k => { if (Number.isFinite(d[k])) c[k] = d[k]; if (Number.isFinite(d.ant?.[k])) a[k] = d.ant[k]; });
+      if (Array.isArray(d.noticias)) { novasNoticias(d.noticias); NOTICIAS = d.noticias; NEWS = d.noticias.filter(n => n.s); }
       if (Object.keys(c).length) { change = c; ant = a; feedAt = +d.updated || 0; try { localStorage.setItem(FEED_KEY, JSON.stringify({ change, ant, feedAt })); } catch {} }
     } catch {}
     live = Object.keys(change).length > 0; setFeed(); return;   // se o Worker falhar, usa a simulação (não sobrecarrega as APIs)
@@ -72,10 +80,11 @@ function feedCh(src, t) {   // variação 24h do feed, suavizada entre uma atual
   const c = change[src]; if (!Number.isFinite(c)) return null; const a = ant[src];
   return Number.isFinite(a) && feedAt ? a + (c - a) * clamp((t - feedAt) / FEED_EVERY, 0, 1) : c;
 }
+const newsMult = (id, t) => { let m = 0; for (const n of NEWS) { if (!n.s || t < n.t0 || t >= n.t1 || !n.r?.includes(id)) continue; m += n.s * Math.min(1, (t - n.t0) / 300000, (n.t1 - t) / ((n.t1 - n.t0) * .25)); } return clamp(m, -.2, .2); };   // idêntico ao servidor
 function priceNow(r, t) {
   const s = t / 1000, n = vnoise(r.id + 'a', s / 900) * .55 + vnoise(r.id + 'b', s / 240) * .3 + vnoise(r.id + 'c', s / 60) * .15;
   const ch = feedCh(r.src, t), tg = Number.isFinite(ch) ? clamp(ch * 3, -30, 30) / 100 : 0;
-  return Math.max(1, r.base * (1 + tg) * (1 + n * Math.min(.35, r.vol * 18)));
+  return Math.max(1, r.base * (1 + tg) * (1 + newsMult(r.id, t)) * (1 + n * Math.min(.35, r.vol * 18)));
 }
 const EVWIN = 180000;
 const evNow = now => S.partida && !S.partida.eventos ? null : evAt(now);   // partidas podem desligar os eventos
@@ -966,7 +975,7 @@ function aplicarEstado(r) {   // o servidor manda; este aparelho só mostra
   if (r.agora) SKEW = r.agora - Date.now();
   if (r.feed) {
     const c = {}, a = {}; FEED_KEYS.forEach(k => { if (Number.isFinite(r.feed.change?.[k])) c[k] = r.feed.change[k]; if (Number.isFinite(r.feed.ant?.[k])) a[k] = r.feed.ant[k]; });
-    change = c; ant = a; feedAt = r.feed.feedAt || 0; live = Object.keys(c).length > 0; setFeed();
+    change = c; ant = a; feedAt = r.feed.feedAt || 0; live = Object.keys(c).length > 0; if (Array.isArray(r.feed.news)) NEWS = r.feed.news; setFeed();
   }
   if (r.v) V = r.v;
   const e = r.estado_jogo || (r.estado && typeof r.estado === 'object' ? r.estado : null);

@@ -49,10 +49,12 @@ const feedCh = (feed, src, t) => {
   const c = feed.change?.[src]; if (!Number.isFinite(c)) return null; const a = feed.ant?.[src];
   return Number.isFinite(a) && feed.feedAt ? a + (c - a) * clamp((t - feed.feedAt) / FEED_EVERY, 0, 1) : c;
 };
+// notícias do jogo: empurrão limitado (±20% no total), entra em 5 min, fica estável e sai suave no último quarto da duração
+const newsMult = (id, t, feed) => { let m = 0; for (const n of feed.news || []) { if (!n.s || t < n.t0 || t >= n.t1 || !n.r?.includes(id)) continue; m += n.s * Math.min(1, (t - n.t0) / 300000, (n.t1 - t) / ((n.t1 - n.t0) * .25)); } return clamp(m, -.2, .2); };
 function precoBase(r, t, feed) {
   const s = t / 1000, n = vnoise(r.id + 'a', s / 900) * .55 + vnoise(r.id + 'b', s / 240) * .3 + vnoise(r.id + 'c', s / 60) * .15;
   const ch = feedCh(feed, r.src, t), tg = Number.isFinite(ch) ? clamp(ch * 3, -30, 30) / 100 : 0;
-  return Math.max(1, r.base * (1 + tg) * (1 + n * Math.min(.35, r.vol * 18)));
+  return Math.max(1, r.base * (1 + tg) * (1 + newsMult(r.id, t, feed)) * (1 + n * Math.min(.35, r.vol * 18)));
 }
 export function evAt(now) {
   const k = Math.floor(now / EVWIN);

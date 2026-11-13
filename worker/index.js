@@ -1,6 +1,7 @@
 // Worker do ASTROMERCANTE: busca os preços reais a cada 5 min (Cron) e guarda no KV.
 // Os jogadores só leem o cache, então o número de chamadas às APIs não depende de quantos jogam.
 import { FEEDS } from './dados.js';
+import { atualizarNoticias } from './noticias.js';
 // ativos reais: os 3 dos itens básicos + 1 por produto novo (uma única chamada traz todos)
 const CG_IDS = { btc: 'bitcoin', gold: 'pax-gold', eth: 'ethereum' };
 Object.entries(FEEDS).forEach(([k, v]) => { CG_IDS[k] = v.cg; });
@@ -67,8 +68,10 @@ const lerSave = (env, id) => env.DB.prepare('SELECT estado, patrimonio, atualiza
 let feedCache = { t: 0, d: null };
 async function feedAtual(env) {
   if (Date.now() - feedCache.t < 30000 && feedCache.d) return feedCache.d;
-  const d = JSON.parse((await env.PRECOS.get('latest')) || 'null') || {};
-  feedCache = { t: Date.now(), d: { change: Object.fromEntries(FEED_KEYS.map((k) => [k, d[k]])), ant: d.ant || {}, feedAt: Number(d.updated) || 0 } };
+  const [l, nw] = await Promise.all([env.PRECOS.get('latest'), env.PRECOS.get('news')]), d = JSON.parse(l || 'null') || {}, agora = Date.now();
+  // só os efeitos de notícia (ids, intensidade e janela) viajam junto do feed: o texto vai em /precos
+  const news = (JSON.parse(nw || '{}').itens || []).filter((n) => n.s && n.t1 > agora - 60000).map((n) => ({ r: n.r, s: n.s, t0: n.t0, t1: n.t1 }));
+  feedCache = { t: agora, d: { change: Object.fromEntries(FEED_KEYS.map((k) => [k, d[k]])), ant: d.ant || {}, feedAt: Number(d.updated) || 0, news } };
   return feedCache.d;
 }
 async function gravarJogo(env, id, S, c, base) {   // compare-and-swap: só grava se ninguém mudou a conta nesse meio-tempo
@@ -663,7 +666,8 @@ async function rota(req, env, url) {
   if (p === '/precos' && m === 'GET') {
     let d = JSON.parse((await env.PRECOS.get('latest')) || 'null');
     if (!d) d = await refresh(env);
-    return { ...Object.fromEntries(FEED_KEYS.map((k) => [k, d[k] ?? null])), ant: d.ant ?? null, updated: d.updated ?? null, stale: !d.updated || Date.now() - d.updated > STALE_MS };
+    const nw = JSON.parse((await env.PRECOS.get('news')) || '{}'), itens = nw.itens || [];
+    return { noticias: itens.slice(0, 12), ...Object.fromEntries(FEED_KEYS.map((k) => [k, d[k] ?? null])), ant: d.ant ?? null, updated: d.updated ?? null, stale: !d.updated || Date.now() - d.updated > STALE_MS };
   }
   if (p === '/auth/registrar' && m === 'POST') {
     const nome = corpo.nome || '', senha = corpo.senha, ip = req.headers.get('CF-Connecting-IP') || 'ip';
@@ -781,7 +785,7 @@ async function rota(req, env, url) {
 }
 
 export default {
-  async scheduled(_evento, env, ctx) { ctx.waitUntil(refresh(env)); ctx.waitUntil(partidasManutencao(env)); ctx.waitUntil(fecharPeriodos(env)); },
+  async scheduled(_evento, env, ctx) { ctx.waitUntil(refresh(env)); ctx.waitUntil(atualizarNoticias(env)); ctx.waitUntil(partidasManutencao(env)); ctx.waitUntil(fecharPeriodos(env)); },
   async fetch(req, env) {
     const cors = { 'Access-Control-Allow-Origin': env.ALLOWED_ORIGIN || '*', 'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS', 'Access-Control-Allow-Headers': 'Content-Type, Authorization', 'Access-Control-Max-Age': '86400' };
     if (req.method === 'OPTIONS') return new Response(null, { status: 204, headers: cors });

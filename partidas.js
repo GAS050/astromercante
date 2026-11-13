@@ -46,7 +46,7 @@ function voltarCarreira(manual) {
 }
 function renderPlacar() {
   if (!PT || !PT.placar) { $('#board').innerHTML = '<li class="empty">Carregando placar…</li>'; return; }
-  $('#board').innerHTML = PT.placar.map((r, i) => `<li class="${r.eu ? 'me' : ''}"><span><i class="pos">${i + 1}</i> ${esc(r.n)}${r.bot ? ' <small>bot</small>' : ''}</span><b class="mono">${fmt(r.w)}</b></li>`).join('');
+  $('#board').innerHTML = PT.placar.map((r, i) => `<li class="${r.eu ? 'me' : ''}${r.i ? ' pj-link' : ''}"${r.i ? ` data-pj="${r.i}" role="button" tabindex="0"` : ''}><span><i class="pos">${i + 1}</i> ${esc(r.n)}${r.bot ? ' <small>bot</small>' : ''}</span><b class="mono">${fmt(r.w)}</b></li>`).join('');
 }
 function renderMatchBar() {
   const b = $('#matchbar'); if (!noAr()) { b.hidden = true; return; } b.hidden = false;
@@ -110,7 +110,7 @@ function lobbyHtml() {
   <div class="pcode"><small>Código da sala</small><b class="mono">${PT.codigo}</b><button type="button" id="l-cp">Copiar convite</button></div>
   <div class="prow"><button type="button" class="buy" id="l-inv"><i class="fa-solid fa-user-group"></i> Convidar amigos</button></div>
   <p class="empty">${esc(resumo(c))}${PT.modo === 'torneio' ? ` · taxa ${fmt(c.taxa).replace(',00', '')} Cr` : ''}</p>
-  <ul class="board">${PT.jogadores.map(j => `<li class="${j.eu ? 'me' : ''}"><span>${esc(j.n)}${j.host ? ' 👑' : ''}</span></li>`).join('')}<li class="tot"><span>${hum} de ${c.jogadores} vagas${c.bots ? ` · ${c.jogadores - hum} bot(s) entram ao iniciar` : ''}</span></li></ul>
+  <ul class="board">${PT.jogadores.map(j => `<li class="${j.eu ? 'me' : ''}${j.i ? ' pj-link' : ''}"${j.i ? ` data-pj="${j.i}" role="button" tabindex="0"` : ''}><span>${esc(j.n)}${j.host ? ' 👑' : ''}</span></li>`).join('')}<li class="tot"><span>${hum} de ${c.jogadores} vagas${c.bots ? ` · ${c.jogadores - hum} bot(s) entram ao iniciar` : ''}</span></li></ul>
   <p class="err" id="l-err"></p>
   <div class="prow">${PT.host ? '<button type="button" class="buy" id="l-go">Iniciar partida</button>' : '<span class="empty">Aguardando o criador iniciar…</span>'}<button type="button" class="danger" id="l-x">${PT.host ? 'Cancelar sala' : 'Sair da sala'}</button></div>`;
 }
@@ -126,7 +126,7 @@ function mostrarResultado(p) {
   if (p.estado === 'cancelada') box.innerHTML = '<h2>Sala cancelada</h2><p class="empty">A sala não começou a tempo. As taxas foram devolvidas.</p><button class="buy" id="res-x">Fechar</button>';
   else {
     const eu = (p.resultado || []).find(r => r.eu), t = p.modo === 'torneio';
-    box.innerHTML = `<h2>${eu && eu.pos === 1 ? '🏆 Você venceu!' : 'Fim da partida'}</h2><ol class="board">${(p.resultado || []).map(r => `<li class="${r.eu ? 'me' : ''}"><span><i class="pos">${r.pos}</i> ${esc(r.n)}${r.bot ? ' <small>bot</small>' : ''}${r.premio ? ` <small>+${fmt(r.premio).replace(',00', '')} Cr</small>` : ''}</span><b class="mono">${fmt(r.w)}</b></li>`).join('')}</ol>`
+    box.innerHTML = `<h2>${eu && eu.pos === 1 ? '🏆 Você venceu!' : 'Fim da partida'}</h2><ol class="board">${(p.resultado || []).map(r => `<li class="${r.eu ? 'me' : ''}${r.i ? ' pj-link' : ''}"${r.i ? ` data-pj="${r.i}" role="button" tabindex="0"` : ''}><span><i class="pos">${r.pos}</i> ${esc(r.n)}${r.bot ? ' <small>bot</small>' : ''}${r.premio ? ` <small>+${fmt(r.premio).replace(',00', '')} Cr</small>` : ''}</span><b class="mono">${fmt(r.w)}</b></li>`).join('')}</ol>`
       + (t && eu ? `<p class="empty">${eu.premio ? `Prêmio de ${fmt(eu.premio).replace(',00', '')} Cr creditado na sua carreira.` : 'Sem prêmio desta vez.'}</p>` : '') + '<button class="buy" id="res-x">Fechar</button>';
   }
   $('#res').hidden = false; $('#res-x').onclick = () => { $('#res').hidden = true; };

@@ -541,3 +541,4 @@ body[data-view=amigos] #p-amigos{display:block}
 .pj-ac{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:12px}.pj-ac .buy,.pj-ac .ghost{padding:9px 14px}
 .pj-link{cursor:pointer}.pj-link:hover .am-n,.board li.pj-link:hover{background:rgba(62,230,255,.06)}.pj-link:focus-visible{outline:2px solid var(--cyan);outline-offset:2px}
 .pj-nv .lj-nv{transform:scale(1.45)}.pj-nv{overflow:hidden}
+#jogador{z-index:30}

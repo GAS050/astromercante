@@ -390,9 +390,9 @@ async function partidaResolver(env, p, id) {
 async function vista(env, p, id, v) {
   const now = Date.now(), cfg = JSON.parse(p.cfg), js = await nomes(env, p.codigo), eu = js.find((j) => j.id === id);
   const base = { codigo: p.codigo, modo: p.modo, estado: p.estado, cfg, host: p.criador === id, criada: p.criada, inicio: p.inicio, fim: p.fim, agora: now, bots: p.bots, vagas: cfg.jogadores };
-  if (p.estado === 'espera') return { ...base, jogadores: js.map((j) => ({ n: apelido(j.nome, j.google, j.ap), a: j.av || 'a1', host: j.id === p.criador, eu: j.id === id })) };
-  if (p.estado === 'fim' || p.estado === 'cancelada') return { ...base, resultado: p.resultado ? JSON.parse(p.resultado).map((t) => ({ ...t, eu: !t.bot && t.id === id, id: undefined })) : null };
-  const tab = js.map((j) => ({ n: apelido(j.nome, j.google, j.ap), a: j.av || 'a1', w: j.w, bot: 0, eu: j.id === id }));
+  if (p.estado === 'espera') return { ...base, jogadores: js.map((j) => ({ i: j.id, n: apelido(j.nome, j.google, j.ap), a: j.av || 'a1', host: j.id === p.criador, eu: j.id === id })) };
+  if (p.estado === 'fim' || p.estado === 'cancelada') return { ...base, resultado: p.resultado ? JSON.parse(p.resultado).map((t) => ({ ...t, eu: !t.bot && t.id === id, i: t.bot ? undefined : t.id, id: undefined })) : null };
+  const tab = js.map((j) => ({ i: j.id, n: apelido(j.nome, j.google, j.ap), a: j.av || 'a1', w: j.w, bot: 0, eu: j.id === id }));
   for (let i = 0; i < p.bots; i++) tab.push({ n: botNome(p.codigo, i), w: botPatrimonio(cfg, p.codigo, i, now, p.inicio, p.fim), bot: 1 });
   tab.sort((a, b) => b.w - a.w); tab.forEach((t) => { t.w = Math.round(t.w * 100) / 100; });
   const out = { ...base, placar: tab };

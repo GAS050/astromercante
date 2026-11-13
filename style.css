@@ -299,3 +299,6 @@ body[data-view=play] #p-play{display:block}
 .ntile button,.ntile .tag{margin-top:auto;padding:5px 6px;border:1px solid var(--line);border-radius:4px;background:none;text-align:center;font-size:.76rem}
 .ntile .buy{border-color:var(--neon);color:var(--neon)}.ntile button:disabled{opacity:.4;cursor:not-allowed}
 .ntile .tag{color:var(--neon);border-color:var(--neon)}.ntile .tag.lock{color:var(--mt);border-color:var(--line)}
+
+.dim{opacity:.4;pointer-events:none}
+.avisoup{border:1px solid var(--amber);border-radius:4px;padding:6px 8px;font-size:.78rem;color:var(--amber);margin:8px 0}

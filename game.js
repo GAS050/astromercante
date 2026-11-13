@@ -257,10 +257,11 @@ const ROTULO = { cap:'Porão', eng:'Motor', wp:'Armamento' };
 function upRowsNave() {   // melhorias da nave equipada (níveis 1 a 5)
   if (!S.frota || !S.frota[S.nave]) return '';
   const n = NAVES[S.nave - 1], f = S.frota[S.nave], val = { cap:L => capDe(n, L), eng:L => engDe(n, L).toFixed(1), wp:L => wpDe(n, L).toFixed(1) }, dica = { cap:'capacidade', eng:'classe do motor (viagens mais rápidas)', wp:'poder de fogo contra piratas' };
-  return `<h3 class="nave-t">${n.nome} <small>nave ${S.nave} de ${NAVES.length}</small></h3><p class="empty">Porão ${used()}/${S.cap} · motor ${S.engLv.toFixed(1)} · armas ${S.wpLv.toFixed(1)}</p>` + ['cap', 'eng', 'wp'].map(k => {
+  const outra = pvShip && pvShip !== S.nave;   // olhando a prévia de outra nave: os upgrades abaixo continuam sendo da nave equipada
+  return (outra ? `<p class="avisoup">Os upgrades abaixo são da sua nave equipada (${n.nome}). Para melhorar outra nave, equipe-a primeiro.</p>` : '') + `<div class="${outra ? 'dim' : ''}"><h3 class="nave-t">${n.nome} <small>nave ${S.nave} de ${NAVES.length}</small></h3><p class="empty">Porão ${used()}/${S.cap} · motor ${S.engLv.toFixed(1)} · armas ${S.wpLv.toFixed(1)}</p>` + ['cap', 'eng', 'wp'].map(k => {
     const L = f[PVK[k]], max = L >= 5;
     return `<div class="up"><div><b>${ROTULO[k]} nv.${L}/5</b><small>${dica[k]}: ${val[k](L)}${max ? '' : ' → ' + val[k](L + 1)}</small></div><button class="pv" data-pv="${k}" aria-label="Ver prévia">👁</button><button class="buy" data-up="${k}" ${max ? 'disabled' : ''}>${max ? 'MÁX' : fmt(upCusto(n, k, L)) + ' Cr'}</button></div>`;
-  }).join('');
+  }).join('') + '</div>';
 }
 let hangarSig = '', hangarTab = 'minhas';
 const peq = x => x >= 1e6 ? (x / 1e6).toFixed(x % 1e6 ? 1 : 0).replace('.', ',') + ' mi' : x >= 1e3 ? (x / 1e3).toFixed(x % 1e3 ? 1 : 0).replace('.', ',') + ' mil' : String(x);
@@ -377,7 +378,8 @@ function drawHangar(cv2, o, ts, big) {
   c.fillStyle = '#fff'; for (let i = 0; i < 24; i++) { c.globalAlpha = .3 + .5 * Math.abs(Math.sin(ts / 900 + i)); c.fillRect((i * 37) % 100, (i * 23) % H, .5, .5); } c.globalAlpha = 1;
   c.strokeStyle = 'rgba(62,230,255,.55)'; c.lineWidth = .5; c.setLineDash([2, 2]); c.lineDashOffset = -ts / 90;
   [[28, 6.5], [20, 4.6]].forEach(([rx, ry]) => { c.beginPath(); c.ellipse(50, H * .84, rx, ry, 0, 0, 7); c.stroke(); }); c.setLineDash([]);
-  c.save(); c.translate(50, H * .46 + Math.sin(ts / 700) * 1.2); paintShip(c, o, ts, big ? 62 : 56); c.restore();
+  c.save(); c.translate(50, H * .46 + Math.sin(ts / 700) * 1.2); paintShip(c, o, ts, (big ? 88 : 76) - (o.id - 1) * (big ? .36 : .3)); c.restore();   // naves pequenas são desenhadas maiores na caixa, para aparecerem
+
   if (big && o.label) { c.fillStyle = '#3ee6ff'; c.font = '600 3.6px Chakra Petch, sans-serif'; c.textAlign = 'left'; c.fillText(o.label, 3, 6); }
 }
 let pvHover = null, pvPin = null, pvShown = '', pvShip = 0;   // pvShip: nave da loja em prévia
@@ -386,7 +388,7 @@ function shipFrame(ts) {
   requestAnimationFrame(shipFrame); if (document.hidden) return;
   const lv = shipLv(), k = pvHover || pvPin;
   let o = lv, txt;
-  if (pvShip && pvShip !== lv.id) { o = { id:pvShip, c:1, m:1, a:1, hull:100, max:100, label:`PRÉVIA · ${NAVES[pvShip - 1].nome}` }; txt = `Prévia da nave ${NAVES[pvShip - 1].nome} (nível 1 em tudo).`; }
+  if (pvShip && pvShip !== lv.id) { o = { id:pvShip, c:1, m:1, a:1, hull:100, max:100, label:`PRÉVIA · ${NAVES[pvShip - 1].nome}` }; const nv = NAVES[pvShip - 1]; txt = S.frota[pvShip] ? `Prévia da ${nv.nome} (você tem esta nave). Equipe-a para melhorá-la.` : `Prévia da ${nv.nome}: você ainda não tem esta nave (${S.rank < nv.rank ? 'exige a patente ' + RANKS[nv.rank][1] : 'custa ' + fmt(nv.preco).replace(',00', '') + ' Cr'}).`; }
   else if (k) { const f = PVK[k]; o = { ...lv, [f]:Math.min(5, lv[f] + 1), hl:f, label:'PRÉVIA' }; txt = `Prévia: ${PVN[k]} nv.${Math.min(5, lv[f] + 1)}`; }
   else txt = 'Passe o mouse (ou toque no 👁) em um upgrade, ou toque numa nave da loja, para ver como ficaria.';
   drawHangar($('#shipview'), o, ts, true);
@@ -512,7 +514,7 @@ function drawShip(ts) {
   cx.globalCompositeOperation = 'lighter';
   trail.forEach((t, i) => { cx.fillStyle = `rgba(255,170,60,${i / trail.length * .55})`; cx.beginPath(); cx.arc(t.x, t.y, (1 + i / 10) * s.sc, 0, 7); cx.fill(); });
   cx.globalCompositeOperation = 'source-over';
-  cx.save(); cx.translate(s.x, s.y); cx.rotate(s.ang + Math.PI / 2); cx.scale(s.sc * .42, s.sc * .42); paintShip(cx, shipLv(), ts, s.fly ? 1 : .35); cx.restore();
+  cx.save(); cx.translate(s.x, s.y); cx.rotate(s.ang + Math.PI / 2); cx.scale(s.sc * .42, s.sc * .42); paintShip(cx, shipLv(), ts, 150 - (shipLv().id - 1) * .8); cx.restore();
 }
 function drawEmblem(i, ts, s, cur) {
   const G = GALAXIES[i], ok = galOk(i), R = Math.max(GAL_R * cam.z, 32), h = gHue(i), a = cur ? .55 : ok ? 1 : .5, sel1 = selG === i;
@@ -675,7 +677,7 @@ $('#hangar').addEventListener('click', e => {
   const t = e.target.closest('[data-ht]'); if (t) { hangarTab = t.dataset.ht; hangarSig = ''; return renderHangar(); }
   const c = e.target.closest('[data-compra]'); if (c) return void act('comprarNave', { i:+c.dataset.compra });
   const q = e.target.closest('[data-equip]'); if (q) return void act('equipar', { i:+q.dataset.equip }).then(ok => { if (ok) pvShip = 0; });
-  const p = e.target.closest('[data-prev]'); if (p) { const i = +p.dataset.prev; pvShip = pvShip === i ? 0 : i; pvPin = null; }
+  const p = e.target.closest('[data-prev]'); if (p) { const i = +p.dataset.prev; pvShip = pvShip === i ? 0 : i; pvPin = null; renderWorld(); }
 });
 $('#market').addEventListener('click', e => { const s = e.target.closest('.spark'); if (s) showChart(s.closest('[data-id]').dataset.id); });
 $('#chart').onclick = e => { if (e.target.id === 'chart' || e.target.id === 'chart-x') $('#chart').hidden = true; };
@@ -686,7 +688,7 @@ $('#mapinfo').addEventListener('click', e => { const b = e.target.closest('[data
 $('#shipcard').onclick = () => document.querySelector('.nav [data-view=fleet]').click();
 $('#fleet').addEventListener('pointerover', e => { const b = e.target.closest('[data-up],[data-pv]'), k = b && (b.dataset.up || b.dataset.pv); pvHover = PVN[k] ? k : null; });
 $('#fleet').addEventListener('pointerleave', () => { pvHover = null; });
-$('#fleet').addEventListener('click', e => { const b = e.target.closest('[data-pv]'); if (b) pvPin = pvPin === b.dataset.pv ? null : b.dataset.pv; });
+$('#fleet').addEventListener('click', e => { const b = e.target.closest('[data-pv]'); if (b) { pvPin = pvPin === b.dataset.pv ? null : b.dataset.pv; pvShip = 0; renderWorld(); } });
 $('#fleet').addEventListener('click', e => { const b = e.target.closest('[data-up]'); if (b) upgrade(b.dataset.up); });
 $('#market').addEventListener('click', e => {
   const b = e.target.closest('[data-act]'); if (b) trade(b.closest('[data-id]').dataset.id, b.dataset.act);
@@ -735,7 +737,7 @@ function introFrame(ts) {
   c.globalCompositeOperation = 'source-over';
   const fade = ru.wait ? 0 : Math.min(1, Math.min(u, 1 - u) * 12 + .15);
   c.save(); c.globalAlpha = Math.max(0, fade); c.translate(sx, sy); c.rotate(ang + Math.PI / 2); c.scale(2.4, 2.4);
-  paintShip(c, { cap:3, eng:4, wp:3, hull:100, max:100 }, ts, 1); c.restore();
+  paintShip(c, shipLv(), ts, 46 - (shipLv().id - 1) * .2); c.restore();
 }
 function introToggle(on) {
   if (on === introOn) return; introOn = on;
@@ -776,7 +778,7 @@ function aplicarEstado(r) {   // o servidor manda; este aparelho só mostra
     S.inv = {}; RES.forEach(x => { S.inv[x.id] = e.inv?.[x.id] ? { qty:e.inv[x.id].qty, avg:e.inv[x.id].avg } : { qty:0, avg:0 }; });
     if (firstState || S.gal !== gal0 || !PL.length) { setGalaxy(S.gal); const g = GALAXIES[S.gal]; if (firstState) { cam.x = g.wx; cam.y = g.wy; cam.z = 1; } else { warpT = performance.now(); flyTo(g.wx, g.wy, 1, 1400); } }
     if (!plan(S.loc)) S.loc = PL[0].id;
-    sel = selG = sel && plan(sel) ? sel : null;
+    sel = sel && plan(sel) ? sel : null; selG = selG != null && GALAXIES[selG] ? selG : null;
     clearTimeout(tripT); if (S.trip) tripT = setTimeout(refrescar, Math.max(0, S.trip.end - NOW()) + 500);   // a chegada é resolvida pelo servidor
     firstState = false; READY = true; document.body.classList.remove('loading');
     const now = NOW(); RES.forEach(x => { S.price[x.id] = priceNow(x, cyc(now)); }); S.ev = evNow(now);

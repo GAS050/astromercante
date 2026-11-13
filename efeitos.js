@@ -2,7 +2,7 @@
    Sons são sintetizados (WebAudio) e podem ser trocados por arquivos listando-os em ARQUIVOS; músicas entram em MUSICAS. */
 (() => {
   const ARQUIVOS = {};   // ex.: { compra: 'assets/audio/compra.mp3', venda: 'assets/audio/venda.mp3' }
-  const MUSICAS = { menu: null, jogo: null };   // ex.: { menu: 'assets/audio/musica_menu.mp3', jogo: 'assets/audio/musica_jogo.mp3' }
+  const MUSICAS = { menu: 'assets/audio/musica_menu.mp3', jogo: 'assets/audio/musica_jogo.mp3' };   // ex.: { menu: 'assets/audio/musica_menu.mp3', jogo: 'assets/audio/musica_jogo.mp3' }
   const KEY = 'astromercante_audio', def = { mus: true, vm: .22, vs: .8 };
   let cfg = { ...def }; try { cfg = { ...def, ...JSON.parse(localStorage.getItem(KEY) || '{}') }; } catch {}
   const salva = () => { try { localStorage.setItem(KEY, JSON.stringify(cfg)); } catch {} };
@@ -61,6 +61,11 @@
   }
   let userTocou = false; addEventListener('pointerdown', () => { userTocou = true; }, { once: true });
   setInterval(musicaTick, 120);
+  // botão rápido de música no cabeçalho
+  const acts = document.querySelector('.hud-acts');
+  if (acts && temMus()) { const b = document.createElement('button'); b.type = 'button'; b.className = 'mus-btn'; b.id = 'hud-mus'; acts.prepend(b);
+    const pinta = () => { b.innerHTML = `<i class="fa-solid ${cfg.mus ? 'fa-volume-low' : 'fa-volume-xmark'}"></i>`; b.setAttribute('aria-label', cfg.mus ? 'Desligar música' : 'Ligar música'); b.title = b.getAttribute('aria-label'); b.classList.toggle('off', !cfg.mus); const c = $('#set-mus'); if (c) c.checked = cfg.mus; };
+    b.onclick = () => { cfg.mus = !cfg.mus; salva(); pinta(); }; pinta(); const c = $('#set-mus'); if (c) c.addEventListener('change', pinta); }
   // configurações: só aparecem quando há música cadastrada
   const linha = $('#set-mus-row');
   if (linha) { linha.hidden = !temMus(); $('#set-mus').checked = cfg.mus; $('#set-vm').value = Math.round(cfg.vm * 100);

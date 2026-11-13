@@ -1,4 +1,5 @@
-Coloque aqui os arquivos de áudio (mp3 ou ogg).
-Efeitos (curtos): compra, venda, viagem, chegada, patente, conquista, alerta, tiro, vitoria, derrota, rugido
-Músicas (em loop): musica_menu, musica_jogo
-Depois, registre os nomes em efeitos.js (listas ARQUIVOS e MUSICAS).
+Áudio do jogo.
+Músicas (em loop, baixinhas): musica_menu.mp3 (aba Início) e musica_jogo.mp3 (demais telas).
+  Origem: geradas no Gemini ("The Geometry of Thought" = menu; "Between Two Distant Moons" = jogo).
+Efeitos: hoje são sintetizados no navegador. Para trocar por arquivos, coloque aqui (mp3/ogg) e liste em efeitos.js (ARQUIVOS):
+  compra, venda, viagem, chegada, patente, conquista, alerta, tiro, vitoria, derrota, rugido

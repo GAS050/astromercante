@@ -475,3 +475,5 @@ body.histon{overflow:hidden}
 @keyframes rufall{to{transform:translateY(110vh) rotate(540deg)}}@keyframes ruin{from{opacity:0;transform:scale(.6)}to{opacity:1;transform:scale(1)}}
 .row .vm{display:flex;gap:8px;align-items:center;margin-left:auto}.row .vm input{width:110px}
 @media (prefers-reduced-motion:reduce){.rankup,.ru-box,.fx-float,#hud-credits.fx-pulse{animation:none}}
+
+.mus-btn{width:40px;height:40px;border-radius:8px;border:1px solid var(--line);background:rgba(5,14,26,.7);color:var(--cyan)}.mus-btn.off{color:var(--mt)}

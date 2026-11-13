@@ -95,7 +95,7 @@ function formHtml() {
   <label class="prow">Completar vagas com bots <input type="checkbox" data-f="bots" ${f.bots ? 'checked' : ''}></label>
   ${f.bots ? `<label class="prow">Dificuldade dos bots <select data-f="dific">${Object.entries(DIFIC).map(([k, v]) => `<option value="${k}" ${k === f.dific ? 'selected' : ''}>${v}</option>`).join('')}</select></label>` : ''}
   <label class="prow">Eventos de mercado <input type="checkbox" data-f="eventos" ${f.eventos ? 'checked' : ''}></label>
-  <label class="prow">Piratas e monstros <input type="checkbox" data-f="piratas" ${f.piratas ? 'checked' : ''}></label>
+  ${t ? '<div class="prow"><span>Piratas e monstros</span><b>sempre ligados</b></div>' : `<label class="prow">Piratas e monstros <input type="checkbox" data-f="piratas" ${f.piratas ? 'checked' : ''}></label>`}
   <label class="prow">Desgaste e reparo de casco <input type="checkbox" data-f="casco" ${f.casco ? 'checked' : ''}></label>
   ${f.casco ? '' : '<p class="empty">Sem desgaste: viagens e lutas não danificam o casco, então não há reparo. Piratas e monstros continuam valendo: vencer rende saque e perder custa parte da carga.</p>'}
   ${t ? `<label class="prow">Taxa de entrada <select data-f="taxa">${TAXAS.map(x => `<option value="${x}" ${x === f.taxa ? 'selected' : ''}>${fmt(x).replace(',00', '')} Cr</option>`).join('')}</select></label>

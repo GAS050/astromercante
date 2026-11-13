@@ -356,7 +356,7 @@ export function validarCfg(cfg, carr, modo) {
   const dific = DIFICULDADES.includes(cfg.dific) ? cfg.dific : 'normal';
   let taxa = 0;
   if (modo === 'torneio') { taxa = Math.floor(Number(cfg.taxa)); if (!TAXAS.includes(taxa)) throw new Regra('Taxa de entrada inválida.'); }
-  return { duracao, saldo, galaxias: gals, jogadores, bots: !!cfg.bots, dific, taxa, eventos: cfg.eventos !== false, piratas: cfg.piratas !== false, casco: cfg.casco !== false };
+  return { duracao, saldo, galaxias: gals, jogadores, bots: !!cfg.bots, dific, taxa, eventos: cfg.eventos !== false, piratas: modo === 'torneio' ? true : cfg.piratas !== false, casco: cfg.casco !== false };   // torneio: piratas e monstros sempre ligados
 }
 
 /** Estado inicial de um jogador na partida: nave da carreira (porão, motor, armamento e patente), saldo igual para todos. */

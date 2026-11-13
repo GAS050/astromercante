@@ -86,6 +86,7 @@
     <label class="row">Fundo animado (desligue em aparelhos lentos) <input type="checkbox" id="set-fx"></label>
     <label class="row">Sons e vibração <input type="checkbox" id="set-sound"></label>
     <div class="row" id="set-mus-row" hidden><label>Música <input type="checkbox" id="set-mus"></label><label class="vm">Volume <input type="range" id="set-vm" min="0" max="40" step="1"></label></div>
+    <div class="row" id="sup-row"><div><strong>Suporte</strong><span class="sub" id="sup-mail">Dúvida, problema ou sugestão? Abra um chamado.</span></div><button type="button" id="sup-open">Abrir chamado</button></div>
     <div class="row">Rever a história de abertura <button type="button" id="hist-redo">Rever</button></div>
     <div class="row">Rever o tutorial do Capitão <button type="button" id="tut-redo">Rever</button></div>
     <div class="credits">
@@ -148,6 +149,16 @@
   <p class="au-err" id="lj-err" role="alert"></p>
   <p class="pf-sub">Avatares e molduras são só aparência. Naves mudam o jogo, mas dependem da patente.</p>
 </div></div>
+<div class="modal" id="suporte" hidden><div class="card-panel">
+  <h2>Falar com o suporte</h2>
+  <p class="pf-sub">Descreva o que aconteceu. Respondemos no e-mail da sua conta.</p>
+  <label class="sp-l">Assunto<select id="sp-cat" class="pf-in"><option value="duvida">Dúvida</option><option value="tecnico">Problema técnico</option><option value="compra">Compra ou pagamento</option><option value="conta">Conta ou apelido</option><option value="sugestao">Sugestão</option><option value="outro">Outro</option></select></label>
+  <label class="sp-l">Mensagem<textarea id="sp-msg" class="pf-in" rows="6" maxlength="2000" placeholder="Conte o que aconteceu, o que você esperava e, se der, em que tela estava."></textarea></label>
+  <p class="pf-sub"><span id="sp-n">0</span>/2000</p>
+  <p class="au-err" id="sp-err" role="alert"></p>
+  <button class="buy" id="sp-ok" type="button">Enviar chamado</button>
+  <button class="ghost" id="sp-x" type="button">Fechar</button>
+</div></div>
 <div class="modal" id="perfil" hidden><div class="card-panel">
   <div class="au-brand">SEU PILOTO</div>
   <h2 id="pf-t">Crie seu perfil</h2>
@@ -173,6 +184,7 @@
 <script src="partidas.js" defer></script>
 <script src="perfil.js" defer></script>
 <script src="loja.js" defer></script>
+<script src="suporte.js" defer></script>
 <script src="home.js" defer></script>
 <script src="efeitos.js" defer></script>
 <script src="historia.js" defer></script>

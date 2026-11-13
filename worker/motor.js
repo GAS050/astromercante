@@ -61,7 +61,7 @@ export function evAt(now) {
 }
 
 /* ---------- estado ---------- */
-export const novo = (now) => ({ v: 3, credits: 10000, inv: {}, stock: {}, loc: 'orionis', gal: 0, nave: 1, frota: { 1: { c: 1, m: 1, a: 1, h: 100, mh: 100 } }, cap: 40, capLv: 1, engLv: 1, wpLv: 1, hull: 100, maxHull: 100, rank: 0, trip: null, vis: { 0: 1 }, daily: null, streak: 0, lastDay: '', t0: now, ult: 0 });
+export const novo = (now) => ({ v: 3, credits: 10000, inv: {}, stock: {}, loc: 'orionis', gal: 0, nave: 1, frota: { 1: { c: 1, m: 1, a: 1, h: 100, mh: 100 } }, cap: 40, capLv: 1, engLv: 1, wpLv: 1, hull: 100, maxHull: 100, rank: 0, trip: null, vis: { 0: 1 }, daily: null, streak: 0, lastDay: '', t0: now, ult: 0, tv: 0 });
 
 /** Aproveita um progresso antigo (salvo pelo aparelho) sem confiar nele: tudo é revalidado e limitado. */
 export function normalizar(o, now) {
@@ -189,6 +189,16 @@ function lutar(S, e, td, tc) {
   else { o.dmg = Math.min(22, Math.round((8 + 5 * Math.min(q, 2)) * (1 + D * .06) * v(.85, 1.15))); o.f = clamp(.08 + .08 * q, .1, .45); }
   return o;
 }
+/** Roteiro do tutorial (só contas novas, só a carreira): a 1ª viagem é tranquila (sem inimigos) e a 2ª cruza com um pirata fraco, que o jogador vence, para ver como a luta funciona.
+ *  Contas antigas não têm o campo tv e jogam normalmente. */
+function viagemTutorial(S) {
+  if (S.partida || S.tv === undefined || S.tv > 1) return null;
+  if (S.tv === 0) return [];
+  const e = ini(S.gal, 0), { start: a, end: b } = S.trip, dur = b - a, td = a + Math.max(500, Math.round(dur * .3)), tc = Math.min(td + 2200, b - 400);
+  if (tc - td < 800) return [];
+  const P = poderJog(S);
+  return [{ k: 0, td, tc, lv: e.lv, nm: e.nm, m: 0, r: Math.round(P / e.lv * 100) / 100, w: 1, loot: Math.round(SAQUE(S.gal) * .5), dmg: 2 }];
+}
 /** Partidas podem desligar o desgaste do casco (cfg.casco === false): sem dano, sem reparo. As lutas continuam valendo (saque e carga perdida). */
 /** Desgaste sofrido na partida em pontos de casco por viagem (conta o dano e não o reparo pago, então não dá para fugir dele): mede o perigo da sala e alimenta o bônus do 1º colocado.
  *  É independente do saldo, da taxa e da duração: o bônus não muda conforme o valor apostado. */
@@ -291,7 +301,7 @@ const acoes = {
     if (S.hull < 15) throw new Regra('Casco crítico: repare a nave na aba Frotas.');
     const t = tripInfo(S, to.id);
     if (t.cost > S.credits) throw new Regra(`Combustível custa ${fmt(t.cost)} Cr. Créditos insuficientes.`);
-    S.credits -= t.cost; S.trip = { from: S.loc, to: to.id, start: c.now, end: c.now + t.secs * 1000 }; const enc = encontros(S, S.trip.start, S.trip.end); if (enc.length) { S.trip.enc = enc; S.trip.end += PAUSA; }
+    S.credits -= t.cost; S.trip = { from: S.loc, to: to.id, start: c.now, end: c.now + t.secs * 1000 }; const enc = viagemTutorial(S) ?? encontros(S, S.trip.start, S.trip.end); if (S.tv !== undefined && !S.partida) S.tv++; if (enc.length) { S.trip.enc = enc; S.trip.end += PAUSA; }
     say(msgs, `Rumo a ${to.nome}: ${t.secs}s, combustível ${fmt(t.cost)} Cr.`, '');
   },
   saltar(S, c, msgs, a) {
@@ -382,7 +392,7 @@ export function validarCfg(cfg, carr, modo) {
 
 /** Estado inicial de um jogador na partida: nave da carreira (porão, motor, armamento e patente), saldo igual para todos. */
 export function novoPartida(carr, cfg, codigo, now, fim) {
-  const S = novo(now), g0 = cfg.galaxias[0];
+  const S = novo(now), g0 = cfg.galaxias[0]; delete S.tv;   // o roteiro do tutorial vale só para a carreira
   S.credits = cfg.saldo; S.rank = carr.rank; S.nave = carr.nave; S.frota = { [carr.nave]: { ...carr.frota[carr.nave], h: 100, mh: 100 } }; recalc(S);
   S.gal = g0; S.loc = GALAXIES[g0].planetas[0].id; S.vis = { [g0]: 1 };
   S.daily = { day: 'partida', p: { trades: 0, trips: 0, profit: 0 }, done: { trades: 1, trips: 1, profit: 1 } };

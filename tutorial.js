@@ -24,37 +24,63 @@
     // meta sempre visível: progresso até a próxima patente
     const g = $('#goal'); if (g) { if (CLOUD() && TOK && MODE !== 'partida' && READY && S.rank + 1 < RANKS.length) { const a = RANKS[S.rank][0], b = RANKS[S.rank + 1][0], w = patTotal(); g.hidden = false; $('#goal-t').innerHTML = `Próxima patente: <b>${RANKS[S.rank + 1][1]}</b> · ${fmt(Math.min(w, b)).replace(',00', '')} / ${fmt(b).replace(',00', '')} Cr`; $('#goal-i').style.width = clamp((w - a) / (b - a) * 100, 0, 100) + '%'; } else g.hidden = true; }
     if (!ativo()) { el.hidden = true; document.body.classList.remove('tuton'); return; }
-    if (i < 0) { const s = rd(); if (s === 'done') return; if (s === null) { if (!novata()) { wr('done'); return; } passo(0); } else i = +s; if (!(i >= 0 && i <= 5)) { fim(); return; } }
+    if (i < 0) { const s = rd(); if (s === 'done') return; if (s === null) { if (!novata()) { wr('done'); return; } passo(0); } else i = +s; if (!(i >= 0 && i <= 16)) { fim(); return; } }
     el.hidden = false; document.body.classList.add('tuton');
+    const seg = i >= 6 && i <= 10, j = seg ? i - 5 : i;   // a 2ª viagem (passos 6 a 10) repete a lógica dos passos 1 a 5, com o encontro com piratas
     if (i === 0) { mark(null); say2('Bem-vindo a bordo, comandante! Eu sou o Capitão. Nas estrelas lucra quem <b>compra barato</b> e <b>vende caro</b>. Vou te mostrar em 1 minuto.', 'Vamos lá!'); }
-    else if (i === 1) {
-      if (used() > 0) { qty0 = used(); passo(2); return; }
+    else if (j === 1 && i <= 6) {
+      if (used() > 0) { qty0 = used(); passo(i + 1); return; }
       if (!rec) { rec = recomendar(); c0 = S.credits; }
       if (!rec) { fim(); return; }
       const q = $('#qty'); if (rec.n && q && document.activeElement !== q && +q.value !== rec.n) q.value = rec.n;
-      say2(`Aqui <b>${rec.r.nome}</b> está barato. Deixei a quantidade em <b>${rec.n || 1}</b>: toque em <b>COMPRAR</b>.`, '');
+      say2((seg ? 'Segunda viagem! Desta vez vamos cruzar com <b>piratas</b>, de propósito, para você ver uma luta. ' : '') + `Aqui <b>${rec.r.nome}</b> está barato. Deixei a quantidade em <b>${rec.n || 1}</b>: toque em <b>COMPRAR</b>.`, '');
       mark(`[data-id="${rec.r.id}"] [data-act=buy]`);
-    } else if (i === 2) {
-      if (S.trip) { passo(3); return; }
+    } else if (j === 2 && i <= 7) {
+      if (S.trip) { passo(i + 1); return; }
       if (!rec) { rec = recomendar(); } if (!rec) { fim(); return; }
       if (sel !== rec.to.id && !tutSel) { tutSel = 1; sel = rec.to.id; selG = null; renderInfo(); }
-      say2(`Muito bem! Em <b>${rec.to.nome}</b> esse produto paga mais. Toque em <b>Viajar</b> no painel do planeta (já selecionei para você).`, '');
+      say2(`${seg ? '' : 'Muito bem! '}Em <b>${rec.to.nome}</b> esse produto paga mais. Toque em <b>Viajar</b> no painel do planeta (já selecionei para você).`, '');
       mark('#mapinfo [data-go]');
-    } else if (i === 3) {
-      if (!S.trip) { passo(used() > 0 ? 4 : 5); return; }
-      mark(null); say2('Em viagem! Piratas e monstros podem aparecer no caminho: seu <b>poder de fogo</b> decide a luta. Aguarde a chegada.', '');
-    } else if (i === 4) {
-      if (used() === 0) { passo(5); return; }
+    } else if (j === 3 && i <= 8) {
+      if (!S.trip) { passo(used() > 0 ? i + 1 : i + 2); return; }
+      mark(null);
+      const f = S.trip.enc && S.trip.enc[0], n = NOW();
+      if (seg && f) say2(n < f.td ? 'Em viagem... fique de olho no mapa.' : n < f.tc ? `<b>${f.nm}</b> na nossa cola! O número ao lado deles é o <b>poder de fogo</b> (${f.lv.toFixed(1)}); o nosso é ${(+S.wpLv).toFixed(1)}. ${f.r >= 1.09 ? 'Verde: vencemos.' : 'Parelho assim seria arriscado, mas esta é uma luta de treino: a vitória está garantida.'}` : n < f.tc + 3000 ? 'Troca de tiros! A nave para durante a luta.' : 'Luta decidida! Aguarde a chegada.', '');
+      else say2(seg ? 'Em viagem... aguarde a chegada.' : 'Em viagem! Piratas e monstros podem aparecer no caminho: seu <b>poder de fogo</b> decide a luta. Aguarde a chegada. (Nesta primeira viagem o caminho está livre.)', '');
+    } else if (j === 4 && i <= 9) {
+      if (used() === 0) { passo(i + 1); return; }
       const r = RES.find(x => S.inv[x.id].qty > 0);
       say2('Chegamos! Aqui o preço é melhor. Toque em <b>VENDER</b> para fechar o lucro (use a quantidade total).', ''); if (r) { const q = $('#qty'); if (q && document.activeElement !== q && +q.value !== S.inv[r.id].qty) q.value = S.inv[r.id].qty; mark(`[data-id="${r.id}"] [data-act=sell]`); }
     } else if (i === 5) {
       mark(null); const l = Math.round(S.credits - c0);
-      say2(`${l > 0 ? `Lucro de <b>${fmt(l).replace(',00', '')} Cr</b> nessa primeira viagem. Com a nave inicial o lucro é pequeno; melhorar o porão e o motor multiplica isso.` : 'Nem toda viagem dá lucro: confira sempre onde o preço está mais alto. '} ${meta()} Compre melhorias na aba <b>Frotas</b> e boa sorte lá fora!`, 'Concluir');
+      say2(`${l > 0 ? `Lucro de <b>${fmt(l).replace(',00', '')} Cr</b> nessa primeira viagem. Com a nave inicial o lucro é pequeno; melhorar o porão e o motor multiplica isso.` : 'Nem toda viagem dá lucro: confira sempre onde o preço está mais alto.'} Agora vamos a uma segunda viagem, com encontro com piratas.`, 'Segunda viagem');
+    } else if (i === 10) {
+      mark(null);
+      say2('Você enfrentou piratas e venceu: o <b>saque</b> vai para o seu caixa. Nem toda luta termina assim: se o poder deles for maior, você perde <b>carga e casco</b>. Compare o número antes de viajar (verde vence, amarelo é incerto, vermelho é perigo) e melhore as <b>armas</b> em Frotas.', 'Continuar');
+    } else if (i >= 11 && i <= 16) {
+      const T = TOUR[i - 11]; mark(T.m); say2(T.t, i === 16 ? 'Concluir' : 'Próximo');
     }
   }
+  /* visita guiada pelos menus (passos 11 a 16): cada passo troca de tela e destaca o botão */
+  const TOUR = [
+    { v: 'home', m: '.nav [data-view=home]', t: '<b>Início</b>: seu perfil, patente, missões do dia e atalhos. É o seu ponto de partida sempre que abrir o jogo.' },
+    { v: 'market', m: '.nav [data-view=market]', t: '<b>Negociação</b>: o mapa e o mercado. Compre barato, venda caro e viaje entre planetas e galáxias.' },
+    { v: 'play', m: '.nav [data-view=play]', t: '<b>Torneios</b>: salas contra outros pilotos, com prêmio para os melhores. Também dá para criar uma partida com amigos.' },
+    { v: 'fleet', m: '.nav [data-view=fleet]', t: '<b>Frotas</b>: reparo do casco e melhorias da sua nave (porão, motor e armas).' },
+    { v: 'home', m: '[data-hm=loja]', t: '<b>Loja</b> (no Início): naves novas, avatares e molduras, tudo comprado com os créditos do jogo.' },
+    { v: 'settings', m: '#acct', t: 'Seu nome, no topo, abre as <b>Configurações</b>: sons e música, rever este tutorial e falar com o suporte. Boa sorte, comandante!' }
+  ];
   let tutSel = 0;
-  ok.onclick = () => { if (i === 0) { passo(1); document.querySelector('.nav [data-view=market]').click(); } else if (i === 5) fim(); };
+  const vai = v => { const b = document.querySelector(`.nav [data-view=${v}]`); if (b) b.click(); };
+  let soTour = false;
+  ok.onclick = () => {
+    if (i === 0) { if (soTour) { passo(11); vai(TOUR[0].v); } else { passo(1); vai('market'); } }
+    else if (i === 5) { passo(6); rec = null; tutSel = 0; c0 = S.credits; }
+    else if (i === 10) { passo(11); vai(TOUR[0].v); }
+    else if (i >= 11 && i < 16) { const prox = TOUR[i - 10].v; passo(i + 1); vai(prox); }
+    else if (i === 16) fim();
+  };
   $('#tut-skip').onclick = fim;
-  const redo = $('#tut-redo'); if (redo) redo.onclick = () => { rec = null; tutSel = 0; wr(0); i = 0; shown = ''; document.querySelector('.nav [data-view=market]').click(); tick(); };
+  const redo = $('#tut-redo'); if (redo) redo.onclick = () => { rec = null; tutSel = 0; soTour = !(S.tv !== undefined && S.tv < 2); wr(0); i = 0; shown = ''; document.querySelector('.nav [data-view=market]').click(); tick(); };
   setInterval(tick, 600);
 })();

@@ -958,7 +958,7 @@ const setSession = (token, nome) => { TOK = token; USER = nome; store('astromerc
 const clearSession = () => { TOK = USER = ''; CTS = 0; ['astromercante_tok', 'astromercante_user', 'astromercante_cts', 'astromercante_google'].forEach(k => store(k, null)); };
 // Só sobe para a nuvem o que mudou de verdade (compra, viagem, upgrade...) e sem os dados recalculáveis pelo relógio.
 /* ---------- Conta e servidor ---------- */
-const SERVER_KEYS = ['credits', 'stock', 'loc', 'gal', 'cap', 'capLv', 'engLv', 'wpLv', 'hull', 'maxHull', 'rank', 'trip', 'vis', 'daily', 'streak', 'lastDay', 'partida', 'nave', 'frota'];
+const SERVER_KEYS = ['credits', 'stock', 'loc', 'gal', 'cap', 'capLv', 'engLv', 'wpLv', 'hull', 'maxHull', 'rank', 'trip', 'vis', 'daily', 'streak', 'lastDay', 'partida', 'nave', 'frota', 'tv'];
 let firstState = true;
 function aplicarEstado(r) {   // o servidor manda; este aparelho só mostra
   if (r.agora) SKEW = r.agora - Date.now();

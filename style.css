@@ -484,3 +484,7 @@ body.histon{overflow:hidden}
 .ghost{background:none;border:0;color:var(--mt);text-decoration:underline}
 .pf-in:disabled{opacity:.75;color:var(--tx);cursor:default}
 #perfil .buy,#perfil .ghost{width:100%;padding:10px;margin-top:8px}
+
+.sp-l{display:block;font-size:.8rem;color:var(--mt);margin-top:8px}.sp-l .pf-in{display:block;margin-top:4px;color:var(--tx);font-size:.95rem}textarea.pf-in{resize:vertical;min-height:120px;font:inherit}select.pf-in{appearance:auto}
+#suporte .buy,#suporte .ghost{width:100%;padding:10px;margin-top:8px}
+.sub a{color:var(--cyan)}

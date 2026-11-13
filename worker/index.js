@@ -134,11 +134,11 @@ function normEmail(bruto, tolerante = false, google = false) {
   if (!google && DESCARTAVEIS.has(d)) throw new Erro(400, 'Use um e-mail permanente (e-mails temporários não são aceitos).');
   return l + '@' + d;
 }
-async function enviar(env, para, assunto, texto) {
-  if (env.MAILER) return env.MAILER(para, assunto, texto);                 // gancho para testes
+async function enviar(env, para, assunto, texto, responderPara) {
+  if (env.MAILER) return env.MAILER(para, assunto, texto, responderPara);                 // gancho para testes
   if (!env.BREVO_KEY || !env.EMAIL_REMETENTE) throw new Erro(503, 'Envio de e-mail não configurado.');
   const r = await fetch('https://api.brevo.com/v3/smtp/email', { method: 'POST', headers: { 'api-key': env.BREVO_KEY, 'Content-Type': 'application/json', accept: 'application/json' },
-    body: JSON.stringify({ sender: { name: 'ASTROMERCANTE', email: env.EMAIL_REMETENTE }, to: [{ email: para }], subject: assunto, textContent: texto }) });
+    body: JSON.stringify({ sender: { name: 'ASTROMERCANTE', email: env.EMAIL_REMETENTE }, to: [{ email: para }], ...(responderPara ? { replyTo: { email: responderPara } } : {}), subject: assunto, textContent: texto }) });
   if (!r.ok) throw new Erro(502, 'Não foi possível enviar o e-mail agora. Tente de novo em instantes.');
 }
 const gerarCodigo = () => String(crypto.getRandomValues(new Uint32Array(1))[0] % 1000000).padStart(6, '0');
@@ -167,7 +167,7 @@ async function humano(env, req, token) {   // Cloudflare Turnstile (anti-robô);
 async function apagarUsuario(env, id) {
   const u = await env.DB.prepare('SELECT email FROM usuarios WHERE id = ?').bind(id).first();
   await perfisInit(env);
-  for (const t of ['saves', 'sessoes', 'partida_jog', 'perfis', 'loja_itens']) await env.DB.prepare(`DELETE FROM ${t} WHERE usuario = ?`).bind(id).run();
+  for (const t of ['saves', 'sessoes', 'partida_jog', 'perfis', 'loja_itens', 'chamados']) await env.DB.prepare(`DELETE FROM ${t} WHERE usuario = ?`).bind(id).run();
   if (u && u.email) await env.DB.prepare('DELETE FROM codigos WHERE email = ?').bind(u.email).run();
   await env.DB.prepare('DELETE FROM usuarios WHERE id = ?').bind(id).run();
 }
@@ -355,6 +355,7 @@ async function perfisInit(env) {
   await env.DB.prepare('CREATE UNIQUE INDEX IF NOT EXISTS idx_perfis_apelido ON perfis(apelido)').run();
   await env.DB.prepare('CREATE TABLE IF NOT EXISTS loja_itens (usuario INTEGER NOT NULL, item TEXT NOT NULL, quando INTEGER NOT NULL DEFAULT 0, PRIMARY KEY (usuario, item))').run();
   try { await env.DB.prepare("ALTER TABLE perfis ADD COLUMN moldura TEXT NOT NULL DEFAULT ''").run(); } catch { /* a coluna já existe */ }
+  await env.DB.prepare("CREATE TABLE IF NOT EXISTS chamados (id INTEGER PRIMARY KEY AUTOINCREMENT, usuario INTEGER NOT NULL, email TEXT, categoria TEXT, mensagem TEXT NOT NULL, estado TEXT NOT NULL DEFAULT 'aberto', criado INTEGER NOT NULL)").run();
   perfisOk = true;
 }
 const AVATARES_GRATIS = ['a1', 'a2', 'a3', 'a4', 'a5', 'a6', 'a7', 'a8'];   // o 'cap' (Capitão) é de conquista: entra com a loja
@@ -423,6 +424,23 @@ async function lojaComprar(env, id, item) {
   try { await ajustarCreditos(env, id, -v.preco, `Você precisa de ${v.preco.toLocaleString('pt-BR')} Cr em caixa para comprar ${v.nome}.`); }
   catch (e) { await env.DB.prepare('DELETE FROM loja_itens WHERE usuario = ? AND item = ?').bind(id, item).run(); throw e; }
   return await lojaVer(env, id);
+}
+
+/* ---------- suporte: o jogador abre um chamado; ele fica guardado (tabela chamados) e chega por e-mail ao suporte, que responde direto ao e-mail do jogador ---------- */
+const CATEGORIAS = { duvida: 'Dúvida', tecnico: 'Problema técnico', compra: 'Compra ou pagamento', conta: 'Conta ou apelido', sugestao: 'Sugestão', outro: 'Outro' };
+async function suporteAbrir(env, id, corpo) {
+  const cat = CATEGORIAS[corpo.categoria] ? String(corpo.categoria) : 'outro', msg = String(corpo.mensagem || '').trim();
+  if (msg.length < 10) throw new Erro(400, 'Conte um pouco mais (mínimo de 10 caracteres).');
+  if (msg.length > 2000) throw new Erro(400, 'A mensagem pode ter até 2000 caracteres.');
+  const agora = Date.now(), h = await env.DB.prepare('SELECT COUNT(*) AS n FROM chamados WHERE usuario = ? AND criado > ?').bind(id, agora - 3600e3).first(), d = await env.DB.prepare('SELECT COUNT(*) AS n FROM chamados WHERE usuario = ? AND criado > ?').bind(id, agora - 864e5).first();
+  if (h.n >= 3 || d.n >= 8) throw new Erro(429, 'Você já enviou vários chamados. Aguarde um pouco antes de abrir outro.');
+  const u = await env.DB.prepare('SELECT u.email AS email, u.nome AS nome, p.apelido AS ap, s.patrimonio AS pat FROM usuarios u LEFT JOIN perfis p ON p.usuario = u.id LEFT JOIN saves s ON s.usuario = u.id WHERE u.id = ?').bind(id).first() || {};
+  const r = await env.DB.prepare('INSERT INTO chamados (usuario, email, categoria, mensagem, criado) VALUES (?, ?, ?, ?, ?)').bind(id, u.email || null, cat, msg, agora).run();
+  const num = r.meta?.last_row_id || 0, destino = env.EMAIL_SUPORTE || env.EMAIL_REMETENTE;
+  if (destino) {
+    try { await enviar(env, destino, `[Astromercante] Chamado #${num}: ${CATEGORIAS[cat]}`, `Chamado #${num} (${CATEGORIAS[cat]})\nJogador: ${u.ap || u.nome || '?'} (id ${id})\nE-mail: ${u.email || 'sem e-mail'}\nPatrimônio: ${Math.round(u.pat || 0)}\n\n${msg}\n\n(Responda este e-mail para falar com o jogador.)`, u.email || undefined); } catch { /* o chamado já está guardado */ }
+  }
+  return { ok: true, numero: num };
 }
 async function rota(req, env, url) {
   await perfisInit(env);
@@ -512,6 +530,7 @@ async function rota(req, env, url) {
   }
   const eu = await autenticar(req, env);
   if (p === '/auth/sair' && m === 'POST') { await env.DB.prepare('DELETE FROM sessoes WHERE hash = ?').bind(eu.hash).run(); return { ok: true }; }
+  if (p === '/suporte' && m === 'POST') return await suporteAbrir(env, eu.id, corpo);
   if (p === '/loja' && m === 'GET') return await lojaVer(env, eu.id);
   if (p === '/loja/comprar' && m === 'POST') return await lojaComprar(env, eu.id, String(corpo.item || ''));
   if (p === '/perfil' && m === 'GET') return await perfilVer(env, eu.id);

@@ -13,3 +13,5 @@ CREATE TABLE IF NOT EXISTS perfis (usuario INTEGER PRIMARY KEY, apelido TEXT COL
 CREATE UNIQUE INDEX IF NOT EXISTS idx_perfis_apelido ON perfis(apelido);
 CREATE TABLE IF NOT EXISTS loja_itens (usuario INTEGER NOT NULL, item TEXT NOT NULL, quando INTEGER NOT NULL DEFAULT 0, PRIMARY KEY (usuario, item));
 -- coluna moldura: o Worker a cria sozinho (ALTER TABLE perfis ADD COLUMN moldura TEXT NOT NULL DEFAULT '')
+
+CREATE TABLE IF NOT EXISTS chamados (id INTEGER PRIMARY KEY AUTOINCREMENT, usuario INTEGER NOT NULL, email TEXT, categoria TEXT, mensagem TEXT NOT NULL, estado TEXT NOT NULL DEFAULT 'aberto', criado INTEGER NOT NULL);

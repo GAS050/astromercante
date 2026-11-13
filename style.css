@@ -527,3 +527,17 @@ body[data-view=amigos] #p-amigos{display:block}
 @media (max-width:360px){.amv-tabs{overflow:visible}.amv-tabs button{padding:8px 2px;font-size:.72rem;min-width:0}}
 #set-mus-row{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}#set-mus-row label{display:flex;align-items:center;gap:8px}
 #set-mus-row[hidden]{display:none}
+
+/* ---------- perfil público de outro piloto ---------- */
+.modal .card-panel.pj{width:min(440px,100%);max-height:92vh;overflow:auto;background:#08111f;position:relative}
+.pj-x{position:absolute;top:8px;right:10px;padding:4px 8px}
+.pj-hero{display:flex;align-items:center;gap:14px;margin:6px 0 12px}.pj-id h2{margin:0 0 2px;padding:0;border:0;color:var(--tx);font-size:1.3rem;word-break:break-word}.pj-id b{display:block;color:var(--amber)}.pj-id small{color:var(--mt)}
+.pj-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}.pj-st{border:1px solid var(--line);border-radius:10px;padding:8px 6px;text-align:center;background:rgba(255,255,255,.03)}.pj-st i{color:var(--cyan);display:block;margin-bottom:2px}.pj-st b{display:block;font-size:.95rem}.pj-st small{color:var(--mt);font-size:.72rem}
+.pj h3{font-size:.85rem;color:var(--cyan);margin:14px 0 6px}
+.pj-nave{display:flex;gap:12px;align-items:center;border:1px solid var(--line);border-radius:10px;padding:8px;background:rgba(255,255,255,.03)}.pj-nave p{margin:2px 0;font-size:.85rem}.pj-nave small{color:var(--mt)}
+.pj-nv{position:relative;width:96px;height:96px;flex:none;border-radius:8px;background:radial-gradient(circle,#12365a,#07101f)}
+.pj-tro .pj-st i{color:#ffd45e}.pj-sub{margin:8px 0 0;font-size:.85rem;color:var(--mt)}.pj-sub b{color:var(--neon)}
+.pj-rec{list-style:none;margin:8px 0 0;padding:0;display:flex;flex-direction:column;gap:4px}.pj-rec li{display:flex;justify-content:space-between;font-size:.85rem;padding:4px 8px;border:1px solid var(--line);border-radius:8px}.pj-rec small{color:var(--mt)}
+.pj-ac{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:12px}.pj-ac .buy,.pj-ac .ghost{padding:9px 14px}
+.pj-link{cursor:pointer}.pj-link:hover .am-n,.board li.pj-link:hover{background:rgba(62,230,255,.06)}.pj-link:focus-visible{outline:2px solid var(--cyan);outline-offset:2px}
+.pj-nv .lj-nv{transform:scale(1.45)}.pj-nv{overflow:hidden}

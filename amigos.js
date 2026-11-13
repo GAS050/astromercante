@@ -25,7 +25,7 @@ function rkCard() {
   if (RK.tab === 'global') h += `<div class="rk-sub">${[['pat', 'Patrimônio'], ['lucro', 'Lucro total']].map(([q, t]) => `<button type="button" data-rkg="${q}" class="${RK.g === q ? 'on' : ''}">${t}</button>`).join('')}</div>`;
   if (!d) return h + '<p class="empty">Carregando ranking…</p></div>';
   let rows = '', foot = '';
-  const li = (i, r, me) => `<li class="${me ? 'me' : ''}"><span><i class="pos">${i}</i> ${avImg(r.a)}${rkEsc(r.n)}</span><b class="mono ${per ? (r.w > 0 ? 'rk-up' : r.w < 0 ? 'rk-dn' : '') : ''}">${rkFmt(r.w, per)}</b></li>`;
+  const li = (i, r, me) => `<li class="${me ? 'me' : ''}${r.i ? ' pj-link' : ''}"${r.i ? ` data-pj="${r.i}" role="button" tabindex="0"` : ''}><span><i class="pos">${i}</i> ${avImg(r.a)}${rkEsc(r.n)}</span><b class="mono ${per ? (r.w > 0 ? 'rk-up' : r.w < 0 ? 'rk-dn' : '') : ''}">${rkFmt(r.w, per)}</b></li>`;
   if (RK.tab === 'amigos') {
     const L = d.lista || []; rows = L.slice(0, 8).map((r, i) => li(i + 1, r, r.eu)).join('');
     const eu = L.findIndex(r => r.eu); if (eu >= 8) rows += `<li class="gap"><span>…</span></li>` + li(eu + 1, L[eu], true);
@@ -57,7 +57,7 @@ function amRender() {
   amBadge(); if (!amV || document.body.dataset.view !== 'amigos') return;
   if (!AM) { amV.innerHTML = '<p class="empty">Carregando…</p>'; return; }
   const foc = document.activeElement && document.activeElement.id, val = foc === 'amv-q' ? document.activeElement.value : null;
-  const lin = (p, bt, ex) => `<li><span class="am-n">${avImg(p.a)}${rkEsc(p.n)}${ex || (p.w ? `<small>${fmt(p.w).replace(',00', '')} Cr</small>` : '')}</span><span class="am-b">${bt}</span></li>`;
+  const lin = (p, bt, ex) => `<li><span class="am-n pj-link" data-pj="${p.id}" role="button" tabindex="0">${avImg(p.a)}${rkEsc(p.n)}${ex || (p.w ? `<small>${fmt(p.w).replace(',00', '')} Cr</small>` : '')}</span><span class="am-b">${bt}</span></li>`;
   const bt = (k, t, c, i, x) => `<button type="button" class="${c}" data-ac="${k}" data-i="${i}"${x || ''}>${t}</button>`;
   const tab = (k, t, n) => `<button type="button" data-t="${k}" class="${AV.tab === k ? 'on' : ''}">${t}${n ? `<i class="rk-b">${n}</i>` : ''}</button>`;
   let h = `<div class="amv-eu"><span>Seu ID: <b class="mono">#${AM.meuId}</b></span><button type="button" class="buy" id="am-copy"><i class="fa-solid fa-share-nodes"></i> Compartilhar meu link</button></div>`
@@ -121,3 +121,37 @@ setInterval(() => {
   if (document.body.dataset.view === 'home') { rkLoad(false); }
   amLoad(false).then(amBadge);
 }, 2000);
+
+/* ---- perfil público de outro piloto: só o que já é público (apelido, avatar, patente, nave, ranking, troféus) ---- */
+const pjM = document.querySelector('#jogador'), pjB = document.querySelector('#pj-body'); let pjD = null;
+const pjFmt = v => fmt(Math.abs(v)).replace(',00', '');
+const pjData = t => { if (!t) return ''; const d = new Date(t); return d.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' }); };
+function pjRender() {
+  const d = pjD; if (!d) return;
+  const nv = d.nave ? NAVES.find(n => n.id === d.nave.id) : null, st = (ic, v, t) => `<div class="pj-st"><i class="fa-solid ${ic}"></i><b>${v}</b><small>${t}</small></div>`, T = d.tro;
+  let ac = '';
+  if (d.eu) ac = '<span class="tag">Este é o seu perfil</span>';
+  else if (d.rel === 'amigo') ac = '<span class="tag ok">✓ Vocês são amigos</span>' + (typeof noLobby === 'function' && noLobby() ? '<button type="button" class="buy" data-pa="conv">Convidar para a sala</button>' : '');
+  else if (d.rel === 'enviado') ac = '<span class="tag">Pedido enviado</span>';
+  else if (d.rel === 'recebido') ac = '<button type="button" class="buy" data-pa="sim">Aceitar pedido</button><button type="button" class="ghost" data-pa="nao">Recusar</button>';
+  else ac = '<button type="button" class="buy" data-pa="add"><i class="fa-solid fa-user-plus"></i> Adicionar como amigo</button>';
+  pjB.innerHTML = `<div class="pj-hero"><img class="hm-av mo-${rkEsc(d.m)}" src="${avSrc(d.a)}" alt="" width="84" height="84"><div class="pj-id"><h2>${rkEsc(d.n)}</h2><b>${rkEsc(d.patente)}</b>${d.desde ? `<small>Piloto desde ${pjData(d.desde)}</small>` : ''}</div></div>`
+    + `<div class="pj-grid">${st('fa-coins', pjFmt(d.pat) + ' Cr', 'Patrimônio')}${st('fa-chart-line', (d.lucro > 0 ? '+' : '') + pjFmt(d.lucro) + ' Cr', 'Lucro total')}${st('fa-ranking-star', d.pos ? d.pos + 'º' : '—', 'Ranking global')}</div>`
+    + (nv ? `<h3>Nave atual</h3><div class="pj-nave"><div class="pj-nv">${ljMiniNave(nv, d.nave)}</div><div><b>${rkEsc(nv.nome)}</b><p>Porão ${d.nave.cap} · Motor ${d.nave.eng.toFixed(1)} · Armas ${d.nave.wp.toFixed(1)}</p><small>Nível ${d.nave.c}/${d.nave.m}/${d.nave.a} · ${d.frota} ${d.frota === 1 ? 'nave' : 'naves'} na frota${d.gal ? ` · em ${rkEsc(d.gal)}` : ''}</small></div></div>` : '')
+    + `<h3>Troféus</h3><div class="pj-grid pj-tro">${st('fa-trophy', T.vitorias, T.vitorias === 1 ? 'Vitória' : 'Vitórias')}${st('fa-medal', T.podios, T.podios === 1 ? 'Pódio' : 'Pódios')}${st('fa-flag-checkered', T.jogados, T.jogados === 1 ? 'Torneio' : 'Torneios')}</div>`
+    + (T.premios ? `<p class="pj-sub">Prêmios ganhos: <b>${pjFmt(T.premios)} Cr</b></p>` : '')
+    + (T.recentes.length ? `<ul class="pj-rec">${T.recentes.map(r => `<li><span>${r.pos === 1 ? '🥇' : r.pos === 2 ? '🥈' : r.pos === 3 ? '🥉' : '🏁'} ${r.pos}º de ${r.de}</span><small>${r.quando ? new Date(r.quando).toLocaleDateString('pt-BR') : ''}</small></li>`).join('')}</ul>` : '<p class="empty">Ainda não disputou torneios.</p>')
+    + `<p class="au-err" id="pj-err" role="alert"></p><div class="pj-ac">${ac}</div>`;
+}
+async function abrirJogador(id) {
+  if (!TOK || !id) return; pjD = null; pjB.innerHTML = '<p class="empty">Carregando…</p>'; pjM.hidden = false;
+  try { pjD = await api('/jogador?id=' + id); pjRender(); } catch (e) { pjB.innerHTML = `<p class="au-err">${rkEsc(e.message || 'Não foi possível abrir o perfil.')}</p>`; }
+}
+pjM.addEventListener('click', async e => {
+  if (e.target === pjM || e.target.closest('#pj-x')) { pjM.hidden = true; return; }
+  const b = e.target.closest('[data-pa]'); if (!b || !pjD) return; const k = b.dataset.pa, id = pjD.id; b.disabled = true;
+  const ok = k === 'add' ? await amCall('/amigos/pedir', { apelido: '#' + id }) : k === 'sim' ? await amCall('/amigos/responder', { id, aceitar: true }) : k === 'nao' ? await amCall('/amigos/responder', { id, aceitar: false }) : k === 'conv' ? await amCall('/amigos/convidar', { id }) : false;
+  if (ok) { try { pjD = await api('/jogador?id=' + id); pjRender(); if (k === 'conv') $a('#pj-err').textContent = 'Convite enviado!'; } catch {} } else { b.disabled = false; const el = $a('#pj-err'); if (el) el.textContent = AV.msg || ''; }
+});
+document.addEventListener('click', e => { const t = e.target.closest('[data-pj]'); if (t && !e.target.closest('button')) abrirJogador(+t.dataset.pj); });
+document.addEventListener('keydown', e => { if (e.key === 'Escape' && !pjM.hidden) pjM.hidden = true; if ((e.key === 'Enter' || e.key === ' ') && e.target.matches && e.target.matches('[data-pj]')) { e.preventDefault(); abrirJogador(+e.target.dataset.pj); } });

@@ -120,7 +120,7 @@ export const liq = (S) => LIQ / (1 + 1.5 * S.gal);
 const setStk = (S, id, v, now) => { (S.stock[S.loc] ??= {})[id] = { v: Math.max(1, v), t: now }; };
 export function preco(S, id, st, c) {
   const r = RES_ID[id], ev = S.partida && !S.partida.eventos ? null : evAt(c.now);
-  return precoBase(r, cyc(c.now), c.feed) * (planeta(S, S.loc).m[id] || 1) * (1 + .12 * S.gal) * clamp((100 / Math.max(st, 5)) ** .4, .6, 2.5) * (ev && ev.r === id && (!ev.p || ev.p === S.loc) ? ev.m : 1);
+  return precoBase(r, cyc(c.now), S.partida && !S.partida.eventos ? { ...c.feed, news: [] } : c.feed) * (planeta(S, S.loc).m[id] || 1) * (1 + .12 * S.gal) * clamp((100 / Math.max(st, 5)) ** .4, .6, 2.5) * (ev && ev.r === id && (!ev.p || ev.p === S.loc) ? ev.m : 1);
 }
 const carga = (S, c) => Object.keys(S.inv).reduce((s, id) => s + S.inv[id].qty * preco(S, id, stk(S, id, c.now), c), 0);
 export const patrimonio = (S, c) => S.credits + carga(S, c);

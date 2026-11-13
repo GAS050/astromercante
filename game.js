@@ -80,7 +80,8 @@ function feedCh(src, t) {   // variação 24h do feed, suavizada entre uma atual
   const c = change[src]; if (!Number.isFinite(c)) return null; const a = ant[src];
   return Number.isFinite(a) && feedAt ? a + (c - a) * clamp((t - feedAt) / FEED_EVERY, 0, 1) : c;
 }
-const newsMult = (id, t) => { let m = 0; for (const n of NEWS) { if (!n.s || t < n.t0 || t >= n.t1 || !n.r?.includes(id)) continue; m += n.s * Math.min(1, (t - n.t0) / 300000, (n.t1 - t) / ((n.t1 - n.t0) * .25)); } return clamp(m, -.2, .2); };   // idêntico ao servidor
+const newsMult = (id, t) => { let m = 0; if (S.partida && !S.partida.eventos) return 0;   // partidas sem eventos também ficam sem notícias
+   for (const n of NEWS) { if (!n.s || t < n.t0 || t >= n.t1 || !n.r?.includes(id)) continue; m += n.s * Math.min(1, (t - n.t0) / 300000, (n.t1 - t) / ((n.t1 - n.t0) * .25)); } return clamp(m, -.2, .2); };   // idêntico ao servidor
 function priceNow(r, t) {
   const s = t / 1000, n = vnoise(r.id + 'a', s / 900) * .55 + vnoise(r.id + 'b', s / 240) * .3 + vnoise(r.id + 'c', s / 60) * .15;
   const ch = feedCh(r.src, t), tg = Number.isFinite(ch) ? clamp(ch * 3, -30, 30) / 100 : 0;

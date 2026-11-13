@@ -165,7 +165,7 @@ async function humano(env, req, token) {   // Cloudflare Turnstile (anti-robô);
 async function apagarUsuario(env, id) {
   const u = await env.DB.prepare('SELECT email FROM usuarios WHERE id = ?').bind(id).first();
   await perfisInit(env);
-  for (const t of ['saves', 'sessoes', 'partida_jog', 'perfis']) await env.DB.prepare(`DELETE FROM ${t} WHERE usuario = ?`).bind(id).run();
+  for (const t of ['saves', 'sessoes', 'partida_jog', 'perfis', 'loja_itens']) await env.DB.prepare(`DELETE FROM ${t} WHERE usuario = ?`).bind(id).run();
   if (u && u.email) await env.DB.prepare('DELETE FROM codigos WHERE email = ?').bind(u.email).run();
   await env.DB.prepare('DELETE FROM usuarios WHERE id = ?').bind(id).run();
 }
@@ -180,11 +180,11 @@ async function limparPendentes(env) {   // cadastros nunca confirmados somem em 
 const ALFA = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789', ESPERA_MAX = 2 * 3600e3;
 const codigoNovo = () => Array.from(crypto.getRandomValues(new Uint8Array(6)), (b) => ALFA[b % ALFA.length]).join('');
 /** Soma/subtrai créditos da CARREIRA com a mesma trava otimista das ações (taxa de entrada, reembolso, prêmio). */
-async function ajustarCreditos(env, id, delta) {
+async function ajustarCreditos(env, id, delta, falta = 'Créditos insuficientes na carreira para pagar a taxa de entrada.') {
   for (let i = 0; i < 6; i++) {
     const now = Date.now(), c = { now, feed: await feedAtual(env) }, { row, S } = await carregarJogo(env, id, now), msgs = [];
     resolver(S, c, msgs); fechar(S, c, msgs);
-    if (S.credits + delta < 0) throw new Erro(402, 'Créditos insuficientes na carreira para pagar a taxa de entrada.');
+    if (S.credits + delta < 0) throw new Erro(402, falta);
     S.credits += delta; fechar(S, c, msgs);
     if (await gravarJogo(env, id, S, c, row ? row.atualizado : 0)) return;
   }
@@ -351,23 +351,29 @@ async function perfisInit(env) {
   if (perfisOk) return;
   await env.DB.prepare("CREATE TABLE IF NOT EXISTS perfis (usuario INTEGER PRIMARY KEY, apelido TEXT COLLATE NOCASE, avatar TEXT NOT NULL DEFAULT 'a1', faixa TEXT, apelido_em INTEGER NOT NULL DEFAULT 0, criado INTEGER NOT NULL DEFAULT 0)").run();
   await env.DB.prepare('CREATE UNIQUE INDEX IF NOT EXISTS idx_perfis_apelido ON perfis(apelido)').run();
+  await env.DB.prepare('CREATE TABLE IF NOT EXISTS loja_itens (usuario INTEGER NOT NULL, item TEXT NOT NULL, quando INTEGER NOT NULL DEFAULT 0, PRIMARY KEY (usuario, item))').run();
+  try { await env.DB.prepare("ALTER TABLE perfis ADD COLUMN moldura TEXT NOT NULL DEFAULT ''").run(); } catch { /* a coluna já existe */ }
   perfisOk = true;
 }
 const AVATARES_GRATIS = ['a1', 'a2', 'a3', 'a4', 'a5', 'a6', 'a7', 'a8'];   // o 'cap' (Capitão) é de conquista: entra com a loja
 const PROIBIDAS = ['puta', 'porra', 'merda', 'caralho', 'buceta', 'viado', 'arrombad', 'fdp', 'estupr', 'pedofil', 'nazi', 'hitler', 'nigger', 'nigga', 'fuck', 'shit', 'bitch', 'cunt', 'admin', 'moderador', 'suporte', 'astromercante', 'staff'];
 const limpaNome = (t) => t.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[013457$@!]/g, (c) => ({ 0: 'o', 1: 'i', 3: 'e', 4: 'a', 5: 's', 7: 't', $: 's', '@': 'a', '!': 'i' }[c])).replace(/[^a-z]/g, '');
 const SETE_DIAS = 7 * 864e5;
+const donos = async (env, id) => ((await env.DB.prepare('SELECT item FROM loja_itens WHERE usuario = ?').bind(id).all()).results || []).map((x) => x.item);
 async function perfilVer(env, id) {
-  const r = await env.DB.prepare('SELECT p.apelido AS ap, p.avatar AS av, p.faixa AS faixa, p.apelido_em AS em, u.nome AS nome FROM usuarios u LEFT JOIN perfis p ON p.usuario = u.id WHERE u.id = ?').bind(id).first();
-  return { completo: !!(r && r.ap && r.faixa), apelido: r?.ap || r?.nome || '', sugestao: r?.nome || '', avatar: r?.av || 'a1', faixa: r?.faixa || null, avatares: AVATARES_GRATIS, troca_em: r?.em ? Math.max(0, r.em + SETE_DIAS - Date.now()) : 0 };
+  const r = await env.DB.prepare('SELECT p.apelido AS ap, p.avatar AS av, p.moldura AS mo, p.faixa AS faixa, p.apelido_em AS em, u.nome AS nome FROM usuarios u LEFT JOIN perfis p ON p.usuario = u.id WHERE u.id = ?').bind(id).first(), meus = await donos(env, id);
+  return { completo: !!(r && r.ap && r.faixa), apelido: r?.ap || r?.nome || '', sugestao: r?.nome || '', avatar: r?.av || 'a1', moldura: r?.mo || '', molduras: meus.filter((i) => CATALOGO[i]?.tipo === 'moldura'), faixa: r?.faixa || null, avatares: [...AVATARES_GRATIS, ...meus.filter((i) => CATALOGO[i]?.tipo === 'avatar')], troca_em: r?.em ? Math.max(0, r.em + SETE_DIAS - Date.now()) : 0 };
 }
 async function perfilSalvar(env, id, corpo) {
-  const atual = await env.DB.prepare('SELECT apelido, avatar, faixa, apelido_em FROM perfis WHERE usuario = ?').bind(id).first(), now = Date.now();
+  const atual = await env.DB.prepare('SELECT apelido, avatar, moldura, faixa, apelido_em FROM perfis WHERE usuario = ?').bind(id).first(), now = Date.now();
   const faixa = atual?.faixa || corpo.faixa;
   if (faixa === '<13') throw new Erro(403, 'O Astromercante é para maiores de 13 anos.');
   if (!['13-17', '18+'].includes(faixa)) throw new Erro(400, 'Escolha sua faixa etária.');
   const avatar = corpo.avatar === undefined ? (atual?.avatar || 'a1') : String(corpo.avatar);
-  if (!AVATARES_GRATIS.includes(avatar)) throw new Erro(400, 'Avatar indisponível.');
+  const meus = await donos(env, id);
+  if (!AVATARES_GRATIS.includes(avatar) && !meus.includes(avatar)) throw new Erro(400, 'Avatar indisponível.');
+  const moldura = corpo.moldura === undefined ? (atual?.moldura || '') : String(corpo.moldura);
+  if (moldura && !(CATALOGO[moldura]?.tipo === 'moldura' && meus.includes(moldura))) throw new Erro(400, 'Moldura indisponível.');
   let ap = atual?.apelido || null, em = atual?.apelido_em || 0;
   if (corpo.apelido !== undefined) {
     const novo = String(corpo.apelido).trim().replace(/\s+/g, ' ');
@@ -381,10 +387,40 @@ async function perfilSalvar(env, id, corpo) {
     }
   }
   if (!ap) throw new Erro(400, 'Escolha um apelido.');
-  try { await env.DB.prepare('INSERT INTO perfis (usuario, apelido, avatar, faixa, apelido_em, criado) VALUES (?, ?, ?, ?, ?, ?) ON CONFLICT(usuario) DO UPDATE SET apelido = excluded.apelido, avatar = excluded.avatar, faixa = excluded.faixa, apelido_em = excluded.apelido_em').bind(id, ap, avatar, faixa, em, now).run(); }
+  try { await env.DB.prepare('INSERT INTO perfis (usuario, apelido, avatar, moldura, faixa, apelido_em, criado) VALUES (?, ?, ?, ?, ?, ?, ?) ON CONFLICT(usuario) DO UPDATE SET apelido = excluded.apelido, avatar = excluded.avatar, moldura = excluded.moldura, faixa = excluded.faixa, apelido_em = excluded.apelido_em').bind(id, ap, avatar, moldura, faixa, em, now).run(); }
   catch (e) { if (/UNIQUE/i.test(String(e))) throw new Erro(409, 'Esse apelido já está em uso.'); throw e; }
   rankCache.t = 0;   // o ranking mostra o apelido novo já na próxima leitura
   return await perfilVer(env, id);
+}
+
+/* ---------- loja: itens só de aparência (avatar e moldura), pagos com créditos da carreira. O servidor guarda o que cada piloto tem; nada aqui dá vantagem no jogo ---------- */
+const CATALOGO = {
+  b1: { tipo: 'avatar', nome: 'Robô de carga', raridade: 'comum', preco: 2000 },
+  b2: { tipo: 'avatar', nome: 'Alienígena', raridade: 'comum', preco: 5000 },
+  b3: { tipo: 'avatar', nome: 'Astronauta', raridade: 'raro', preco: 15000 },
+  b4: { tipo: 'avatar', nome: 'Ciborgue', raridade: 'raro', preco: 50000 },
+  b5: { tipo: 'avatar', nome: 'Piloto lendário', raridade: 'épico', preco: 250000 },
+  b6: { tipo: 'avatar', nome: 'Fantasma estelar', raridade: 'lendário', preco: 1000000 },
+  m1: { tipo: 'moldura', nome: 'Neon', raridade: 'comum', preco: 3000 },
+  m2: { tipo: 'moldura', nome: 'Ouro', raridade: 'raro', preco: 20000 },
+  m3: { tipo: 'moldura', nome: 'Fogo', raridade: 'épico', preco: 100000 },
+  m4: { tipo: 'moldura', nome: 'Gelo', raridade: 'épico', preco: 100000 },
+  m5: { tipo: 'moldura', nome: 'Arco-íris', raridade: 'lendário', preco: 1000000 },
+  cap: { tipo: 'avatar', nome: 'O Capitão', raridade: 'conquista', preco: 0, patente: 4, cond: 'Alcance a patente Comodoro' }
+};
+async function lojaVer(env, id) {
+  const { S } = await carregarJogo(env, id, Date.now());
+  let meus = await donos(env, id);
+  for (const [k, v] of Object.entries(CATALOGO)) if (v.patente != null && S.rank >= v.patente && !meus.includes(k)) { await env.DB.prepare('INSERT OR IGNORE INTO loja_itens (usuario, item, quando) VALUES (?, ?, ?)').bind(id, k, Date.now()).run(); meus.push(k); }
+  return { creditos: Math.floor(S.credits), itens: Object.entries(CATALOGO).map(([k, v]) => ({ id: k, ...v, tem: meus.includes(k) })) };
+}
+async function lojaComprar(env, id, item) {
+  const v = CATALOGO[item]; if (!v || v.patente != null) throw new Erro(400, 'Item indisponível.');
+  const novo = await env.DB.prepare('INSERT OR IGNORE INTO loja_itens (usuario, item, quando) VALUES (?, ?, ?)').bind(id, item, Date.now()).run();
+  if (!novo.meta || !novo.meta.changes) throw new Erro(409, 'Você já tem este item.');
+  try { await ajustarCreditos(env, id, -v.preco, `Você precisa de ${v.preco.toLocaleString('pt-BR')} Cr em caixa para comprar ${v.nome}.`); }
+  catch (e) { await env.DB.prepare('DELETE FROM loja_itens WHERE usuario = ? AND item = ?').bind(id, item).run(); throw e; }
+  return await lojaVer(env, id);
 }
 async function rota(req, env, url) {
   await perfisInit(env);
@@ -474,6 +510,8 @@ async function rota(req, env, url) {
   }
   const eu = await autenticar(req, env);
   if (p === '/auth/sair' && m === 'POST') { await env.DB.prepare('DELETE FROM sessoes WHERE hash = ?').bind(eu.hash).run(); return { ok: true }; }
+  if (p === '/loja' && m === 'GET') return await lojaVer(env, eu.id);
+  if (p === '/loja/comprar' && m === 'POST') return await lojaComprar(env, eu.id, String(corpo.item || ''));
   if (p === '/perfil' && m === 'GET') return await perfilVer(env, eu.id);
   if (p === '/perfil' && m === 'POST') return await perfilSalvar(env, eu.id, corpo);
   if (p === '/ranking' && m === 'GET') return await ranking(env, eu.id);

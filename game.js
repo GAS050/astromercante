@@ -15,7 +15,7 @@ RES.push(
   { id:'cristal',     nome:'Cristal Temporal', base:2400, vol:.009, src:'gold', corr:'Correl. Ouro (PAXG)',        icon:'fa-hourglass-half', t:3 });
 RES.push(...MINERALS);
 const $ = (s, r = document) => r.querySelector(s);
-const avSrc = id => id === 'cap' ? 'assets/avatar/capitao.webp' : `assets/avatar/${/^a[1-8]$/.test(id) ? id : 'a1'}.svg`;
+const avSrc = id => id === 'cap' ? 'assets/avatar/capitao.webp' : `assets/avatar/${/^(a[1-8]|b[1-6])$/.test(id) ? id : 'a1'}.svg`;
 const avImg = id => id ? `<img class="av" src="${avSrc(id)}" alt="" width="20" height="20">` : '';
 const fmt = n => n.toLocaleString('pt-BR', { minimumFractionDigits:2, maximumFractionDigits:2 });
 const clamp = (v, a, b) => Math.min(b, Math.max(a, v));

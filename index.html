@@ -132,6 +132,14 @@
   </form>
   <p class="au-hint">Sua conta guarda o progresso na nuvem para jogar em qualquer aparelho. Usamos seu e-mail só para confirmar a conta e recuperar a senha.</p>
 </div></div>
+<div class="modal" id="loja" hidden><div class="card-panel lj">
+  <div class="lj-top"><h2>Loja do Consórcio</h2><button type="button" class="ghost" id="lj-x" aria-label="Fechar">✕</button></div>
+  <p class="pf-sub">Só aparência: nada aqui dá vantagem no jogo. Paga com os créditos da sua carreira.</p>
+  <p class="lj-cr">Em caixa: <b class="mono" id="lj-cr">—</b> Cr</p>
+  <div class="lj-tabs"><button type="button" class="on" data-t="avatar">Avatares</button><button type="button" data-t="moldura">Molduras</button></div>
+  <div class="lj-grid" id="lj-grid"></div>
+  <p class="au-err" id="lj-err" role="alert"></p>
+</div></div>
 <div class="modal" id="perfil" hidden><div class="card-panel">
   <div class="au-brand">SEU PILOTO</div>
   <h2 id="pf-t">Crie seu perfil</h2>
@@ -156,8 +164,9 @@
 <script src="game.js" defer></script>
 <script src="partidas.js" defer></script>
 <script src="perfil.js" defer></script>
+<script src="loja.js" defer></script>
 <script src="home.js" defer></script>
-<script src="historia.js"></script>
+<script src="historia.js" defer></script>
 <script src="tutorial.js" defer></script>
 </body>
 </html>

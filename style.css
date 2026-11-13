@@ -406,3 +406,25 @@ body[data-view=home] #p-home{display:block}body[data-view=home] .goal{display:no
 body.histon{overflow:hidden}
 @keyframes histin{from{opacity:0}to{opacity:1}}@keyframes histdrift{to{background-position:340px 680px}}
 @media (prefers-reduced-motion:reduce){.hist,.hist::before{animation:none}}
+/* molduras da loja (aplicadas ao avatar) */
+.mo-m1{border:2px solid #3ee6ff!important;box-shadow:0 0 14px #3ee6ff,inset 0 0 8px rgba(62,230,255,.5)!important}
+.mo-m2{border:3px solid #ffd45e!important;box-shadow:0 0 12px rgba(255,212,94,.7),inset 0 0 6px #a87a10!important}
+.mo-m3{border:3px solid #ff7a2e!important;box-shadow:0 0 16px #ff4d1a,0 0 30px rgba(255,120,30,.5)!important;animation:mofire 1.4s ease-in-out infinite}
+.mo-m4{border:3px solid #bdeaff!important;box-shadow:0 0 16px #8fd8ff,0 0 28px rgba(160,225,255,.5)!important}
+.mo-m5{border:3px solid transparent!important;background:linear-gradient(#050e1a,#050e1a) padding-box,conic-gradient(#ff5d5d,#ffd45e,#5dff9a,#3ee6ff,#b085ff,#ff5d5d) border-box;box-shadow:0 0 18px rgba(176,133,255,.6)!important;animation:mohue 4s linear infinite}
+@keyframes mofire{50%{box-shadow:0 0 22px #ff7a2e,0 0 38px rgba(255,100,20,.6)}}@keyframes mohue{to{filter:hue-rotate(360deg)}}
+@media (prefers-reduced-motion:reduce){.mo-m3,.mo-m5{animation:none}}
+.modal .card-panel.lj{width:min(460px,100%);max-height:92vh;overflow:auto}
+.lj-top{display:flex;justify-content:space-between;align-items:center}.lj-top h2{border:0;margin:0;padding:0}
+.lj-cr{margin:6px 0 10px;color:var(--mt)}.lj-cr b{color:var(--neon)}
+.lj-tabs{display:flex;gap:6px;margin-bottom:10px}.lj-tabs button{flex:1;padding:8px;border:1px solid var(--line);border-radius:8px;background:rgba(5,14,26,.6);color:var(--mt)}.lj-tabs button.on{border-color:var(--cyan);color:var(--cyan)}
+.lj-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
+.lj-it{display:flex;flex-direction:column;align-items:center;gap:4px;padding:12px 8px;border:1px solid var(--line);border-radius:12px;background:rgba(5,14,26,.6);text-align:center}
+.lj-it small{color:var(--mt);font-size:.72rem;text-transform:uppercase;letter-spacing:.06em}.lj-it .buy,.lj-it .ghost{margin-top:4px;padding:6px 12px;font-size:.85rem}
+.lj-img{width:72px;height:72px;border-radius:18px;object-fit:cover;border:2px solid transparent}
+.lj-cond{text-transform:none!important;letter-spacing:0!important;margin-top:4px}
+.r-raro{border-color:#3e8cff}.r-epico{border-color:#b085ff}.r-lendario{border-color:#ffd45e;box-shadow:0 0 14px rgba(255,212,94,.25)}.r-conquista{border-color:#ff7a2e}
+.lj-it.tem{background:rgba(62,255,150,.06)}
+.lj-it .buy,.hist-a .buy{background:rgba(57,255,136,.12);border-radius:8px;font-weight:600}.lj-it .buy:disabled{opacity:.45;cursor:not-allowed}
+.lj-it .ghost,.hist-a .ghost,.lj-top .ghost{background:none;border:0;color:var(--mt);text-decoration:underline}
+.modal .card-panel.lj{background:#08111f}

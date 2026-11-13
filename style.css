@@ -335,3 +335,22 @@ body[data-view=play] #p-play{display:block}
 @keyframes capin{from{opacity:0;transform:translateX(-10px)}to{opacity:1;transform:none}}
 @keyframes capshake{0%,100%{transform:translate(0)}25%{transform:translate(-1.5px,1px)}75%{transform:translate(1.5px,-1px)}}
 @keyframes capjump{50%{transform:translateY(-6px)}}
+
+/* meta sempre visível: progresso até a próxima patente */
+.goal{display:flex;flex-direction:column;align-items:stretch;gap:5px;padding:6px 16px;font-size:.82rem;color:var(--mt);background:rgba(9,22,40,.6);border-bottom:1px solid var(--line)}
+.goal[hidden]{display:none}.goal span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.goal b{color:var(--tx)}
+.goal-b{height:6px;border-radius:4px;background:rgba(27,58,90,.7);overflow:hidden;min-width:60px}
+.goal-b i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--cyan),var(--neon));transition:width .6s}
+body.gated .goal,body.loading .goal,body.inmatch .goal{display:none}
+/* tutorial guiado pelo Capitão */
+.tut{position:fixed;left:8px;right:8px;bottom:calc(env(safe-area-inset-bottom) + 66px);z-index:8;display:flex;gap:10px;align-items:flex-start;padding:10px 12px;max-width:520px;border-radius:12px;background:rgba(7,16,32,.96);border:1px solid var(--cyan);box-shadow:0 0 24px rgba(62,230,255,.25);animation:capin .25s ease-out}
+.tut[hidden]{display:none}
+.tut img{width:48px;height:48px;border-radius:50%;border:2px solid var(--cyan);flex:none;object-fit:cover}
+.tut p{font-size:.86rem;line-height:1.32}.tut p b{color:var(--cyan)}
+.tut-a{display:flex;gap:10px;align-items:center;margin-top:8px;flex-wrap:wrap}.tut-a .buy{padding:6px 14px}.tut-a .ghost{padding:4px;font-size:.8rem}
+.tut-hl{outline:2px solid var(--neon)!important;outline-offset:3px;border-radius:8px;animation:tuthl 1.1s ease-in-out infinite}
+@keyframes tuthl{50%{outline-color:rgba(57,255,136,.25)}}
+@media (min-width:900px){.tut{left:16px;bottom:16px}}
+@media (prefers-reduced-motion:reduce){.tut-hl{animation:none}}
+body.tuton .toast{bottom:calc(210px + env(safe-area-inset-bottom))}
+@media (min-width:900px){body.tuton .toast{bottom:calc(86px + env(safe-area-inset-bottom))}}

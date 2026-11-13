@@ -255,6 +255,18 @@ body.gated #auth .card-panel{background:rgba(7,16,32,.82);backdrop-filter:blur(6
 .sheetx{width:2em;height:2em;font-size:1.2em}
 
 body.loading .hud,body.loading .grid,body.loading .nav{visibility:hidden}
+html.pre:not(.pretok) .hud,html.pre:not(.pretok) .grid,html.pre:not(.pretok) .nav,html.pre:not(.pretok) .matchbar{visibility:hidden}
+html.pre.pretok .hud,html.pre.pretok .grid,html.pre.pretok .nav{visibility:hidden}
+/* esqueleto de carregamento: mostra a forma da tela enquanto o servidor responde (só com sessão) */
+#skel{display:none;position:fixed;inset:0;z-index:5;padding:calc(env(safe-area-inset-top) + 14px) 16px 16px;background:var(--bg);overflow:hidden}
+html.pre.pretok #skel,body.loading:not(.gated) #skel{display:block}
+.sk{border-radius:10px;border:1px solid var(--line);background:linear-gradient(100deg,rgba(27,58,90,.35) 30%,rgba(62,230,255,.12) 50%,rgba(27,58,90,.35) 70%) 0 0/300% 100%;animation:skel 1.4s linear infinite;margin-bottom:12px}
+.sk-h{height:64px}.sk-map{height:min(46vh,420px)}.sk-r{height:74px}
+#skel-msg{opacity:0;text-align:center;color:var(--mt);font-size:.9rem;animation:skelmsg 0s 8s forwards}
+#skel-msg button{margin-left:8px;padding:4px 12px;border:1px solid var(--cyan);background:transparent;border-radius:8px;color:var(--cyan)}
+@keyframes skel{to{background-position:-300% 0}}
+@keyframes skelmsg{to{opacity:1}}
+@media (prefers-reduced-motion:reduce){.sk{animation:none}}
 body.busy [data-act],body.busy [data-go],body.busy [data-jump],body.busy [data-up]{opacity:.55;pointer-events:none}
 
 .board .pos{display:inline-block;min-width:1.6em;font-style:normal;color:var(--mt);font-size:.8em}

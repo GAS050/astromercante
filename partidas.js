@@ -31,7 +31,8 @@ function aplicarPartida(r) {
 }
 async function entrarModoPartida() {
   if (!noAr()) return;
-  const r = await api('/partida?v=0').catch(() => null); if (!r || r.estado !== 'andamento') return;
+  document.body.classList.add('loading');   // esqueleto até o estado da partida chegar
+  const r = await api('/partida?v=0').catch(() => null); if (!r || r.estado !== 'andamento') { document.body.classList.remove('loading'); return; }
   MODE = 'partida'; PT = r; firstState = true; clearTimeout(tripT); document.body.classList.add('inmatch');
   $('#board-h').textContent = 'Placar da partida'; $('#mis-h').hidden = $('#mis').hidden = true;
   aplicarEstado(r); document.querySelector('.nav [data-view=market]').click(); say(`Partida ${r.modo === 'torneio' ? 'de torneio' : 'entre amigos'} iniciada! Vença com o maior patrimônio.`, 'win');
@@ -39,7 +40,7 @@ async function entrarModoPartida() {
 }
 function voltarCarreira(manual) {
   if (manual && noAr()) ficouCarreira = PT.codigo;
-  MODE = 'carreira'; firstState = true; document.body.classList.remove('inmatch');
+  MODE = 'carreira'; firstState = true; document.body.classList.remove('inmatch'); document.body.classList.add('loading');
   $('#board-h').textContent = 'Ranking global'; $('#mis-h').hidden = $('#mis').hidden = false; S.partida = undefined;
   refrescar(true); if (typeof renderMeta === 'function') renderMeta(); renderPlay(); renderMatchBar();
 }

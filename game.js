@@ -27,6 +27,7 @@ let MODE = 'carreira', PT = null;   // MODE: 'partida' = jogando um torneio/sala
 let SKEW = 0, V = 0, READY = !CLOUD(), busy = false, pulling = false, tripT = 0;   // SKEW: diferença entre o relógio do servidor e o do aparelho
 const NOW = () => Date.now() + SKEW;
 if (CLOUD()) { S.daily = { day:'', p:{ trades:0, trips:0, profit:0 }, done:{} }; document.body.classList.add('loading'); }
+document.documentElement.classList.remove('pre', 'pretok');   // a partir daqui as classes do corpo (loading, gated) mandam
 RES.forEach(r => { S.price[r.id] ??= r.base; S.prev[r.id] ??= S.price[r.id]; S.inv[r.id] ??= { qty:0, avg:0 }; S.hist[r.id] ??= [S.price[r.id]]; });
 const save = () => { try { localStorage.setItem(KEY, JSON.stringify(CLOUD() ? Object.fromEntries(PREFS.map(k => [k, S[k]])) : S)); } catch {} };
 
@@ -482,6 +483,32 @@ function miniShip(x, y, ang, sc, col) {
   cx.beginPath(); cx.moveTo(0, -5); cx.lineTo(3, 4); cx.lineTo(0, 2); cx.lineTo(-3, 4); cx.closePath(); cx.fill(); cx.restore();
 }
 function ringArc(s, r, back) { cx.strokeStyle = 'rgba(232,194,122,.8)'; cx.lineWidth = 2 * s.sc; cx.beginPath(); cx.ellipse(s.x, s.y, r * 1.8, r * .5, -.35, back ? Math.PI : 0, back ? 2 * Math.PI : Math.PI); cx.stroke(); }
+const LBL = [];
+const hit = (a, b) => a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h && b.y < a.y + a.h;
+/** Rótulos dos planetas sem sobreposição: prioridade para onde você está, o planeta escolhido e o destino; os demais só aparecem se couberem
+ *  (embaixo ou, se não couber, em cima) e sem cobrir outro planeta. A linha de detalhe (minério e combustível) depende do zoom. */
+function drawLabels() {
+  const placed = [], discs = LBL.map(l => ({ x: l.x - l.r * 1.3, y: l.y - l.r * 1.3, w: l.r * 2.6, h: l.r * 2.6, l }));
+  LBL.sort((a, b) => b.pr - a.pr || b.r - a.r || a.y - b.y);
+  for (const l of LBL) {
+    const p = l.p, m = p.m, best = Object.keys(m).sort((x, y) => m[x] - m[y])[0], fs = (l.dense ? 7 : 8.5) * Math.max(p._s.sc, .9);
+    cx.font = `600 ${fs}px Chakra Petch, sans-serif`; cx.textAlign = 'center';
+    const w = cx.measureText(p.nome).width + 10, det = l.here || l.on || l.lock || (!l.dense && cam.z >= .9) || cam.z >= 1.6;
+    const txt2 = !det ? '' : l.lock ? '🔒 ' + RANKS[p.t][1] : l.here ? '● você está aqui' : `${best && m[best] < 1 ? '▼' + SHORT[best] + ' ' : ''}⛽${trip(p.id).cost}`;
+    const down = l.y + l.r * 1.5 + 12, up = l.y - l.r * 1.5 - 4;
+    let done = false;
+    for (const [px, ty] of [[l.x, down], [l.x, up], [l.x + l.r * 1.5 + w / 2 + 2, l.y + 3], [l.x - l.r * 1.5 - w / 2 - 2, l.y + 3]]) {
+      const baixo = px === l.x && ty === down, box = { x: px - w / 2, y: ty - 9, w, h: 12 }, area = baixo && txt2 ? { x: box.x, y: box.y, w, h: 22 } : box;
+      if (l.pr < 3 && (placed.some(o => hit(area, o)) || discs.some(d => d.l !== l && hit(area, d)))) continue;
+      cx.globalAlpha = l.lock ? .3 : 1; cx.fillStyle = 'rgba(4,10,20,.7)'; cx.fillRect(box.x, box.y, w, 12); cx.fillStyle = '#e6f1fb'; cx.fillText(p.nome, px, ty);
+      placed.push(box);
+      if (txt2 && baixo) { cx.fillStyle = l.here ? '#39ff88' : '#8fa3b8'; cx.font = '7px Chakra Petch, sans-serif'; cx.fillText(txt2, l.x, ty + 10); placed.push({ x: l.x - w / 2, y: ty + 2, w, h: 10 }); }
+      done = true; break;
+    }
+    cx.globalAlpha = 1; void done;
+  }
+  LBL.length = 0;
+}
 function drawPlanet(p, ts) {
   const st = PST[p.id], s = p._s, dense = PL.length > 16, r = st.r * s.sc * (dense ? .78 : 1), here = !S.trip && p.id === S.loc, on = sel === p.id || hov === p;
   const col = here ? '57,255,136' : on ? '62,230,255' : '170,110,255', lock = p.t > S.rank; if (lock) cx.globalAlpha = .3;
@@ -502,13 +529,9 @@ function drawPlanet(p, ts) {
   const a = ts / 1800 + p.x; cx.fillStyle = '#d8efff'; cx.beginPath(); cx.arc(s.x + Math.cos(a) * r * 1.6, s.y + Math.sin(a) * r * .55, 1.7 * s.sc, 0, 7); cx.fill();
   }
   if (cam.z < .5) { cx.globalAlpha = 1; return; }
-  // rótulo com placa
-  const m = p.m, best = Object.keys(m).sort((x, y) => m[x] - m[y])[0], ty = s.y + r * 1.5 + 12;
-  cx.font = `600 ${(dense ? 7 : 8.5) * Math.max(s.sc, .9)}px Chakra Petch, sans-serif`; cx.textAlign = 'center';
-  const w = cx.measureText(p.nome).width + 10; cx.fillStyle = 'rgba(4,10,20,.7)'; cx.fillRect(s.x - w / 2, ty - 9, w, 12);
-  cx.fillStyle = '#e6f1fb'; cx.fillText(p.nome, s.x, ty);
-  cx.fillStyle = here ? '#39ff88' : '#8fa3b8'; cx.font = '7px Chakra Petch, sans-serif';
-  if (!dense || here || on || lock) cx.fillText(lock ? '🔒 ' + RANKS[p.t][1] : here ? '● você está aqui' : `${best && m[best] < 1 ? '▼' + SHORT[best] + ' ' : ''}⛽${trip(p.id).cost}`, s.x, ty + 10); cx.globalAlpha = 1;
+  // rótulo: não é desenhado aqui; entra numa fila e drawLabels() decide quais cabem sem se sobrepor (nomes nunca ficam escondidos)
+  LBL.push({ p, x: s.x, y: s.y, r, dense, here, on, lock, pr: here || on ? 4 : S.trip && S.trip.to === p.id ? 3 : lock ? 0 : 1 });
+  cx.globalAlpha = 1;
 }
 
 /* sprites pré-desenhados (naves pequenas do mapa): evita redesenhar/rasterizar SVG grande a cada quadro, o que travava o celular */
@@ -693,6 +716,7 @@ function drawEmblem(i, ts, s, cur) {
   });
   if (sel1) { cx.strokeStyle = 'rgba(62,230,255,.9)'; cx.lineWidth = 1.4; cx.setLineDash([5, 4]); cx.lineDashOffset = -ts / 70; cx.beginPath(); cx.ellipse(s.x, s.y, R * .95, R * .58, 0, 0, 7); cx.stroke(); cx.setLineDash([]); }
   if (!cur && !ok) { cx.globalAlpha = .9; cx.font = `${Math.round(clamp(R * .3, 12, 26))}px sans-serif`; cx.textAlign = 'center'; cx.fillText('🔒', s.x, s.y + 6); cx.globalAlpha = 1; }
+  if (cur && cam.z >= .7) return;   // dentro da própria galáxia os rótulos são os dos planetas (o nome da galáxia está na legenda do mapa)
   const ty = s.y + R * .6 + 12, lock = S.rank < G.t ? RANKS[G.t][1] : S.engLv < G.eng ? 'motor nv.' + G.eng : '';
   cx.textAlign = 'center'; cx.font = '600 9px Chakra Petch, sans-serif'; const w = cx.measureText(G.nome).width + 12;
   cx.fillStyle = 'rgba(4,10,20,.72)'; cx.fillRect(s.x - w / 2, ty - 10, w, 13); cx.fillStyle = `hsl(${h},90%,${ok ? 78 : 62}%)`; cx.fillText(G.nome, s.x, ty);
@@ -730,7 +754,7 @@ function frame(ts) {
   cx.globalCompositeOperation = 'source-over';
   trafego(ts);
   inimigos(ts, 0);
-  PL.slice().sort((a, b) => a._s.y - b._s.y).forEach(p => drawPlanet(p, ts));
+  LBL.length = 0; PL.slice().sort((a, b) => a._s.y - b._s.y).forEach(p => drawPlanet(p, ts)); drawLabels();
   if (t) { const d = plan(t.to)._s, k = (ts / 25) % 30; cx.strokeStyle = `rgba(62,230,255,${1 - k / 30})`; cx.lineWidth = 1.2; cx.beginPath(); cx.ellipse(d.x, d.y + 14 * d.sc, k * d.sc, k * d.sc * .35, 0, 0, 7); cx.stroke(); }
   inimigos(ts, 1);
   alertas(NOW());

@@ -71,7 +71,29 @@ def posicoes(n, md=50):
             p = (rng.uniform(35, 365), rng.uniform(45, 255))
             if all((p[0]-q[0])**2 + ((p[1]-q[1])*1.25)**2 >= md*md for q in pts): pts.append(p); break
         else: md -= 2
-    return sorted((round(x), round(y)) for x, y in pts)
+    return sorted(afastar(pts))
+def afastar(pts, X=(35, 365), Y=(45, 255)):
+    """Relaxamento por repulsão (sem sorteio: não muda a sequência aleatória do resto dos dados): empurra para longe os planetas que se tocam,
+    sem sair da área do mapa, até a menor distância (com o eixo y esticado, como no sorteio) ficar a maior possível."""
+    n = len(pts); best = None
+    for alvo in range(72, 44, -2):
+        q = [list(p) for p in pts]
+        for _ in range(600):
+            mexeu = False
+            for i in range(n):
+                for j in range(i + 1, n):
+                    dx, dy = q[j][0] - q[i][0], (q[j][1] - q[i][1]) * 1.25; d = (dx*dx + dy*dy) ** .5
+                    if d < alvo:
+                        if d < 1e-6: dx, dy, d = 1, 0, 1
+                        f = (alvo - d) / 2 / d + 1e-3; mexeu = True
+                        q[i][0] -= dx*f; q[j][0] += dx*f; q[i][1] -= dy*f/1.25; q[j][1] += dy*f/1.25
+            for p_ in q: p_[0] = min(X[1], max(X[0], p_[0])); p_[1] = min(Y[1], max(Y[0], p_[1]))
+            if not mexeu: break
+        r = [(round(a), round(b)) for a, b in q]
+        mn = min(((r[i][0]-r[j][0])**2 + ((r[i][1]-r[j][1])*1.25)**2) ** .5 for i in range(n) for j in range(i+1, n))
+        if mn >= alvo - 2: return r
+        if best is None or mn > best[0]: best = (mn, r)
+    return best[1]
 def planeta(i, nome, x, y, t, tipo, m, gid):
     f = pegar(tipo); c, k = meta(f)
     return dict(id=f'{gid}_{i}' if gid != 'orionis' else nome, nome=nome, x=x, y=y, t=t, r=raio(tipo), img=f, c=c, k=k, m=m)

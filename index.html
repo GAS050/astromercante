@@ -10,8 +10,15 @@
 <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 <link rel="stylesheet" href="style.css">
+<script>
+/* Antes de qualquer script do jogo: sem sessão salva, o painel nasce escondido e o login aparece direto (sem piscar a tela de negociação);
+   com sessão, aparece o esqueleto até o servidor responder. O jogo remove estas marcas ao assumir (e há uma trava de segurança de 5 s). */
+(function () { try { var t = localStorage.getItem('astromercante_tok'), h = document.documentElement; h.classList.add('pre'); if (t) h.classList.add('pretok'); setTimeout(function () { h.classList.remove('pre', 'pretok'); }, 5000); } catch (e) {} })();
+</script>
 </head>
 <body data-view="market">
+<div id="skel" aria-hidden="true"><div class="sk sk-h"></div><div class="sk sk-map"></div><div class="sk sk-r"></div><div class="sk sk-r"></div><div class="sk sk-r"></div>
+  <p id="skel-msg">Conectando ao servidor… <button type="button" onclick="location.reload()">Recarregar</button></p></div>
 <canvas id="intro" class="intro" aria-hidden="true"></canvas>
 <div class="space" aria-hidden="true">
   <div class="sl sl-neb"></div>

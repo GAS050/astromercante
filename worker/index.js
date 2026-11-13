@@ -65,10 +65,11 @@ async function feedAtual(env) {
   return feedCache.d;
 }
 async function gravarJogo(env, id, S, c, base) {   // compare-and-swap: só grava se ninguém mudou a conta nesse meio-tempo
-  const estado = JSON.stringify(S), t = Math.max(Date.now(), (Number(base) || 0) + 1), pat = patrimonioTotal(S, c);
+  await perfisInit(env);
+  const estado = JSON.stringify(S), t = Math.max(Date.now(), (Number(base) || 0) + 1), pat = patrimonioTotal(S, c), lucro = Math.round((Number(S.lt) || 0) * 100) / 100;   // lucro: resultado das vendas + saques, sem contar naves e cosméticos
   const r = base
-    ? await env.DB.prepare('UPDATE saves SET estado = ?, patrimonio = ?, atualizado = ? WHERE usuario = ? AND atualizado = ?').bind(estado, pat, t, id, Number(base)).run()
-    : await env.DB.prepare('INSERT INTO saves (usuario, estado, patrimonio, atualizado) VALUES (?, ?, ?, ?) ON CONFLICT(usuario) DO NOTHING').bind(id, estado, pat, t).run();
+    ? await env.DB.prepare('UPDATE saves SET estado = ?, patrimonio = ?, lucro = ?, atualizado = ? WHERE usuario = ? AND atualizado = ?').bind(estado, pat, lucro, t, id, Number(base)).run()
+    : await env.DB.prepare('INSERT INTO saves (usuario, estado, patrimonio, lucro, atualizado) VALUES (?, ?, ?, ?, ?) ON CONFLICT(usuario) DO NOTHING').bind(id, estado, pat, lucro, t).run();
   return (r.meta?.changes ?? 0) > 0 ? t : 0;
 }
 const publico = ({ ult, ...S }) => S;
@@ -86,10 +87,12 @@ const baseVista = new Map();
 /** Guarda o patrimônio do jogador no começo de cada período: é o valor gravado antes da 1ª ação do período (o ganho é patrimônio atual menos esse valor). */
 async function garantirBase(env, id) {
   const P = periodos(), chave = P.semana.id + P.mes.id; if (baseVista.get(id) === chave) return;
-  for (const p of [P.semana, P.mes]) await env.DB.prepare('INSERT OR IGNORE INTO rank_base (periodo, usuario, base) SELECT ?, usuario, patrimonio FROM saves WHERE usuario = ?').bind(p.id, id).run();
+  if (!(await env.DB.prepare('SELECT 1 AS x FROM saves WHERE usuario = ?').bind(id).first())) return;   // conta nova ainda sem save: tenta de novo na próxima (não guarda no cache)
+  // conta criada dentro do período começa em 10.000 (não no valor de agora: senão o lucro das primeiras jogadas, tutorial incluso, some do ranking)
+  for (const p of [P.semana, P.mes]) await env.DB.prepare('INSERT OR IGNORE INTO rank_base (periodo, usuario, base) SELECT ?, s.usuario, CASE WHEN u.criado >= ? THEN MIN(s.patrimonio, 10000) ELSE s.patrimonio END FROM saves s JOIN usuarios u ON u.id = s.usuario WHERE s.usuario = ?').bind(p.id, p.ini, id).run();
   if (baseVista.size > 5000) baseVista.clear(); baseVista.set(id, chave);
 }
-const GANHO = 'CASE WHEN b.base IS NOT NULL THEN s.patrimonio - b.base WHEN u.criado >= ? THEN s.patrimonio - 10000 ELSE 0 END';   // 1º ? = início do período
+const GANHO = 'CASE WHEN u.criado >= ? THEN s.patrimonio - MIN(COALESCE(b.base, 10000), 10000) WHEN b.base IS NOT NULL THEN s.patrimonio - b.base ELSE 0 END';   // 1º ? = início do período
 const rkPer = { semana: { t: 0 }, mes: { t: 0 } };
 async function rankingPeriodo(env, id, tipo) {
   const per = periodos()[tipo], ini = per.ini;
@@ -108,10 +111,10 @@ async function rankingPeriodo(env, id, tipo) {
 const amigosDe = async (env, id) => ((await env.DB.prepare("SELECT a, b FROM amigos WHERE estado = 'aceito' AND (a = ? OR b = ?)").bind(id, id).all()).results || []).map((r) => (r.a === id ? r.b : r.a));
 async function rankingAmigos(env, id, q) {
   const ids = [id, ...(await amigosDe(env, id))], per = q === 'semana' || q === 'mes' ? periodos()[q] : null, ph = ids.map(() => '?').join(',');
-  const val = per ? GANHO : 's.patrimonio';
+  const val = per ? GANHO : q === 'lucro' ? 's.lucro' : 's.patrimonio';
   const r = await env.DB.prepare(`SELECT u.id AS id, u.nome AS nome, u.google AS google, p.apelido AS ap, p.avatar AS av, ${val} AS w FROM usuarios u LEFT JOIN saves s ON s.usuario = u.id LEFT JOIN perfis p ON p.usuario = u.id LEFT JOIN rank_base b ON b.usuario = u.id AND b.periodo = ? WHERE u.id IN (${ph})`).bind(...(per ? [per.ini, per.id] : [null]), ...ids).all();
   const lista = (r.results || []).map((x) => ({ n: apelido(x.nome, x.google, x.ap), a: x.av || 'a1', w: Math.round((x.w || 0) * 100) / 100, eu: x.id === id ? 1 : 0 })).sort((x, y) => y.w - x.w);
-  return { tipo: 'amigos', q: per ? q : 'total', lista, fim: per ? per.fim : 0, amigos: ids.length - 1 };
+  return { tipo: 'amigos', q: per ? q : q === 'lucro' ? 'lucro' : 'total', lista, fim: per ? per.fim : 0, amigos: ids.length - 1 };
 }
 const quemInfo = async (env, ids) => {
   if (!ids.length) return {};
@@ -189,16 +192,18 @@ async function amigosResponder(env, id, corpo) {
 async function amigosRemover(env, id, corpo) {
   const o = Number(corpo.id), [a, b] = id < o ? [id, o] : [o, id]; await env.DB.prepare('DELETE FROM amigos WHERE a = ? AND b = ?').bind(a, b).run(); return await amigosVer(env, id);
 }
-async function ranking(env, id) {
-  if (Date.now() - rankCache.t > 30000) {
-    const r = await env.DB.prepare('SELECT u.nome AS nome, u.google AS google, p.apelido AS ap, p.avatar AS av, s.patrimonio AS w FROM saves s JOIN usuarios u ON u.id = s.usuario LEFT JOIN perfis p ON p.usuario = u.id ORDER BY s.patrimonio DESC, s.usuario ASC LIMIT 10').all();
-    const c = await env.DB.prepare('SELECT COUNT(*) AS n FROM saves').first();
-    rankCache = { t: Date.now(), top: r.results.map((x) => ({ n: apelido(x.nome, x.google, x.ap), a: x.av || 'a1', w: Math.round(x.w * 100) / 100 })), total: c.n };
+const rankCaches = { patrimonio: rankCache, lucro: { t: 0, top: [], total: 0 } };
+async function ranking(env, id, col = 'patrimonio') {   // col: 'patrimonio' (total) ou 'lucro' (lucro acumulado: só quem lucrou entra)
+  col = col === 'lucro' ? 'lucro' : 'patrimonio'; const K = rankCaches[col], onde = col === 'lucro' ? 'WHERE s.lucro > 0' : '';
+  if (Date.now() - K.t > 30000) {
+    const r = await env.DB.prepare(`SELECT u.nome AS nome, u.google AS google, p.apelido AS ap, p.avatar AS av, s.${col} AS w FROM saves s JOIN usuarios u ON u.id = s.usuario LEFT JOIN perfis p ON p.usuario = u.id ${onde} ORDER BY s.${col} DESC, s.usuario ASC LIMIT 10`).all();
+    const c = await env.DB.prepare(`SELECT COUNT(*) AS n FROM saves s ${onde}`).first();
+    K.t = Date.now(); K.top = r.results.map((x) => ({ n: apelido(x.nome, x.google, x.ap), a: x.av || 'a1', w: Math.round(x.w * 100) / 100 })); K.total = c.n;
   }
-  const eu = await env.DB.prepare('SELECT s.patrimonio AS w, u.nome AS nome, u.google AS google, p.apelido AS ap, p.avatar AS av, (SELECT COUNT(*) FROM saves x WHERE x.patrimonio > s.patrimonio) + 1 AS pos FROM saves s JOIN usuarios u ON u.id = s.usuario LEFT JOIN perfis p ON p.usuario = u.id WHERE s.usuario = ?').bind(id).first();
-  let top = rankCache.top;   // a lista é guardada por 30 s, mas a linha do próprio jogador é sempre a atual
+  const eu = await env.DB.prepare(`SELECT s.${col} AS w, u.nome AS nome, u.google AS google, p.apelido AS ap, p.avatar AS av, (SELECT COUNT(*) FROM saves x WHERE x.${col} > s.${col}) + 1 AS pos FROM saves s JOIN usuarios u ON u.id = s.usuario LEFT JOIN perfis p ON p.usuario = u.id WHERE s.usuario = ?`).bind(id).first();
+  let top = K.top;   // a lista é guardada por 30 s, mas a linha do próprio jogador é sempre a atual
   if (eu) { const n = apelido(eu.nome, eu.google, eu.ap), w = Math.round(eu.w * 100) / 100; if (top.some((x) => x.n === n)) top = top.map((x) => (x.n === n ? { ...x, w } : x)).sort((x, y) => y.w - x.w); }
-  return { top, total: rankCache.total, eu: eu ? { pos: eu.pos, w: Math.round(eu.w * 100) / 100, n: apelido(eu.nome, eu.google, eu.ap), a: eu.av || 'a1' } : null };
+  return { top, total: K.total, eu: eu ? { pos: col === 'lucro' && !(eu.w > 0) ? null : eu.pos, w: Math.round(eu.w * 100) / 100, n: apelido(eu.nome, eu.google, eu.ap), a: eu.av || 'a1' } : null };
 }
 async function carregarJogo(env, id, now) {
   const row = await lerSave(env, id); let S = row ? JSON.parse(row.estado) : null;
@@ -476,6 +481,8 @@ async function perfisInit(env) {
   try { await env.DB.prepare("ALTER TABLE perfis ADD COLUMN moldura TEXT NOT NULL DEFAULT ''").run(); } catch { /* a coluna já existe */ }
   await env.DB.prepare("CREATE TABLE IF NOT EXISTS chamados (id INTEGER PRIMARY KEY AUTOINCREMENT, usuario INTEGER NOT NULL, email TEXT, categoria TEXT, mensagem TEXT NOT NULL, estado TEXT NOT NULL DEFAULT 'aberto', criado INTEGER NOT NULL)").run();
   await env.DB.prepare('CREATE TABLE IF NOT EXISTS amigos (a INTEGER NOT NULL, b INTEGER NOT NULL, estado TEXT NOT NULL, quem INTEGER NOT NULL, criado INTEGER NOT NULL, PRIMARY KEY (a, b))').run();
+  try { await env.DB.prepare('ALTER TABLE saves ADD COLUMN lucro REAL NOT NULL DEFAULT 0').run(); } catch { /* a coluna já existe */ }
+  await env.DB.prepare('CREATE INDEX IF NOT EXISTS idx_saves_lucro ON saves(lucro DESC)').run();
   await env.DB.prepare('CREATE TABLE IF NOT EXISTS erros_cliente (id INTEGER PRIMARY KEY AUTOINCREMENT, quando INTEGER NOT NULL, usuario INTEGER, msg TEXT, onde TEXT, tela TEXT, ua TEXT)').run();
   await env.DB.prepare('CREATE TABLE IF NOT EXISTS convites (para INTEGER NOT NULL, codigo TEXT NOT NULL, de INTEGER NOT NULL, criado INTEGER NOT NULL, PRIMARY KEY (para, codigo))').run();
   await env.DB.prepare('CREATE TABLE IF NOT EXISTS rank_base (periodo TEXT NOT NULL, usuario INTEGER NOT NULL, base REAL NOT NULL, PRIMARY KEY (periodo, usuario))').run();
@@ -659,7 +666,7 @@ async function rota(req, env, url) {
   if (p === '/loja/comprar' && m === 'POST') return await lojaComprar(env, eu.id, String(corpo.item || ''));
   if (p === '/perfil' && m === 'GET') return await perfilVer(env, eu.id);
   if (p === '/perfil' && m === 'POST') return await perfilSalvar(env, eu.id, corpo);
-  if (p === '/ranking' && m === 'GET') { const t = url.searchParams.get('p'); if (t === 'semana' || t === 'mes') return await rankingPeriodo(env, eu.id, t); if (t === 'amigos') return await rankingAmigos(env, eu.id, url.searchParams.get('q')); return await ranking(env, eu.id); }
+  if (p === '/ranking' && m === 'GET') { const t = url.searchParams.get('p'); if (t === 'semana' || t === 'mes') return await rankingPeriodo(env, eu.id, t); if (t === 'amigos') return await rankingAmigos(env, eu.id, url.searchParams.get('q')); return await ranking(env, eu.id, t === 'lucro' ? 'lucro' : 'patrimonio'); }
   if (p === '/amigos' && m === 'GET') return await amigosVer(env, eu.id);
   if (p === '/amigos/quem' && m === 'GET') { const i = Number(url.searchParams.get('id')), q = (await quemInfo(env, [i]))[i]; if (!q) throw new Erro(404, 'Piloto não encontrado.'); return { id: q.id, n: q.n, a: q.a }; }
   if (p === '/log' && m === 'POST') return await erroRegistrar(env, eu.id, corpo, req.headers.get('User-Agent'));

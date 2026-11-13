@@ -61,7 +61,7 @@ export function evAt(now) {
 }
 
 /* ---------- estado ---------- */
-export const novo = (now) => ({ v: 3, credits: 10000, inv: {}, stock: {}, loc: 'orionis', gal: 0, nave: 1, frota: { 1: { c: 1, m: 1, a: 1, h: 100, mh: 100 } }, cap: 40, capLv: 1, engLv: 1, wpLv: 1, hull: 100, maxHull: 100, rank: 0, trip: null, vis: { 0: 1 }, daily: null, streak: 0, lastDay: '', t0: now, ult: 0, tv: 0 });
+export const novo = (now) => ({ v: 3, lt: 0, credits: 10000, inv: {}, stock: {}, loc: 'orionis', gal: 0, nave: 1, frota: { 1: { c: 1, m: 1, a: 1, h: 100, mh: 100 } }, cap: 40, capLv: 1, engLv: 1, wpLv: 1, hull: 100, maxHull: 100, rank: 0, trip: null, vis: { 0: 1 }, daily: null, streak: 0, lastDay: '', t0: now, ult: 0, tv: 0 });
 
 /** Aproveita um progresso antigo (salvo pelo aparelho) sem confiar nele: tudo é revalidado e limitado. */
 export function normalizar(o, now) {
@@ -211,7 +211,7 @@ function chegada(S, d, msgs, enc) {
   let dmg = sc ? 0 : desgasteViagem(S, d);
   for (const e of enc || []) {
     if (!sc) dmg += e.dmg;
-    if (e.w === 1) { S.credits += e.loot; say(msgs, `${e.nm} (poder ${e.lv.toFixed(1)}) derrotados pelo seu poder de fogo ${S.wpLv.toFixed(1)}! Recompensa +${fmt(e.loot)} Cr.`, 'win'); }
+    if (e.w === 1) { S.credits += e.loot; S.lt = (S.lt || 0) + e.loot; say(msgs, `${e.nm} (poder ${e.lv.toFixed(1)}) derrotados pelo seu poder de fogo ${S.wpLv.toFixed(1)}! Recompensa +${fmt(e.loot)} Cr.`, 'win'); }
     else if (e.w === 2) say(msgs, `${e.nm} (poder ${e.lv.toFixed(1)}) recuaram: luta empatada, sem saque. Escapamos${sc ? ' sem danos' : ' com avarias'}.`, 'ok');
     else {
       let m = `${e.nm} (poder ${e.lv.toFixed(1)}) venceram: seu poder de fogo é ${S.wpLv.toFixed(1)}. `;
@@ -287,7 +287,7 @@ const acoes = {
       say(msgs, `Comprou ${n} × ${r.nome} por ${fmt(total)}.`);
     } else {
       if (n > h.qty) throw new Regra(`Você tem apenas ${h.qty} × ${r.nome}.`);
-      S.daily.p.profit += Math.max(0, n * (p - h.avg)); h.qty -= n; S.credits += total; setStk(S, a.id, s0 + n * liq(S), c.now); if (!h.qty) h.avg = 0;
+      S.daily.p.profit += Math.max(0, n * (p - h.avg)); S.lt = (S.lt || 0) + n * (p - h.avg); h.qty -= n; S.credits += total; setStk(S, a.id, s0 + n * liq(S), c.now); if (!h.qty) h.avg = 0;
       say(msgs, `Vendeu ${n} × ${r.nome} por ${fmt(total)}.`);
     }
     S.daily.p.trades++;

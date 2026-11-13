@@ -1,9 +1,9 @@
 /* Rankings (Global, Semana, Mês, Amigos) e lista de amigos. O servidor calcula tudo; aqui só pedimos e mostramos.
    Semana e Mês ranqueiam o GANHO no período (patrimônio agora − patrimônio no começo do período), então quem entrou hoje também compete. */
-let RK = { tab: 'global', sub: 'total', d: {} }, AM = null, amAt = 0, amBusy = false;
+let RK = { tab: 'global', sub: 'total', g: 'pat', d: {} }, AM = null, amAt = 0, amBusy = false;
 const rkEsc = t => String(t).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
-const rkKey = () => RK.tab + (RK.tab === 'amigos' ? ':' + RK.sub : '');
-const rkUrl = () => RK.tab === 'global' ? '/ranking' : RK.tab === 'amigos' ? '/ranking?p=amigos&q=' + RK.sub : '/ranking?p=' + RK.tab;
+const rkKey = () => RK.tab + (RK.tab === 'amigos' ? ':' + RK.sub : RK.tab === 'global' ? ':' + RK.g : '');
+const rkUrl = () => RK.tab === 'global' ? (RK.g === 'lucro' ? '/ranking?p=lucro' : '/ranking') : RK.tab === 'amigos' ? '/ranking?p=amigos&q=' + RK.sub : '/ranking?p=' + RK.tab;
 async function rkLoad(force) {
   if (!TOK || !CLOUD() || MODE === 'partida' || document.hidden) return; const k = rkKey(), c = RK.d[k];
   if (!force && c && (c.busy || Date.now() - c.at < 20000)) return;
@@ -17,11 +17,12 @@ async function amLoad(force) {
 const rkFalta = fim => { const ms = fim - Date.now(); if (ms <= 0) return 'terminando'; const d = Math.floor(ms / 864e5), h = Math.floor(ms % 864e5 / 36e5), m = Math.floor(ms % 36e5 / 6e4); return d ? `${d}d ${h}h` : h ? `${h}h ${m}min` : `${m}min`; };
 const rkFmt = (w, per) => per ? (w > 0 ? '+' : w < 0 ? '−' : '') + fmt(Math.abs(w)).replace(',00', '') : fmt(w).replace(',00', '');
 function rkCard() {
-  const nPend = AM ? AM.recebidos.length : 0, d = (RK.d[rkKey()] || {}).data, per = RK.tab === 'semana' || RK.tab === 'mes' || (RK.tab === 'amigos' && RK.sub !== 'total');
+  const nPend = AM ? AM.recebidos.length : 0, d = (RK.d[rkKey()] || {}).data, luc = (RK.tab === 'global' && RK.g === 'lucro') || (RK.tab === 'amigos' && RK.sub === 'lucro'), per = luc || RK.tab === 'semana' || RK.tab === 'mes' || (RK.tab === 'amigos' && RK.sub !== 'total');
   const tab = (k, t, b) => `<button type="button" data-rk="${k}" class="${RK.tab === k ? 'on' : ''}">${t}${b ? `<i class="rk-b">${b}</i>` : ''}</button>`;
-  let h = `<div class="hm-card rk"><div class="hm-h"><b>Ranking</b><small>${RK.tab === 'global' ? 'patrimônio total' : RK.tab === 'amigos' ? 'você e seus amigos' : 'ganho no ' + (RK.tab === 'mes' ? 'mês' : 'semana')}</small></div>`
+  let h = `<div class="hm-card rk"><div class="hm-h"><b>Ranking</b><small>${RK.tab === 'global' ? (luc ? 'lucro total' : 'patrimônio total') : RK.tab === 'amigos' ? 'você e seus amigos' : 'ganho no ' + (RK.tab === 'mes' ? 'mês' : 'semana')}</small></div>`
     + `<div class="rk-tabs">${tab('global', 'Global')}${tab('semana', 'Semana')}${tab('mes', 'Mês')}${tab('amigos', 'Amigos', nPend)}</div>`;
-  if (RK.tab === 'amigos') h += `<div class="rk-sub">${['total', 'semana', 'mes'].map(q => `<button type="button" data-rks="${q}" class="${RK.sub === q ? 'on' : ''}">${{ total: 'Total', semana: 'Semana', mes: 'Mês' }[q]}</button>`).join('')}</div>`;
+  if (RK.tab === 'amigos') h += `<div class="rk-sub">${['total', 'lucro', 'semana', 'mes'].map(q => `<button type="button" data-rks="${q}" class="${RK.sub === q ? 'on' : ''}">${{ total: 'Patrimônio', lucro: 'Lucro', semana: 'Semana', mes: 'Mês' }[q]}</button>`).join('')}</div>`;
+  if (RK.tab === 'global') h += `<div class="rk-sub">${[['pat', 'Patrimônio'], ['lucro', 'Lucro total']].map(([q, t]) => `<button type="button" data-rkg="${q}" class="${RK.g === q ? 'on' : ''}">${t}</button>`).join('')}</div>`;
   if (!d) return h + '<p class="empty">Carregando ranking…</p></div>';
   let rows = '', foot = '';
   const li = (i, r, me) => `<li class="${me ? 'me' : ''}"><span><i class="pos">${i}</i> ${avImg(r.a)}${rkEsc(r.n)}</span><b class="mono ${per ? (r.w > 0 ? 'rk-up' : r.w < 0 ? 'rk-dn' : '') : ''}">${rkFmt(r.w, per)}</b></li>`;
@@ -29,15 +30,17 @@ function rkCard() {
     const L = d.lista || []; rows = L.slice(0, 8).map((r, i) => li(i + 1, r, r.eu)).join('');
     const eu = L.findIndex(r => r.eu); if (eu >= 8) rows += `<li class="gap"><span>…</span></li>` + li(eu + 1, L[eu], true);
     foot = d.amigos ? '' : '<p class="empty">Você ainda não tem amigos. Toque em Gerenciar amigos para convidar.</p>';
-    if (per && d.fim) foot += `<p class="hm-pos">Ganho no período · termina em <b>${rkFalta(d.fim)}</b></p>`;
+    if (luc) foot += '<p class="hm-pos">Lucro das vendas e saques de piratas: não conta compra de naves nem de visuais.</p>';
+    else if (per && d.fim) foot += `<p class="hm-pos">Ganho no período · termina em <b>${rkFalta(d.fim)}</b></p>`;
     foot += `<button type="button" class="rk-am" data-am="1"><i class="fa-solid fa-user-group"></i> Gerenciar amigos${nPend ? `<i class="rk-b">${nPend}</i>` : ''}</button>`;
   } else {
     const T = d.top || [], me = d.eu; rows = T.slice(0, 5).map((r, i) => li(i + 1, r, me && r.n === me.n)).join('');
     if (me && me.pos && me.pos > 5) rows += `<li class="gap"><span>…</span></li>` + li(me.pos, me, true);
-    if (!T.length) foot = `<p class="empty">${per ? 'Ninguém pontuou ainda neste período. Seja o primeiro!' : 'Sem pilotos ainda.'}</p>`;
-    else if (per && me && !me.pos) foot = '<p class="hm-pos">Você ainda não pontuou neste período: faça lucro para entrar!</p>';
+    if (!T.length) foot = `<p class="empty">${luc ? 'Ninguém lucrou ainda. Venda com lucro para entrar!' : per ? 'Ninguém pontuou ainda neste período. Seja o primeiro!' : 'Sem pilotos ainda.'}</p>`;
+    else if (per && me && !me.pos) foot = `<p class="hm-pos">${luc ? 'Você ainda não lucrou: venda com lucro para entrar.' : 'Você ainda não pontuou neste período: faça lucro para entrar!'}</p>`;
     else if (RK.tab === 'global' && me && me.pos > 5) foot = '';
-    if (per && d.fim) foot += `<p class="hm-pos">Ganho no período · termina em <b>${rkFalta(d.fim)}</b>${d.total ? ` · ${d.total} pontuando` : ''}</p>`;
+    if (luc) foot += `<p class="hm-pos">${d.total || 0} pilotos com lucro${me && me.pos ? ` · você está em <b>${me.pos}º</b>` : ''}. Conta o resultado das vendas e os saques de piratas, não a compra de naves ou visuais.</p>`;
+    else if (per && d.fim) foot += `<p class="hm-pos">Ganho no período · termina em <b>${rkFalta(d.fim)}</b>${d.total ? ` · ${d.total} pontuando` : ''}</p>`;
     else if (RK.tab === 'global') foot += `<p class="hm-pos">${d.total || ''} pilotos${me && me.pos ? ` · você está em <b>${me.pos}º</b>` : ''}</p>`;
   }
   return h + `<ol class="board">${rows}</ol>${foot}</div>`;
@@ -107,6 +110,7 @@ amV.addEventListener('submit', async e => { if (e.target.id !== 'am-form') retur
 document.addEventListener('click', e => {
   const t = e.target.closest('#home [data-rk]'); if (t) { RK.tab = t.dataset.rk; rkLoad(false); return home_refresh(); }
   const s = e.target.closest('#home [data-rks]'); if (s) { RK.sub = s.dataset.rks; rkLoad(false); return home_refresh(); }
+  const g = e.target.closest('#home [data-rkg]'); if (g) { RK.g = g.dataset.rkg; rkLoad(false); return home_refresh(); }
   if (e.target.closest('#home [data-am]')) abrirAmigos();
 });
 function home_refresh() { const h = $a('#home'); if (h) h._h = ''; }

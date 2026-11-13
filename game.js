@@ -87,12 +87,14 @@ function evAt(now) {   // eventos sorteados pelo relógio: também iguais para t
   return null;
 }
 let histCyc = cyc(NOW());
+/** Refaz preço atual, anterior e histórico a partir do relógio (função pura): a variação ▲/▼ e o gráfico não "zeram" ao atualizar a página. */
+function refazPrecos() { const c0 = cyc(NOW()); RES.forEach(r => { S.hist[r.id] = Array.from({ length:30 }, (_, i) => priceNow(r, c0 - (29 - i) * STEP)); S.price[r.id] = S.hist[r.id][29]; S.prev[r.id] = S.hist[r.id][28]; }); histCyc = c0; }
 function tick() {
   const now = NOW(), ev = evNow(now);
   if (ev && !(S.ev && S.ev.k === ev.k)) { note('⚡ ' + ev.t + '!', 'alert'); sfx('alert'); }
   S.ev = ev;
   RES.forEach(r => {
-    const p = S.price[r.id]; S.prev[r.id] = p; S.price[r.id] = priceNow(r, cyc(now));
+    const p = priceNow(r, cyc(now) - STEP); S.prev[r.id] = p; S.price[r.id] = priceNow(r, cyc(now));   // variação sempre contra o ciclo anterior (30 s), mesmo logo após abrir a página
     const pct = (S.price[r.id] / p - 1) * 100;
     if ((r.t || 0) <= S.rank && Math.abs(pct) >= 1.2) note(`${pct > 0 ? 'Alta' : 'Queda'} de ${fmt(Math.abs(pct))}% em ${r.nome} (${r.corr.replace('Correl. ', '')}).${pct < 0 ? ' Oportunidade de compra!' : ''}`, 'alert');
   });
@@ -890,7 +892,7 @@ $('#market').addEventListener('click', e => {
 });
 document.querySelectorAll('[data-qty]').forEach(b => b.onclick = () => $('#qty').value = b.dataset.qty);
 document.querySelectorAll('.nav [data-view]').forEach(b => b.onclick = () => {
-  document.body.dataset.view = b.dataset.view; if (b.dataset.view === 'market') carregarRanking();
+  document.body.dataset.view = b.dataset.view; store('astromercante_view', b.dataset.view); if (b.dataset.view === 'market') carregarRanking();
   document.querySelectorAll('.nav button').forEach(x => x.classList.toggle('on', x === b));
 });
 
@@ -954,7 +956,7 @@ async function api(path, method = 'GET', body) {
 const store = (k, v) => { try { v == null ? localStorage.removeItem(k) : localStorage.setItem(k, v); } catch {} };
 const setCts = t => { CTS = t; store('astromercante_cts', t); };
 const setSession = (token, nome) => { TOK = token; USER = nome; store('astromercante_tok', token); store('astromercante_user', nome); };
-const clearSession = () => { TOK = USER = ''; CTS = 0; ['astromercante_tok', 'astromercante_user', 'astromercante_cts', 'astromercante_google'].forEach(k => store(k, null)); };
+const clearSession = () => { TOK = USER = ''; CTS = 0; ['astromercante_view', 'astromercante_tok', 'astromercante_user', 'astromercante_cts', 'astromercante_google'].forEach(k => store(k, null)); };
 // Só sobe para a nuvem o que mudou de verdade (compra, viagem, upgrade...) e sem os dados recalculáveis pelo relógio.
 /* ---------- Conta e servidor ---------- */
 const SERVER_KEYS = ['credits', 'stock', 'loc', 'gal', 'cap', 'capLv', 'engLv', 'wpLv', 'hull', 'maxHull', 'rank', 'trip', 'vis', 'daily', 'streak', 'lastDay', 'partida', 'nave', 'frota', 'tv'];
@@ -975,7 +977,7 @@ function aplicarEstado(r) {   // o servidor manda; este aparelho só mostra
     sel = sel && plan(sel) ? sel : null; selG = selG != null && GALAXIES[selG] ? selG : null;
     clearTimeout(tripT); if (S.trip) tripT = setTimeout(refrescar, Math.max(0, S.trip.end - NOW()) + 500);   // a chegada é resolvida pelo servidor
     firstState = false; READY = true; document.body.classList.remove('loading');
-    const now = NOW(); RES.forEach(x => { S.price[x.id] = priceNow(x, cyc(now)); }); S.ev = evNow(now);
+    const now = NOW(); RES.forEach(x => { S.price[x.id] = priceNow(x, cyc(now)); S.prev[x.id] = priceNow(x, cyc(now) - STEP); }); S.ev = evNow(now);
   }
   (r.msgs || []).forEach(m => m.n ? note(m.m, m.k) : say(m.m, m.k));
   syncMsg = 'Conectado às ' + hora(); renderAccount(); save(); render();
@@ -1115,7 +1117,7 @@ applyGate();
 if (!CLOUD()) for (const l in S.stock) for (const k in S.stock[l]) if (typeof S.stock[l][k] === 'number') S.stock[l][k] = { v:S.stock[l][k], t:Date.now() };   // formato antigo (modo local)
 setGalaxy(GALAXIES[S.gal] ? S.gal : 0); if (!plan(S.loc)) S.loc = PL[0].id;
 if (!CLOUD()) checkDay();
-{ const now = NOW(), c0 = cyc(now); RES.forEach(r => { S.hist[r.id] = Array.from({ length:30 }, (_, i) => priceNow(r, c0 - (29 - i) * STEP)); S.price[r.id] = S.hist[r.id][29]; S.prev[r.id] = S.hist[r.id][28]; }); S.ev = evAt(now); }
+{ refazPrecos(); S.ev = evAt(NOW()); }
 buildMarket(); buildMap(); render(); setFeed(); requestAnimationFrame(shipFrame);
 if (S.trip && !CLOUD()) setTimeout(arrive, Math.max(0, S.trip.end - Date.now()));
 try { const m = sessionStorage.getItem('astromercante_msg'); if (m) { sessionStorage.removeItem('astromercante_msg'); setTimeout(() => say(m, 'alert'), 400); } } catch {}
@@ -1126,7 +1128,7 @@ if (S.fx && !S.fxChecked) setTimeout(() => {   // aparelho lento? desliga o fund
   l();
 }, 3000);
 note('Terminal iniciado. Conectando aos feeds da Terra…');
-fetchFeed().then(() => { note(live ? 'Feed real conectado: preços seguem cripto, ouro e câmbio.' : 'Feeds offline: simulação matemática ativa.', live ? 'ok' : 'alert'); tick(); });
+fetchFeed().then(() => { note(live ? 'Feed real conectado: preços seguem cripto, ouro e câmbio.' : 'Feeds offline: simulação matemática ativa.', live ? 'ok' : 'alert'); refazPrecos(); tick(); });
 let nextAt = cyc(NOW()) + STEP;
 setInterval(async () => {
   const now = NOW(), left = Math.max(0, Math.ceil((nextAt - now) / 1000));

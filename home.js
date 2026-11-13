@@ -38,4 +38,11 @@
   el.addEventListener('click', e => { const pc = e.target.closest('[data-pc]'); if (pc) return void abrirConquistas(+pc.dataset.pc, ''); const b = e.target.closest('[data-hm]'); if (!b) return; const v = b.dataset.hm; if (v === 'volta') { ficouCarreira = ''; entrarModoPartida(); } else go(v); });
   document.querySelectorAll('.nav [data-view]').forEach(b => b.addEventListener('click', () => { if (b.dataset.view === 'home') { meuT = 0; if (!RANK) carregarRanking(); render(); } }));
   setInterval(render, 1000);
+  /* ao atualizar a página, volta para a aba em que o jogador estava (e não para o Início) */
+  { let tent = 0; const iv = setInterval(() => {
+      if (++tent > 60) return clearInterval(iv); if (!READY || !PF || !TOK) return; clearInterval(iv);
+      let v = null; try { v = localStorage.getItem('astromercante_view'); } catch {}
+      const b = v && v !== 'home' && document.querySelector(`.nav [data-view="${v}"]`), cl = document.body.classList;
+      if (b && !cl.contains('histon') && !cl.contains('tuton') && document.body.dataset.view === 'home') b.click();
+    }, 300); }
 })();

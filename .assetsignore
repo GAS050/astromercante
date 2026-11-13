@@ -5,3 +5,4 @@ worker
 tools
 node_modules
 .wrangler
+.git

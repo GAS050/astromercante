@@ -19,9 +19,10 @@ const num = (v) => { const n = Number(v); return Number.isFinite(n) ? +n.toFixed
 
 // CoinGecko recusa (403) pedidos sem identificação vindos de IPs compartilhados: manda User-Agent e, se existir, a chave Demo (grátis) do segredo COINGECKO_KEY
 const cgHeaders = (env) => ({ accept: 'application/json', 'user-agent': 'Mozilla/5.0 (compatible; Astromercante/1.0; +https://astromercante.pages.dev)', ...(env.COINGECKO_KEY ? { 'x-cg-demo-api-key': env.COINGECKO_KEY } : {}) });
-async function dolar(env) {   // variação do dólar contra o real: AwesomeAPI e, se ela falhar, o câmbio diário do BCE (Frankfurter)
-  try { const n = num((await fetch(FX, { headers: { 'user-agent': 'Mozilla/5.0 Astromercante', ...(env.AWESOME_KEY ? { 'x-api-key': env.AWESOME_KEY } : {}) } }).then(json))?.USDBRL?.pctChange); if (n !== null) return { n, via: 'awesome' }; } catch {}
-  const de = new Date(Date.now() - 8 * 864e5).toISOString().slice(0, 10), j = await fetch(`https://api.frankfurter.dev/v1/${de}..?base=USD&symbols=BRL`).then(json);
+async function dolar(env, prev) {   // variação do dólar contra o real. Frankfurter (câmbio diário do BCE) muda 1x por dia: só consulta a cada 3 h. AwesomeAPI só se existir AWESOME_KEY (sem chave ela recusa todos os pedidos)
+  if (!env.AWESOME_KEY && prev.fx != null && Date.now() - (prev.fxT || 0) < 3 * 3600000) return { n: prev.fx, via: 'cache', cache: true };
+  if (env.AWESOME_KEY) { try { const n = num((await fetch(FX, { headers: { 'x-api-key': env.AWESOME_KEY } }).then(json))?.USDBRL?.pctChange); if (n !== null) return { n, via: 'awesome' }; } catch {} }
+  const de = new Date(Date.now() - 8 * 864e5).toISOString().slice(0, 10), j = await fetch(`https://api.frankfurter.dev/v1/${de}..?base=USD&symbols=BRL`, { signal: AbortSignal.timeout(6000) }).then(json);
   const v = Object.keys(j.rates || {}).sort().map((d) => j.rates[d].BRL).filter(Number.isFinite);
   if (v.length < 2) throw new Error('sem dados');
   return { n: num((v[v.length - 1] / v[v.length - 2] - 1) * 100), via: 'frankfurter' };
@@ -31,17 +32,17 @@ async function refresh(env) {
   const next = { ...prev };
   const [cg, fx] = await Promise.allSettled([
     fetch(env.COINGECKO_KEY ? CG + '&x_cg_demo_api_key=' + encodeURIComponent(env.COINGECKO_KEY) : CG, { headers: cgHeaders(env) }).then(json),
-    dolar(env),
+    dolar(env, prev),
   ]);
   if (cg.status === 'fulfilled') {
     const d = cg.value;
     Object.entries(CG_IDS).forEach(([k, id]) => { const v = d[id]; const n = num(v?.usd_24h_change); if (n !== null) next[k] = n; });
   }
-  if (fx.status === 'fulfilled' && fx.value.n !== null) next.fx = fx.value.n;
+  if (fx.status === 'fulfilled' && fx.value.n !== null) { next.fx = fx.value.n; if (!fx.value.cache) next.fxT = Date.now(); }
   const err = (r) => (r.status === 'fulfilled' ? 'ok' : 'erro ' + String(r.reason?.message || r.reason).slice(0, 60));
   next.diag = { chave_coingecko: !!env.COINGECKO_KEY, cg: err(cg), fx: fx.status === 'fulfilled' ? 'ok via ' + fx.value.via : err(fx), faltando: FEED_KEYS.filter((k) => next[k] == null), quando: Date.now() };   // para conferir em /precos
   // "updated" e "ant" só andam quando algo novo chegou; se as APIs falharem, o último valor bom continua valendo (e o aviso de dados velhos aparece)
-  if (cg.status === 'fulfilled' || fx.status === 'fulfilled') { next.ant = {}; FEED_KEYS.forEach((k) => { if (prev[k] != null) next.ant[k] = prev[k]; }); next.updated = Date.now(); }
+  if (cg.status === 'fulfilled' || (fx.status === 'fulfilled' && !fx.value.cache)) { next.ant = {}; FEED_KEYS.forEach((k) => { if (prev[k] != null) next.ant[k] = prev[k]; }); next.updated = Date.now(); }
   await env.PRECOS.put('latest', JSON.stringify(next));
   return next;
 }

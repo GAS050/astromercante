@@ -17,7 +17,6 @@ const FONTES = [   // feeds RSS públicos de veículos; só o título de cada ma
   ['guardian-negocios', 'https://www.theguardian.com/business/rss'],
   ['guardian-mundo', 'https://www.theguardian.com/world/rss'],
   ['g1-economia', 'https://g1.globo.com/rss/g1/economia/'],
-  ['google-ouro', 'https://news.google.com/rss/search?q=gold+price+when:1d&hl=en-US&gl=US&ceid=US:en'],
 ];
 // nada de pessoas, países ou empresas reais no texto final
 const PROIBIDO = /trump|biden|putin|zelensk|musk|lula|bolsonaro|powell|xi jinping|netanyahu|china|chin[eê]s|eua\b|estados unidos|r[uú]ssia|ucr[aâ]nia|israel|\bir[aã]\b|gaza|brasil|europa|opep|opec|\bfed\b|binance|coinbase|apple|google|tesla|nvidia|microsoft|amazon|meta\b|openai|sec\b|nasdaq|wall street|dow jones/i;
@@ -29,7 +28,7 @@ const limpa = (s, n) => String(s ?? '').replace(/<[^>]*>/g, '').replace(/\s+/g, 
 
 // lê só o começo de cada feed (as primeiras manchetes ficam nos primeiros KB): poupa CPU, que no plano grátis é de só 10 ms por execução
 async function comecoDe(u, max = 14000) {
-  const r = await fetch(u, { headers: { 'user-agent': 'Mozilla/5.0 (compatible; Astromercante/1.0)', accept: 'application/rss+xml, application/xml, text/xml, */*' } });
+  const r = await fetch(u, { signal: AbortSignal.timeout(5000), headers: { 'user-agent': 'Mozilla/5.0 (compatible; Astromercante/1.0)', accept: 'application/rss+xml, application/xml, text/xml, */*' } });
   if (!r.ok) throw new Error('http ' + r.status);
   if (!r.body) return (await r.text()).slice(0, max);
   const rd = r.body.getReader(), dec = new TextDecoder(); let t = '';

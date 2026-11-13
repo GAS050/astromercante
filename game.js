@@ -120,6 +120,13 @@ function trade(id, side) {
 
 /* ---------- Interface ---------- */
 const cargo = () => RES.reduce((s, r) => s + S.inv[r.id].qty * px(r.id), 0);
+/** Igual ao servidor (worker/motor.js): 40% do preço das naves e 10% das melhorias contam como patrimônio na carreira. */
+function valorFrota() {
+  if (!CLOUD() || S.partida || !S.frota) return 0; let v = 0;
+  for (const k of Object.keys(S.frota)) { const n = NAVES[k - 1], f = S.frota[k]; if (!n || !f) continue; v += .4 * n.preco; for (const [t, c] of [['cap', 'c'], ['eng', 'm'], ['wp', 'a']]) for (let L = 1; L < (f[c] || 1); L++) v += .1 * upCusto(n, t, L); }
+  return v;
+}
+const patTotal = () => S.credits + cargo() + valorFrota();
 
 function iconSrc(r) {
   if (!r.ex) return `assets/img/item_${r.id}.svg`;
@@ -146,7 +153,7 @@ function buildMarket() {
 
 function render() {
   $('#hud-credits').textContent = fmt(S.credits);
-  $('#hud-networth').textContent = fmt(S.credits + cargo());
+  $('#hud-networth').textContent = fmt(patTotal());
   RES.forEach(r => {
     const el = $(`[data-id="${r.id}"]`), g = S.price[r.id], p = px(r.id), pct = (g / S.prev[r.id] - 1) * 100;
     el.hidden = r.t > S.rank; const su = $('[data-f=sup]', el); su.textContent = Math.round(stk(r.id)) + '%'; su.className = stk(r.id) < 50 ? 'down' : '';
@@ -837,7 +844,7 @@ function renderBoard() {
 }
 function board() {
   const h = (Date.now() - S.t0) / 36e5, rows = RIVALS.map(([n, s, r]) => ({ n, w:s + r * h }));
-  rows.push({ n:'Você', w:S.credits + cargo(), me:1 }); return rows.sort((a, b) => b.w - a.w);
+  rows.push({ n:'Você', w:patTotal(), me:1 }); return rows.sort((a, b) => b.w - a.w);
 }
 function renderMeta() {
   const d = S.daily;

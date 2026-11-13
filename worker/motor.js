@@ -119,6 +119,19 @@ export function preco(S, id, st, c) {
 }
 const carga = (S, c) => Object.keys(S.inv).reduce((s, id) => s + S.inv[id].qty * preco(S, id, stk(S, id, c.now), c), 0);
 export const patrimonio = (S, c) => S.credits + carga(S, c);
+/** Parte do valor da frota que conta como patrimônio na carreira (patente e ranking): comprar nave e melhorias não zera mais o progresso.
+ *  Conta 40% do preço das naves e 10% do custo das melhorias (o resto é "gasto"). Na partida não conta (todos começam do mesmo saldo). */
+export const FROTA = { nave: .4, up: .1 };
+export function valorFrota(S) {
+  let v = 0;
+  for (const k of Object.keys(S.frota || {})) {
+    const n = NAVES[k - 1], f = S.frota[k]; if (!n || !f) continue;
+    v += FROTA.nave * n.preco;
+    for (const [tipo, campo] of [['cap', 'c'], ['eng', 'm'], ['wp', 'a']]) for (let L = 1; L < (f[campo] || 1); L++) v += FROTA.up * upCusto(n, tipo, L);
+  }
+  return v;
+}
+export const patrimonioTotal = (S, c) => patrimonio(S, c) + (S.partida ? 0 : valorFrota(S));
 const fixCost = (S) => Math.round((S.maxHull - S.hull) * 12 * (1 + .25 * (S.capLv + S.engLv - 2)));
 const porPct = (S) => 12 * (1 + .25 * (S.capLv + S.engLv - 2));   // custo de reparo de 1% de casco: cresce com o tamanho da nave
 const overCost = (S) => Math.round((100 - S.maxHull) * porPct(S) * 10);   // revisão: cada ponto de integridade máxima perdido vale 10 reparos de 1%
@@ -236,7 +249,7 @@ export function resolver(S, c, msgs) {
 export function fechar(S, c, msgs) {   // missões e patente, sempre calculadas depois de uma ação
   MIS.forEach((m) => { if (!S.daily.done[m.k] && S.daily.p[m.k] >= m.n(S)) { S.daily.done[m.k] = 1; S.credits += m.r; say(msgs, `Missão cumprida: ${m.t}! +${fmt(m.r)} Cr`, 'win'); } });
   if (S.partida) return;   // na partida a patente é a da carreira e não muda
-  const w = patrimonio(S, c); let k = 0; RANKS.forEach((r, i) => { if (w >= r[0]) k = i; });
+  const w = patrimonioTotal(S, c); let k = 0; RANKS.forEach((r, i) => { if (w >= r[0]) k = i; });
   if (k > S.rank) {
     S.rank = k;
     const nu = GALAXIES.flatMap((g) => g.planetas).filter((p) => p.t === k).map((p) => p.nome).slice(0, 4).concat(RES.filter((r) => r.t === k).map((r) => r.nome));

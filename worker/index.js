@@ -2,7 +2,7 @@
 // Os jogadores só leem o cache, então o número de chamadas às APIs não depende de quantos jogam.
 const CG = 'https://api.coingecko.com/api/v3/simple/price?ids=bitcoin,pax-gold,ethereum&vs_currencies=usd&include_24hr_change=true';
 const FX = 'https://economia.awesomeapi.com.br/json/last/USD-BRL';
-import { Regra, novo, normalizar, migrar, resolver, precisaResolver, fechar, executar, patrimonio, RANKS, validarCfg, novoPartida, valorFinal, botPatrimonio, botNome, premiacao, desbloqueada, intensidade } from './motor.js';
+import { Regra, novo, normalizar, migrar, resolver, precisaResolver, fechar, executar, patrimonio, patrimonioTotal, RANKS, validarCfg, novoPartida, valorFinal, botPatrimonio, botNome, premiacao, desbloqueada, intensidade } from './motor.js';
 import { GALAXIES } from './dados.js';
 const STALE_MS = 30 * 60 * 1000;
 
@@ -65,7 +65,7 @@ async function feedAtual(env) {
   return feedCache.d;
 }
 async function gravarJogo(env, id, S, c, base) {   // compare-and-swap: só grava se ninguém mudou a conta nesse meio-tempo
-  const estado = JSON.stringify(S), t = Math.max(Date.now(), (Number(base) || 0) + 1), pat = patrimonio(S, c);
+  const estado = JSON.stringify(S), t = Math.max(Date.now(), (Number(base) || 0) + 1), pat = patrimonioTotal(S, c);
   const r = base
     ? await env.DB.prepare('UPDATE saves SET estado = ?, patrimonio = ?, atualizado = ? WHERE usuario = ? AND atualizado = ?').bind(estado, pat, t, id, Number(base)).run()
     : await env.DB.prepare('INSERT INTO saves (usuario, estado, patrimonio, atualizado) VALUES (?, ?, ?, ?) ON CONFLICT(usuario) DO NOTHING').bind(id, estado, pat, t).run();

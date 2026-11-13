@@ -8,36 +8,41 @@
   const salva = () => { try { localStorage.setItem(KEY, JSON.stringify(cfg)); } catch {} };
   const reduz = () => matchMedia('(prefers-reduced-motion: reduce)').matches || (typeof S !== 'undefined' && S.fx === false);
   let ac = null, mestre = null;
-  const ctx = () => { if (!ac) { ac = new (window.AudioContext || window.webkitAudioContext)(); mestre = ac.createGain(); mestre.gain.value = .6; mestre.connect(ac.destination); } if (ac.state === 'suspended') ac.resume(); mestre.gain.value = cfg.vs * .7; return ac; };   // -30%: volume geral dos efeitos
+  const ctx = () => { if (!ac) { ac = new (window.AudioContext || window.webkitAudioContext)(); mestre = ac.createGain(); mestre.gain.value = .6; mestre.connect(ac.destination); try { const n = Math.floor(ac.sampleRate * .7), ir = ac.createBuffer(2, n, ac.sampleRate); for (let c = 0; c < 2; c++) { const x = ir.getChannelData(c); for (let i = 0; i < n; i++) x[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / n, 3); } const cv = ac.createConvolver(), w = ac.createGain(); cv.buffer = ir; w.gain.value = .22; mestre.connect(cv); cv.connect(w); w.connect(ac.destination); } catch {} } if (ac.state === 'suspended') ac.resume(); mestre.gain.value = cfg.vs * .7; return ac; };   // -30%: volume geral dos efeitos
   const rnd = (a = .03) => 1 + (Math.random() * 2 - 1) * a;   // variação leve de tom para não cansar
-  function tom(t0, f, d, { tipo = 'sine', v = .18, f2, atk = .005 } = {}) {
-    const a = ac, o = a.createOscillator(), g = a.createGain(); o.type = tipo; o.frequency.setValueAtTime(f, t0); if (f2) o.frequency.exponentialRampToValueAtTime(f2, t0 + d);
-    g.gain.setValueAtTime(.0001, t0); g.gain.linearRampToValueAtTime(v, t0 + atk); g.gain.exponentialRampToValueAtTime(.0001, t0 + d); o.connect(g).connect(mestre); o.start(t0); o.stop(t0 + d + .02);
+  // Timbre suave: tudo passa por um filtro passa-baixa e os sons de "sino" têm só o fundamental + harmônicos discretos.
+  function tom(t0, f, d, { tipo = 'sine', v = .18, f2, atk = .008, lp = 2600, dest } = {}) {
+    const a = ac, o = a.createOscillator(), g = a.createGain(), fl = a.createBiquadFilter(); o.type = tipo; fl.type = 'lowpass'; fl.frequency.value = Math.max(lp, f * 1.5); fl.Q.value = .5;
+    o.frequency.setValueAtTime(f, t0); if (f2) o.frequency.exponentialRampToValueAtTime(f2, t0 + d);
+    g.gain.setValueAtTime(.0001, t0); g.gain.linearRampToValueAtTime(v, t0 + atk); g.gain.exponentialRampToValueAtTime(.0001, t0 + d); o.connect(fl).connect(g).connect(dest || mestre); o.start(t0); o.stop(t0 + d + .02);
   }
-  function ruido(t0, d, { v = .12, f0 = 800, f1 = 200, q = 1 } = {}) {
+  const sino = (t0, f, d = .5, v = .16) => { tom(t0, f, d, { v, atk: .01 }); tom(t0, f * 2, d * .6, { v: v * .22, atk: .01 }); tom(t0, f * 3.01, d * .3, { v: v * .07, atk: .01 }); };   // sino macio
+  function ruido(t0, d, { v = .12, f0 = 800, f1 = 200, q = 1, tipo = 'bandpass', atk = 0 } = {}) {
     const a = ac, n = Math.max(1, Math.floor(a.sampleRate * d)), b = a.createBuffer(1, n, a.sampleRate), x = b.getChannelData(0); for (let i = 0; i < n; i++) x[i] = Math.random() * 2 - 1;
-    const s = a.createBufferSource(); s.buffer = b; const fl = a.createBiquadFilter(); fl.type = 'bandpass'; fl.Q.value = q; fl.frequency.setValueAtTime(f0, t0); fl.frequency.exponentialRampToValueAtTime(f1, t0 + d);
-    const g = a.createGain(); g.gain.setValueAtTime(v, t0); g.gain.exponentialRampToValueAtTime(.0001, t0 + d); s.connect(fl).connect(g).connect(mestre); s.start(t0); s.stop(t0 + d + .02);
+    const s = a.createBufferSource(); s.buffer = b; const fl = a.createBiquadFilter(); fl.type = tipo; fl.Q.value = q; fl.frequency.setValueAtTime(f0, t0); fl.frequency.exponentialRampToValueAtTime(f1, t0 + d);
+    const g = a.createGain(); if (atk) { g.gain.setValueAtTime(.0001, t0); g.gain.linearRampToValueAtTime(v, t0 + atk); } else g.gain.setValueAtTime(v, t0); g.gain.exponentialRampToValueAtTime(.0001, t0 + d); s.connect(fl).connect(g).connect(mestre); s.start(t0); s.stop(t0 + d + .02);
   }
   const SINT = {
-    compra: t => { const p = rnd(); tom(t, 740 * p, .09, { tipo: 'triangle' }); tom(t + .07, 1110 * p, .16, { tipo: 'triangle' }); },
-    venda: t => { const p = rnd(); [988, 1319, 1760].forEach((f, i) => tom(t + i * .06, f * p, .14, { tipo: 'triangle', v: .15 })); tom(t + .2, 2637 * p, .25, { v: .06 }); },
-    viagem: t => { ruido(t, .9, { v: .16, f0: 200, f1: 2600, q: .8 }); tom(t, 110, .9, { tipo: 'sawtooth', v: .05, f2: 520 }); },
-    chegada: t => { ruido(t, .6, { v: .1, f0: 1800, f1: 220, q: .8 }); tom(t + .25, 660 * rnd(), .35, { v: .12 }); tom(t + .4, 880 * rnd(), .4, { v: .1 }); },
-    patente: t => { [523, 659, 784, 1047].forEach((f, i) => { tom(t + i * .13, f, .3, { tipo: 'square', v: .09 }); tom(t + i * .13, f / 2, .3, { tipo: 'triangle', v: .1 }); }); [523, 659, 784, 1047].forEach(f => tom(t + .6, f, 1.1, { tipo: 'triangle', v: .09 })); },
-    conquista: t => { [784, 988, 1175, 1568, 1976].forEach((f, i) => tom(t + i * .07, f * rnd(.01), .22, { v: .12 })); },
-    selo1: t => { [659, 880].forEach((f, i) => tom(t + i * .1, f, .22, { tipo: 'triangle', v: .12 })); tom(t + .22, 1319, .5, { v: .07 }); },
-    selo2: t => { [523, 659, 784, 1047].forEach((f, i) => tom(t + i * .09, f, .24, { tipo: 'triangle', v: .12 })); [1047, 1319].forEach(f => tom(t + .4, f, .8, { v: .06 })); },
-    selo3: t => { [523, 659, 784, 1047, 1319, 1568].forEach((f, i) => { tom(t + i * .08, f, .3, { tipo: 'square', v: .07 }); tom(t + i * .08, f / 2, .3, { tipo: 'triangle', v: .09 }); }); [1047, 1319, 1568, 2093].forEach((f, i) => tom(t + .55 + i * .02, f, 1.4, { v: .06 })); for (let i = 0; i < 6; i++) tom(t + .7 + i * .09, 2637 + i * 180, .12, { v: .04 }); },
-    ok: t => { [660, 880].forEach((f, i) => tom(t + i * .08, f, .1, { tipo: 'triangle', v: .12 })); },
-    err: t => { tom(t, 160, .18, { tipo: 'sawtooth', v: .1 }); },
-    win: t => { [523, 659, 784, 1047].forEach((f, i) => tom(t + i * .1, f, i === 3 ? .28 : .12, { tipo: 'triangle', v: .12 })); },
-    alerta: t => { [440, 330, 440, 330].forEach((f, i) => tom(t + i * .14, f, .12, { tipo: 'square', v: .09 })); },
-    tiro: t => { for (let i = 0; i < 3; i++) { const u = t + i * .13; tom(u, 1400 * rnd(.08), .11, { tipo: 'sawtooth', v: .09, f2: 160 }); ruido(u, .06, { v: .08, f0: 3000, f1: 900 }); } },
-    vitoria: t => { [523, 659, 784].forEach((f, i) => tom(t + i * .1, f, .18, { tipo: 'square', v: .08 })); tom(t + .3, 1047, .5, { tipo: 'triangle', v: .12 }); },
-    derrota: t => { [392, 349, 311, 233].forEach((f, i) => tom(t + i * .16, f, .22, { tipo: 'sawtooth', v: .08 })); },
-    rugido: t => { const o = ac.createOscillator(), l = ac.createOscillator(), lg = ac.createGain(), g = ac.createGain(); o.type = 'sawtooth'; o.frequency.setValueAtTime(95 * rnd(.1), t); o.frequency.exponentialRampToValueAtTime(48, t + .9); l.frequency.value = 22; lg.gain.value = 30; l.connect(lg).connect(o.frequency);
-      g.gain.setValueAtTime(.0001, t); g.gain.linearRampToValueAtTime(.2, t + .08); g.gain.exponentialRampToValueAtTime(.0001, t + .95); o.connect(g).connect(mestre); o.start(t); l.start(t); o.stop(t + 1); l.stop(t + 1); ruido(t, .7, { v: .06, f0: 300, f1: 90 }); }
+    compra: t => { const p = rnd(); sino(t, 523 * p, .22, .15); sino(t + .08, 659 * p, .36, .15); },
+    venda: t => { const p = rnd(); [659, 784, 988].forEach((f, i) => sino(t + i * .07, f * p, .3, .12)); sino(t + .24, 1319 * p, .4, .06); },
+    // partida: ignição grave, rumor subindo e jato de ar suave (como uma nave decolando)
+    viagem: t => { tom(t, 90, .35, { v: .22, f2: 38, lp: 400, atk: .01 }); tom(t + .1, 45, 1.1, { v: .12, f2: 130, lp: 500, atk: .25 }); ruido(t + .05, 1.2, { v: .22, f0: 120, f1: 1500, q: .6, tipo: 'lowpass', atk: .4 }); ruido(t + .35, .8, { v: .05, f0: 900, f1: 2400, q: .7, atk: .3 }); },
+    chegada: t => { ruido(t, .55, { v: .16, f0: 1400, f1: 140, q: .6, tipo: 'lowpass', atk: .08 }); sino(t + .32, 392 * rnd(), .5, .13); sino(t + .5, 523 * rnd(), .7, .13); },
+    patente: t => { [262, 330, 392, 523].forEach((f, i) => sino(t + i * .15, f, .6, .13)); [262, 330, 392, 523].forEach(f => tom(t + .7, f, 1.3, { v: .07, atk: .08 })); },
+    conquista: t => { [523, 659, 784, 1047, 1319].forEach((f, i) => sino(t + i * .08, f * rnd(.01), .34, .11)); },
+    selo1: t => { [440, 587].forEach((f, i) => sino(t + i * .12, f, .4, .12)); sino(t + .26, 880, .7, .07); },
+    selo2: t => { [392, 494, 587, 784].forEach((f, i) => sino(t + i * .1, f, .45, .12)); [392, 494, 587].forEach(f => tom(t + .42, f, 1, { v: .06, atk: .06 })); },
+    selo3: t => { [262, 330, 392, 523, 659, 784].forEach((f, i) => sino(t + i * .1, f, .55, .1)); [262, 330, 392, 523, 659].forEach(f => tom(t + .65, f, 1.6, { v: .06, atk: .1 })); sino(t + .9, 1047, 1.2, .06); },
+    ok: t => { sino(t, 523, .2, .13); sino(t + .08, 659, .3, .13); },
+    err: t => { tom(t, 196, .22, { v: .16, f2: 147, lp: 700 }); tom(t + .12, 147, .26, { v: .13, f2: 110, lp: 600 }); },
+    win: t => { [392, 494, 587, 784].forEach((f, i) => sino(t + i * .1, f, i === 3 ? .6 : .25, .12)); },
+    alerta: t => { [523, 392, 523, 392].forEach((f, i) => sino(t + i * .15, f, .22, .1)); },
+    // tiros: "pew" curtinho e redondo, sem atraso (4 disparos bem juntos)
+    tiro: t => { for (let i = 0; i < 4; i++) { const u = t + i * .085, p = rnd(.12); tom(u, 880 * p, .12, { v: .13, f2: 200, lp: 1800, atk: .002 }); tom(u, 440 * p, .1, { v: .07, f2: 110, lp: 1200, atk: .002 }); ruido(u, .04, { v: .035, f0: 1800, f1: 500, tipo: 'lowpass' }); } },
+    vitoria: t => { [392, 494, 587].forEach((f, i) => sino(t + i * .11, f, .3, .11)); sino(t + .34, 784, .9, .13); },
+    derrota: t => { [294, 262, 233, 196].forEach((f, i) => tom(t + i * .18, f, .34, { v: .11, lp: 800, atk: .02 })); },
+    rugido: t => { const o = ac.createOscillator(), l = ac.createOscillator(), lg = ac.createGain(), g = ac.createGain(), fl = ac.createBiquadFilter(); o.type = 'sawtooth'; fl.type = 'lowpass'; fl.frequency.value = 380; o.frequency.setValueAtTime(95 * rnd(.1), t); o.frequency.exponentialRampToValueAtTime(48, t + .9); l.frequency.value = 22; lg.gain.value = 30; l.connect(lg).connect(o.frequency);
+      g.gain.setValueAtTime(.0001, t); g.gain.linearRampToValueAtTime(.2, t + .08); g.gain.exponentialRampToValueAtTime(.0001, t + .95); o.connect(fl).connect(g).connect(mestre); o.start(t); l.start(t); o.stop(t + 1); l.stop(t + 1); ruido(t, .7, { v: .05, f0: 300, f1: 90, tipo: 'lowpass' }); }
   };
   const cache = {};
   function arquivo(nome) {
@@ -45,7 +50,7 @@
     const a = cache[nome].cloneNode(); a.volume = Math.min(1, cfg.vs * .6); a.play().catch(() => {});
   }
   /* Todos os efeitos saem no mesmo volume: cada um tem um ganho medido (RMS alvo igual), para nenhum "estourar" mais que os outros. */
-  const NORM = { compra: .34, venda: .44, viagem: 1.09, chegada: .51, patente: .33, conquista: .35, selo1: .56, selo2: .49, selo3: .38, ok: .47, err: .66, win: .48, alerta: .47, tiro: .68, vitoria: .52, derrota: .8, rugido: .34 };
+  const NORM = { compra: 0.65, venda: 0.74, viagem: 0.61, chegada: 0.86, patente: 0.66, conquista: 0.67, selo1: 0.89, selo2: 0.71, selo3: 0.68, ok: 0.74, err: 0.72, win: 0.79, alerta: 0.99, tiro: 0.69, vitoria: 0.79, derrota: 0.87, rugido: 0.71 };
   function sintetiza(nome, t) { const a = ac, m0 = mestre, bus = a.createGain(); bus.gain.value = NORM[nome] || .5; bus.connect(m0); mestre = bus; try { SINT[nome](t); } finally { mestre = m0; } }
   function toca(nome, atraso = 0) {
     if (typeof S === 'undefined' || !S.sound) return;
@@ -68,7 +73,7 @@
     });
     if (a && !mudo && a.paused && userTocou) a.play().catch(() => {});
   }
-  let userTocou = false; addEventListener('pointerdown', () => { userTocou = true; }, { once: true });
+  let userTocou = false; addEventListener('pointerdown', () => { userTocou = true; try { ctx(); } catch {} }, { once: true });   // já deixa o áudio pronto no primeiro toque: o primeiro som não atrasa
   setInterval(musicaTick, 120);
   // botão rápido de música no cabeçalho
   const acts = document.querySelector('.hud-acts');

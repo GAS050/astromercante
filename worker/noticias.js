@@ -25,8 +25,18 @@ const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
 const sha = (s) => { let h = 2166136261; for (const c of s) { h ^= c.charCodeAt(0); h = Math.imul(h, 16777619); } return (h >>> 0).toString(36); };
 const limpa = (s, n) => String(s ?? '').replace(/<[^>]*>/g, '').replace(/\s+/g, ' ').trim().slice(0, n);
 
+// lê só o começo de cada feed (as primeiras manchetes ficam nos primeiros KB): poupa CPU, que no plano grátis é de só 10 ms por execução
+async function comecoDe(u, max = 14000) {
+  const r = await fetch(u, { headers: { 'user-agent': 'Mozilla/5.0 Astromercante' } });
+  if (!r.ok) throw new Error('http ' + r.status);
+  if (!r.body) return (await r.text()).slice(0, max);
+  const rd = r.body.getReader(), dec = new TextDecoder(); let t = '';
+  while (t.length < max) { const { done, value } = await rd.read(); if (done) break; t += dec.decode(value, { stream: true }); }
+  try { await rd.cancel(); } catch {}
+  return t;
+}
 async function manchetes() {
-  const r = await Promise.allSettled(FONTES.map((u) => fetch(u, { headers: { 'user-agent': 'Mozilla/5.0 Astromercante' } }).then((x) => (x.ok ? x.text() : Promise.reject(x.status)))));
+  const r = await Promise.allSettled(FONTES.map((u) => comecoDe(u)));
   const out = [];
   r.forEach((x) => { if (x.status !== 'fulfilled') return; let n = 0; for (const m of x.value.matchAll(/<item>[\s\S]*?<title>(?:<!\[CDATA\[)?([\s\S]*?)(?:\]\]>)?<\/title>/g)) { const t = limpa(m[1].replace(/ - [^-]+$/, ''), 160); if (t && n++ < 6) out.push(t); } });
   return [...new Set(out)];
@@ -104,4 +114,11 @@ export async function atualizarNoticias(env, forcar = false) {
   const out = { t: falhou ? agora - INTERVALO + 10 * 60000 : agora, itens, vistos: [...vistos].slice(-200), diag };
   await env.PRECOS.put('news', JSON.stringify(out));
   return out;
+}
+
+// usado pelo Cron: nunca deixa um erro passar em silêncio (grava o motivo em diag)
+export async function rodarNoticias(env, forcar = false) {
+  try { return await atualizarNoticias(env, forcar); } catch (e) {
+    try { const ant = JSON.parse((await env.PRECOS.get('news')) || '{}'); await env.PRECOS.put('news', JSON.stringify({ ...ant, t: Date.now() - INTERVALO + 10 * 60000, diag: { t: Date.now(), erro: 'falha geral: ' + String(e?.message || e).slice(0, 120) } })); } catch {}
+  }
 }

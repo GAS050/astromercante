@@ -1,7 +1,7 @@
 // Worker do ASTROMERCANTE: busca os preços reais a cada 5 min (Cron) e guarda no KV.
 // Os jogadores só leem o cache, então o número de chamadas às APIs não depende de quantos jogam.
 import { FEEDS } from './dados.js';
-import { atualizarNoticias } from './noticias.js';
+import { rodarNoticias } from './noticias.js';
 // ativos reais: os 3 dos itens básicos + 1 por produto novo (uma única chamada traz todos)
 const CG_IDS = { btc: 'bitcoin', gold: 'pax-gold', eth: 'ethereum' };
 Object.entries(FEEDS).forEach(([k, v]) => { CG_IDS[k] = v.cg; });
@@ -675,7 +675,11 @@ async function rota(req, env, url) {
   await perfisInit(env);
   const m = req.method, p = url.pathname;
   const corpo = m === 'GET' ? {} : await req.json().catch(() => ({}));
-  if (p === '/noticias/diag' && m === 'GET') return (JSON.parse((await env.PRECOS.get('news')) || '{}').diag) || { aviso: 'a rotina de notícias ainda não rodou (roda a cada 5 min pelo Cron)' };   // só diagnóstico: nada secreto
+  if (p === '/noticias/diag' && m === 'GET') {   // só diagnóstico (nada secreto). ?rodar=1 força uma rodada agora, no máximo 1 a cada 10 min
+    if (url.searchParams.get('rodar') === '1') { const ult = Number(await env.PRECOS.get('newsman')) || 0; if (Date.now() - ult > 600000) { await env.PRECOS.put('newsman', String(Date.now())); await rodarNoticias(env, true); } else return { aviso: 'espere alguns minutos para rodar de novo', diag: JSON.parse((await env.PRECOS.get('news')) || '{}').diag || null }; }
+    const n = JSON.parse((await env.PRECOS.get('news')) || '{}');
+    return n.diag ? { ...n.diag, itens: (n.itens || []).length } : { aviso: 'a rotina de notícias ainda não rodou (roda a cada 5 min pelo Cron). Tente abrir com ?rodar=1' };
+  }
   if (p === '/precos' && m === 'GET') {
     let d = JSON.parse((await env.PRECOS.get('latest')) || 'null');
     if (!d) d = await refresh(env);
@@ -798,7 +802,7 @@ async function rota(req, env, url) {
 }
 
 export default {
-  async scheduled(_evento, env, ctx) { ctx.waitUntil(refresh(env)); ctx.waitUntil(atualizarNoticias(env)); ctx.waitUntil(partidasManutencao(env)); ctx.waitUntil(fecharPeriodos(env)); },
+  async scheduled(_evento, env, ctx) { ctx.waitUntil(refresh(env)); ctx.waitUntil(rodarNoticias(env)); ctx.waitUntil(partidasManutencao(env)); ctx.waitUntil(fecharPeriodos(env)); },
   async fetch(req, env) {
     const cors = { 'Access-Control-Allow-Origin': env.ALLOWED_ORIGIN || '*', 'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS', 'Access-Control-Allow-Headers': 'Content-Type, Authorization', 'Access-Control-Max-Age': '86400' };
     if (req.method === 'OPTIONS') return new Response(null, { status: 204, headers: cors });

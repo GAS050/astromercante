@@ -461,3 +461,17 @@ body.histon{overflow:hidden}
 .lj-st small{display:block;color:var(--mt);font-size:.7rem;margin-top:2px}
 .lj-bar{height:6px;border-radius:3px;background:#12243a;margin-top:3px;overflow:hidden}.lj-bar i{display:block;height:100%;border-radius:3px;background:linear-gradient(90deg,var(--cyan),var(--neon))}
 .lj-note{color:var(--mt);font-size:.68rem;margin:8px 0 0}
+
+/* efeitos de recompensa */
+.fx-float{position:fixed;z-index:70;pointer-events:none;font-family:var(--mono,monospace);font-weight:700;font-size:1.05rem;text-shadow:0 0 10px currentColor;animation:fxup 1.4s ease-out forwards}
+.fx-float.mais{color:var(--neon)}.fx-float.menos{color:#ff6b6b}
+@keyframes fxup{0%{opacity:0;transform:translateY(0) scale(.8)}15%{opacity:1;transform:translateY(-4px) scale(1.1)}100%{opacity:0;transform:translateY(-34px) scale(1)}}
+#hud-credits.fx-pulse{animation:fxpulse .7s ease-out}@keyframes fxpulse{0%{text-shadow:0 0 0 transparent}30%{text-shadow:0 0 14px currentColor,0 0 28px currentColor}100%{text-shadow:0 0 0 transparent}}
+.rankup{position:fixed;inset:0;z-index:80;display:flex;align-items:center;justify-content:center;padding:20px;background:radial-gradient(ellipse at 50% 40%,rgba(30,60,110,.92),rgba(2,6,14,.96));animation:histin .4s ease}
+.ru-box{position:relative;text-align:center;max-width:360px;animation:ruin .6s cubic-bezier(.2,1.4,.4,1)}
+.ru-box small{letter-spacing:.3em;color:var(--cyan)}.ru-box h2{font-size:2rem;color:var(--amber);margin:10px 0 14px;text-shadow:0 0 24px rgba(255,180,60,.6);border:0}
+.ru-un{color:#dbe8f6;margin-bottom:18px}.ru-un b{color:var(--cyan)}.ru-box .buy{padding:10px 30px;font-size:1rem;background:rgba(57,255,136,.12);border-radius:8px}
+.ru-conf{position:absolute;inset:0;overflow:hidden;pointer-events:none}.ru-conf i{position:absolute;top:-12px;width:8px;height:14px;border-radius:2px;opacity:.9;animation:rufall linear infinite}
+@keyframes rufall{to{transform:translateY(110vh) rotate(540deg)}}@keyframes ruin{from{opacity:0;transform:scale(.6)}to{opacity:1;transform:scale(1)}}
+.row .vm{display:flex;gap:8px;align-items:center;margin-left:auto}.row .vm input{width:110px}
+@media (prefers-reduced-motion:reduce){.rankup,.ru-box,.fx-float,#hud-credits.fx-pulse{animation:none}}

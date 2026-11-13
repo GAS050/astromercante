@@ -1,0 +1,4 @@
+Coloque aqui os arquivos de áudio (mp3 ou ogg).
+Efeitos (curtos): compra, venda, viagem, chegada, patente, conquista, alerta, tiro, vitoria, derrota, rugido
+Músicas (em loop): musica_menu, musica_jogo
+Depois, registre os nomes em efeitos.js (listas ARQUIVOS e MUSICAS).

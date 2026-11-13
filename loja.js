@@ -15,17 +15,17 @@ function ljMiniNave(n, f) {
   return `<div class="lj-nv"><img alt="" src="${nsrc(n.id, 'motor', m)}"><img alt="" src="${nsrc(n.id, 'casco')}"><img alt="" src="${nsrc(n.id, 'porao', c)}"><img alt="" src="${nsrc(n.id, 'armas', a)}"></div>`;
 }
 const LJ_ST = [
-  { k: 'cap', ic: 'fa-boxes-stacked', rot: 'Porão', txt: 'mercadoria por viagem: mais lucro em cada carga', val: (n, f) => capDe(n, f ? f.c : 1), max: 922, fmt: v => v },
-  { k: 'eng', ic: 'fa-bolt', rot: 'Motor', txt: 'viagens mais rápidas', val: (n, f) => engDe(n, f ? f.m : 1), max: 4.2, fmt: v => v.toFixed(1) },
-  { k: 'wp', ic: 'fa-crosshairs', rot: 'Armas', txt: 'poder de fogo contra piratas e monstros', val: (n, f) => wpDe(n, f ? f.a : 1), max: 6, fmt: v => v.toFixed(1) }
+  { k: 'cap', ic: 'fa-boxes-stacked', rot: 'Porão', txt: 'mercadoria por viagem: mais lucro em cada carga', val: (n, f) => capDe(n, f ? f.c : 1), max: 922, mx: n => capDe(n, 5), fmt: v => v },
+  { k: 'eng', ic: 'fa-bolt', rot: 'Motor', txt: 'viagens mais rápidas', val: (n, f) => engDe(n, f ? f.m : 1), max: 4.2, mx: n => engDe(n, 5), fmt: v => v.toFixed(1) },
+  { k: 'wp', ic: 'fa-crosshairs', rot: 'Armas', txt: 'poder de fogo contra piratas e monstros', val: (n, f) => wpDe(n, f ? f.a : 1), max: 6, mx: n => wpDe(n, 5), fmt: v => v.toFixed(1) }
 ];
 function ljStats(n) {
   const f = S.frota[n.id], at = NAVES[(S.nave || 1) - 1], fa = S.frota[S.nave];
   return `<div class="lj-stats"><ul class="lj-st">` + LJ_ST.map(t => {
     const v = t.val(n, f), w = Math.max(6, Math.round(Math.sqrt(v / t.max) * 100)), d = n.id === S.nave ? 0 : v - t.val(at, fa), dd = Math.round(d * 100) / 100;
     const cmp = n.id === S.nave ? '' : `<em class="${dd > 0 ? 'ljm' : dd < 0 ? 'ljn' : ''}">${dd > 0 ? '▲ +' : dd < 0 ? '▼ −' : '= '}${dd === 0 ? 'igual' : t.fmt(Math.abs(dd))}</em>`;
-    return `<li title="${t.rot}: ${t.txt}"><i class="fa-solid ${t.ic}"></i><div><span>${t.rot} <b>${t.fmt(v)}</b> ${cmp}</span><div class="lj-bar"><i style="width:${w}%"></i></div><small>${t.txt}</small></div></li>`;
-  }).join('') + `</ul><p class="lj-note">Cada item sobe até o nível 5 com melhorias na aba Frotas. ▲▼ comparam com a sua nave equipada.</p></div>`;
+    return `<li title="${t.rot}: ${t.txt}"><i class="fa-solid ${t.ic}"></i><div><span>${t.rot} <b>${t.fmt(v)}</b> ${cmp}</span><div class="lj-bar"><i style="width:${w}%"></i></div><small>${t.txt} · no nível 5: <b>${t.fmt(t.mx(n))}</b></small></div></li>`;
+  }).join('') + `</ul><p class="lj-note">Cada item sobe até o nível 5 com melhorias na aba Frotas. ▲▼ comparam com a sua nave equipada (nível atual).</p></div>`;
 }
 /** Junta naves (estado do jogo) e avatares/molduras (servidor) numa lista só, no mesmo formato. */
 function ljItens() {

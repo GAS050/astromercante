@@ -14,7 +14,7 @@
   const proxUp = () => { try { const n = NAVES[S.nave - 1], f = S.frota && S.frota[S.nave]; if (!n || !f) return null; const c = [['cap', f.c], ['eng', f.m], ['wp', f.a]].filter(x => x[1] < 5).map(x => upCusto(n, x[0], x[1])); return c.length ? Math.min(...c) : null; } catch { return null; } };
   /* Meu perfil dentro do Início: mesmas seções do perfil público (vêm de /jogador), atualizadas a cada 45 s ou ao voltar para a aba. */
   let meu = null, meuT = 0, buscando = false;
-  const carregarMeu = async () => { if (buscando || !PF || !PF.id || Date.now() - meuT < 45000) return; buscando = true; meuT = Date.now(); try { meu = await api('/jogador?id=' + PF.id); } catch { meuT = Date.now() - 30000; } buscando = false; };
+  const carregarMeu = async () => { if (buscando || !PF || !PF.id || Date.now() - meuT < 90000) return; buscando = true; meuT = Date.now(); try { meu = await api('/jogador?id=' + PF.id); } catch { meuT = Date.now() - 60000; } buscando = false; };
   window.meuPerfilAtualizar = () => { meuT = 0; };
   function render() {
     if (document.body.dataset.view !== 'home' || !TOK || !CLOUD() || !READY || typeof PF === 'undefined' || !PF) return;

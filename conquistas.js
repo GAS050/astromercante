@@ -46,7 +46,7 @@
       gravar({ ...(vistos || {}), ...atual, c: ids.length ? ids : antes || [] }); prox();
     } catch {} busy = false;
   }
-  setInterval(checar, 20000); setTimeout(checar, 6000);
+  setInterval(checar, 60000); setTimeout(checar, 6000);   // 1 pedido por minuto (além do pedido depois de cada ação): economiza o limite de requisições do plano gratuito
   if (typeof act === 'function') { const _act = act; act = async function (...a) { const r = await _act.apply(this, a); if (r) setTimeout(checar, 1200); return r; }; }
 })();
 

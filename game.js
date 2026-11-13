@@ -302,9 +302,9 @@ function renderWorld() {
   renderInfo(); renderShipCard();
   $('#trip').textContent = S.trip ? `Em trânsito para ${plan(S.trip.to)?.nome || ''}…` : '';
   $('#p-market h2').textContent = 'Terminal de mercado · ' + (S.trip ? 'em trânsito' : (plan(S.loc)?.nome || ''));
-  $('#fleet').innerHTML = (semCasco() ? `<p class="empty">Esta partida não tem desgaste de casco: viagens e lutas não danificam a nave, então não há reparo.</p>` : `<div class="hull ${S.hull < 30 ? 'low' : ''}"><span>Casco ${S.hull}% / máx. ${S.maxHull}%</span><i style="width:${S.hull}%"></i></div>
-    <div class="up"><div><b>Reparar casco</b><small>Cada reparo desgasta 1% da integridade máxima</small></div><button class="buy" data-up="fix" ${S.hull >= S.maxHull ? 'disabled' : ''}>${fmt(fixCost())} Cr</button></div>
-    <div class="up"><div><b>Revisão completa</b><small>Restaura a integridade máxima a 100%</small></div><button class="buy" data-up="over" ${S.maxHull >= 100 ? 'disabled' : ''}>${fmt(overCost())} Cr</button></div>
+  $('#fleet').innerHTML = (semCasco() ? `<p class="empty">Esta partida não tem desgaste de casco: viagens e lutas não danificam a nave, então não há reparo.</p>` : `<ul class="lj-st up-st hull-st"><li><i class="fa-solid fa-heart-pulse"></i><div><span>Casco <b class="${S.hull < 30 ? 'down' : ''}">${S.hull}%</b> <em class="up-nv">máx. ${S.maxHull}%</em></span><div class="lj-bar up-bar${S.hull < 30 ? ' low' : ''}"><i class="nx" style="width:${S.maxHull}%"></i><i style="width:${S.hull}%"></i></div><small>Casco baixo enfraquece o poder de fogo. A parte clara da barra é a integridade máxima.</small>
+      <button class="buy" data-up="fix" ${S.hull >= S.maxHull ? 'disabled' : ''}>${S.hull >= S.maxHull ? 'Casco no máximo' : `Reparar casco · ${fmt(fixCost()).replace(',00', '')} Cr`}</button><small class="up-n">Cada reparo desgasta 1% da integridade máxima.</small></div></li>
+    <li><i class="fa-solid fa-screwdriver-wrench"></i><div><span>Revisão completa <em class="up-nv">máx. ${S.maxHull}% → 100%</em></span><small>Restaura a integridade máxima a 100%.</small><button class="buy" data-up="over" ${S.maxHull >= 100 ? 'disabled' : ''}>${S.maxHull >= 100 ? 'Integridade em 100%' : `Revisão completa · ${fmt(overCost()).replace(',00', '')} Cr`}</button></div></li></ul>
 `) + `
     ${CLOUD() ? upRowsNave() : `<p class="empty">Porão: ${used()}/${S.cap} · Motor nv.${S.engLv}</p>
     <div class="up"><div><b>Porão nv.${S.capLv}</b><small>+40 de capacidade</small></div><button class="buy" data-up="cap">${fmt(1000 * S.capLv)} Cr</button></div>

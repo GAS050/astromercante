@@ -626,3 +626,4 @@ body[data-view=loja] #p-loja{display:flex}
 .cq-medal{width:50px;height:50px;font-size:1.35rem;border-width:2px}.cq-medal em{min-width:20px;height:20px;font-size:.62rem;line-height:20px;right:-5px;bottom:-3px}
 .cq-rays{inset:-26px}.cq-txt small{font-size:.58rem;letter-spacing:.18em}.cq-txt b{font-size:1.02rem}.conq-t3 .cq-txt b{font-size:1.08rem}
 .cq-txt span{font-size:.74rem;line-height:1.25;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.up-bar.low i:not(.nx){background:linear-gradient(90deg,#ff6b6b,#ffb347)}.up-st .up-n{margin-top:4px}

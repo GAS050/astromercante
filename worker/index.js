@@ -29,8 +29,9 @@ async function refresh(env) {
     Object.entries(CG_IDS).forEach(([k, id]) => { const v = d[id]; const n = num(v?.usd_24h_change); if (n !== null) next[k] = n; });
   }
   if (fx.status === 'fulfilled') { const n = num(fx.value?.USDBRL?.pctChange); if (n !== null) next.fx = n; }
+  next.diag = { cg: cg.status === 'fulfilled' ? 'ok' : 'erro ' + String(cg.reason?.message || cg.reason).slice(0, 60), faltando: FEED_KEYS.filter((k) => next[k] == null), quando: Date.now() };   // para conferir em /precos
   // só grava se algo novo chegou; se as APIs falharem, o último valor bom continua valendo
-  if (cg.status === 'fulfilled' || fx.status === 'fulfilled') { next.ant = {}; FEED_KEYS.forEach((k) => { if (prev[k] != null) next.ant[k] = prev[k]; }); next.updated = Date.now(); await env.PRECOS.put('latest', JSON.stringify(next)); }
+  if (cg.status === 'fulfilled' || fx.status === 'fulfilled' || !prev.diag) { next.ant = {}; FEED_KEYS.forEach((k) => { if (prev[k] != null) next.ant[k] = prev[k]; }); next.updated = Date.now(); await env.PRECOS.put('latest', JSON.stringify(next)); }
   return next;
 }
 
@@ -668,7 +669,7 @@ async function rota(req, env, url) {
     let d = JSON.parse((await env.PRECOS.get('latest')) || 'null');
     if (!d) d = await refresh(env);
     const nw = JSON.parse((await env.PRECOS.get('news')) || '{}'), itens = nw.itens || [];
-    return { noticias: itens.slice(0, 12), ...Object.fromEntries(FEED_KEYS.map((k) => [k, d[k] ?? null])), ant: d.ant ?? null, updated: d.updated ?? null, stale: !d.updated || Date.now() - d.updated > STALE_MS };
+    return { noticias: itens.slice(0, 12), diag: d.diag ?? null, ...Object.fromEntries(FEED_KEYS.map((k) => [k, d[k] ?? null])), ant: d.ant ?? null, updated: d.updated ?? null, stale: !d.updated || Date.now() - d.updated > STALE_MS };
   }
   if (p === '/auth/registrar' && m === 'POST') {
     const nome = corpo.nome || '', senha = corpo.senha, ip = req.headers.get('CF-Connecting-IP') || 'ip';

@@ -1091,10 +1091,14 @@ async function afterAuth(d, up) {
   await refrescar(true);
   say(up ? `Conta ${d.nome} criada. Seu progresso fica guardado na nuvem.` : `Bem-vindo de volta, ${d.nome}!`, 'win');
 }
-async function logout() {
-  if (!confirm('Sair da conta? Seu progresso está guardado na nuvem e volta quando você entrar de novo.')) return;
-  try { await api('/auth/sair', 'POST'); } catch {}
-  clearSession(); store(KEY, null); location.reload();
+let logoutT = 0;
+function logout() {   // dois toques (sem confirm(), que alguns navegadores do celular bloqueiam); sai na hora, sem esperar o servidor
+  const b = $('#acct-out');
+  if (!logoutT) { b.textContent = 'Toque de novo para sair'; b.classList.add('danger'); logoutT = setTimeout(() => { logoutT = 0; b.textContent = 'Sair'; b.classList.remove('danger'); }, 4000); return; }
+  clearTimeout(logoutT); logoutT = 0; b.disabled = true; b.textContent = 'Saindo…';
+  const t = TOK; clearSession();
+  try { if (t && API()) fetch(API() + '/auth/sair', { method:'POST', keepalive:true, headers:{ 'Content-Type':'application/json', Authorization:'Bearer ' + t }, body:'{}' }).catch(() => {}); } catch {}
+  store(KEY, null); setTimeout(() => { location.href = location.pathname; }, 150);
 }
 async function deleteAccount() {
   const g = localStorage.getItem('astromercante_google'), p = prompt(g ? 'Para excluir a conta e todo o progresso salvo na nuvem, digite EXCLUIR. Isso não pode ser desfeito.' : 'Para excluir a conta e todo o progresso salvo na nuvem, digite sua senha. Isso não pode ser desfeito.'); if (!p) return;

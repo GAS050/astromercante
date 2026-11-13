@@ -549,6 +549,8 @@ function iniAt(e, t) {
   const pl = GALAXIES[e.g].planetas, tt = t / e.T + e.ph, n = Math.floor(tt), u = tt - n, q = i => pl[HH(e.g * 977 + e.k * 131 + i * 7919 + 13) % pl.length], x = Math.min(1, u / .8);
   return { a:q(n - 1), b:q(n), f:x * x * (3 - 2 * x) };
 }
+const poderJog = () => (S.wpLv || 1) * (.6 + .4 * (S.hull == null ? 100 : S.hull) / 100) * (1 + .02 * (S.rank || 0));
+const corNv = e => { const r = poderJog() / (e.lv * (e.m ? 1.2 : 1)); return r >= 1.09 ? '#6dff9f' : r >= .8 ? '#ffd24a' : '#ff6b6b'; };   // verde: vence; amarelo: incerto/empate; vermelho: perde
 const PAUSA = 4800;   // igual ao servidor: tempo da luta, com a nave parada
 const iniOn = () => CLOUD() && !(S.partida && !S.partida.piratas);
 function iniTela(e, t) {
@@ -597,7 +599,7 @@ function desenhaInimigo(p, e, ts, alvo, forca) {   // p: posição na tela; alvo
     else { cx.rotate(e.m ? 0 : alvo + Math.PI / 2); cx.drawImage(im, -sz / 2, -sz / 2, sz, sz); }
   }
   cx.restore();
-  if (forca) { cx.save(); cx.font = '700 7px Chakra Petch, sans-serif'; cx.textAlign = 'center'; const tx = (e.m ? '☣ ' : '☠ ') + 'nv.' + e.lv, ty = p.y - (e.m ? 17 + tierDe(e.lv) * 2.5 : 14 + tierDe(e.lv) * 1.5) * p.sc; cx.lineWidth = 2; cx.strokeStyle = 'rgba(0,0,0,.7)'; cx.strokeText(tx, p.x, ty); cx.fillStyle = e.m ? '#e6b3ff' : '#ff8a8a'; cx.fillText(tx, p.x, ty); cx.restore(); }
+  if (forca) { cx.save(); cx.font = '700 7px Chakra Petch, sans-serif'; cx.textAlign = 'center'; const tx = (e.m ? '☣ ' : '☠ ') + 'nv.' + e.lv, ty = p.y - (e.m ? 17 + tierDe(e.lv) * 2.5 : 14 + tierDe(e.lv) * 1.5) * p.sc; cx.lineWidth = 2; cx.strokeStyle = 'rgba(0,0,0,.7)'; cx.strokeText(tx, p.x, ty); cx.fillStyle = corNv(e); cx.fillText(tx, p.x, ty); cx.restore(); }
 }
 function inimigos(ts, fase) {   // fase 0: patrulha (desenhada ANTES dos planetas, nomes ficam por cima); fase 1: lutas (acima dos planetas, abaixo da nave)
   if (!iniOn() || !PL.length) return;
@@ -618,10 +620,10 @@ let SHAKE = 0;
 function desenhaLuta(e, f, now, ts) {
   const sp = shipPos(ts), lt = now - f.tc, th = e.k * 1.3 - .8, dist0 = 30 * sp.sc, so = { x:sp.x + Math.cos(th) * dist0, y:sp.y + Math.sin(th) * dist0 * .8 - 4 * sp.sc }; let p;
   if (lt < 0) { const a = iniTela(e, f.td), q = clamp((now - f.td) / (f.tc - f.td), 0, 1), s2 = q * q; p = { x:a.x + (so.x - a.x) * s2, y:a.y + (so.y - a.y) * s2, sc:a.sc }; }
-  else { p = { x:so.x + Math.cos(ts / 700) * 2.5 * sp.sc, y:so.y + Math.sin(ts / 500) * 2 * sp.sc, sc:sp.sc }; if (!f.w && lt > 3000) { const q = clamp((lt - 3000) / 1800, 0, 1); p.x += Math.cos(th) * 70 * q * sp.sc; p.y += Math.sin(th) * 50 * q * sp.sc - 20 * q * sp.sc; } }
+  else { p = { x:so.x + Math.cos(ts / 700) * 2.5 * sp.sc, y:so.y + Math.sin(ts / 500) * 2 * sp.sc, sc:sp.sc }; if (f.w !== 1 && lt > 3000) { const q = clamp((lt - 3000) / 1800, 0, 1); p.x += Math.cos(th) * 70 * q * sp.sc; p.y += Math.sin(th) * 50 * q * sp.sc - 20 * q * sp.sc; } }
   const ang = Math.atan2(sp.y - p.y, sp.x - p.x), cor = e.m ? '200,100,255' : '255,80,60';
-  const hp = lt < 0 ? 1 : f.w ? 1 - clamp(lt / 3000, 0, 1) : 1 - .25 * clamp(lt / 3000, 0, 1), vivo = !(f.w && lt > 3000);
-  if (vivo) { cx.save(); cx.globalAlpha = !f.w && lt > 3000 ? clamp(1 - (lt - 3000) / 1800, 0, 1) : 1; desenhaInimigo(p, e, ts, ang, true); cx.restore(); }
+  const hp = lt < 0 ? 1 : f.w === 1 ? 1 - clamp(lt / 3000, 0, 1) : 1 - (f.w === 2 ? .5 : .25) * clamp(lt / 3000, 0, 1), vivo = !(f.w === 1 && lt > 3000);
+  if (vivo) { cx.save(); cx.globalAlpha = f.w !== 1 && lt > 3000 ? clamp(1 - (lt - 3000) / 1800, 0, 1) : 1; desenhaInimigo(p, e, ts, ang, true); cx.restore(); }
   if (lt >= 0 && lt < 3000) {   // troca de tiros: um projétil a cada 240ms, alternando os lados
     const step = 240, j = Math.floor(lt / step); cx.save(); cx.globalCompositeOperation = 'lighter'; cx.lineCap = 'round';
     for (let jj = Math.max(0, j - 3); jj <= j; jj++) {
@@ -632,14 +634,14 @@ function desenhaLuta(e, f, now, ts) {
     cx.restore();
     // barra de vida do inimigo
     const w = 26 * p.sc, y0 = p.y - 26 * p.sc; cx.fillStyle = 'rgba(0,0,0,.65)'; cx.fillRect(p.x - w / 2 - 1, y0 - 1, w + 2, 5 * p.sc + 2); cx.fillStyle = hp > .5 ? '#ff6a4a' : '#ffb13a'; cx.fillRect(p.x - w / 2, y0, w * hp, 5 * p.sc);
-  } else if (lt >= 3000 && f.w) {   // vitória: explosão do inimigo
+  } else if (lt >= 3000 && f.w === 1) {   // vitória: explosão do inimigo
     const q = clamp((lt - 3000) / 900, 0, 1); cx.save(); cx.globalCompositeOperation = 'lighter';
     cx.fillStyle = `rgba(255,${200 - q * 120 | 0},60,${1 - q})`; cx.beginPath(); cx.arc(p.x, p.y, (5 + q * 26) * p.sc, 0, 7); cx.fill();
     cx.strokeStyle = `rgba(255,255,200,${1 - q})`; cx.lineWidth = 2; cx.beginPath(); cx.arc(p.x, p.y, (8 + q * 40) * p.sc, 0, 7); cx.stroke(); cx.restore();
   }
   if (lt >= 3000) {   // resultado flutuando sobre a nave
     const q = (lt - 3000) / 1800; cx.save(); cx.globalAlpha = clamp(1.6 - q * 1.2, 0, 1); cx.font = '700 11px Chakra Petch, sans-serif'; cx.textAlign = 'center'; cx.lineWidth = 3; cx.strokeStyle = 'rgba(0,0,0,.75)';
-    const tx = f.w ? `+${f.loot} Cr` : `casco -${f.dmg}%`, ty = sp.y - 26 * sp.sc - q * 18; cx.strokeText(tx, sp.x, ty); cx.fillStyle = f.w ? '#5dff9b' : '#ff6b6b'; cx.fillText(tx, sp.x, ty); cx.restore();
+    const tx = f.w === 1 ? `+${f.loot} Cr` : `casco -${f.dmg}%`, ty = sp.y - 26 * sp.sc - q * 18; cx.strokeText(tx, sp.x, ty); cx.fillStyle = f.w === 1 ? '#5dff9b' : f.w === 2 ? '#ffd24a' : '#ff6b6b'; cx.fillText(tx, sp.x, ty); cx.restore();
   }
 }
 
@@ -656,10 +658,10 @@ function alertas(now) {
   if (FL.k !== S.trip.start) FL = { k:S.trip.start };
   const diz = (n, ate, fn) => { if (!FL[n] && now >= ate - 1) { FL[n] = 1; if (now - ate < 2500) fn(); } };
   const cl = f.m ? 'mon' : 'on';
-  if (now >= f.td && now < f.tc) setAlerta(cl); else if (now >= f.tc && now < f.tc + 3000) setAlerta(cl + ' fast'); else if (now >= f.tc + 3000 && now < f.tc + PAUSA) setAlerta(f.w ? 'win' : 'lose'); else setAlerta('');
-  diz(1, f.td, () => cap(`Comandante, ${f.nm} nv.${f.lv} na nossa cola!`, 'alert', 4500));
-  diz(2, f.tc, () => { const d = S.wpLv - f.lv; cap(`Armas nv.${S.wpLv} contra nv.${f.lv}. ${d >= 0 ? 'Vantagem nossa!' : d === -1 ? 'Luta apertada!' : 'Estamos em desvantagem!'}`, 'alert', 3000); });
-  diz(3, f.tc + 3000, () => cap(f.w ? `${f.nm} eliminados! Saque: +${f.loot} Cr.` : `Derrota! Casco -${f.dmg}% e carga perdida. Repare em Frotas.`, f.w ? 'win' : 'lose', 5200));
+  if (now >= f.td && now < f.tc) setAlerta(cl); else if (now >= f.tc && now < f.tc + 3000) setAlerta(cl + ' fast'); else if (now >= f.tc + 3000 && now < f.tc + PAUSA) setAlerta(f.w === 1 ? 'win' : 'lose'); else setAlerta('');
+  diz(1, f.td, () => cap(`Comandante, ${f.nm} nv.${f.lv} na nossa cola! ${f.r >= 1.09 ? 'Podemos com eles.' : f.r >= .8 ? 'Vai ser equilibrado.' : 'Isso é perigoso!'}`, 'alert', 4500));
+  diz(2, f.tc, () => cap(`Armas nv.${S.wpLv} contra nv.${f.lv}. ${f.r >= 1.09 ? 'Vantagem nossa!' : f.r >= .8 ? 'Luta apertada!' : 'Estamos em desvantagem!'}`, 'alert', 3000));
+  diz(3, f.tc + 3000, () => cap(f.w === 1 ? `${f.nm} eliminados! Saque: +${f.loot} Cr.` : f.w === 2 ? `Empate! ${f.nm} recuaram. Casco -${f.dmg}%.` : `Derrota! Casco -${f.dmg}% e carga perdida. Repare em Frotas.`, f.w === 1 ? 'win' : f.w === 2 ? 'alert' : 'lose', 5200));
   const w = $('.mapwrap');
   if (now < SHAKE) { shaking = true; w.style.transform = `translate(${(Math.random() - .5) * 4}px,${(Math.random() - .5) * 4}px)`; } else if (shaking) { shaking = false; w.style.transform = ''; }
 }

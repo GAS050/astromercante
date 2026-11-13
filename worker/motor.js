@@ -148,18 +148,30 @@ function encontros(S, t0, t1) {
   out.sort((x, y) => x.td - y.td);
   return out.slice(0, 1);   // uma luta por viagem: a nave para para lutar (PAUSA ms) e depois segue
 }
-/** O resultado é sorteado na partida da viagem e fica gravado: o que o jogador vê no mapa é exatamente o que acontece. */
+/** Poder de combate: arma da nave, enfraquecida por casco danificado, com bônus pequeno de patente. O inimigo vale o nível (monstro +20%). */
+export const poderJog = (S) => S.wpLv * (.6 + .4 * S.hull / 100) * (1 + .02 * S.rank);
+export const poderIni = (e) => e.lv * (e.m ? 1.2 : 1);
+/** Saque-base por galáxia: cresce ~50% a cada galáxia, então voltar a galáxias fáceis não compensa. */
+export const SAQUE = (g) => 90 * Math.pow(1.5, g);
+/** A luta é decidida pela razão de poder (com ±8% de "sorte do momento") e fica gravada: o que se vê no mapa é o que acontece.
+ *  w: 1 vitória, 2 empate (escapa com avarias), 0 derrota. */
 function lutar(S, e, td, tc) {
-  const D = S.gal, diff = S.wpLv - e.lv, win = diff >= 0 || (diff === -1 && Math.random() < .5), sev = diff === -1 ? .5 : 1, o = { k: e.k, td, tc, lv: e.lv, nm: e.nm, m: e.m ? 1 : 0, w: win ? 1 : 0 };
-  if (win) { o.loot = Math.round((100 + Math.random() * 200) * (1 + D) * (1 + e.lv * .15) * (e.m ? 2 : 1) * (diff === -1 ? .5 : 1)); o.dmg = 1 + (Math.random() * 3 | 0) + (diff < 0 ? 3 : 0); }
-  else { o.dmg = Math.round((6 + Math.random() * 8) * (1 + e.lv * .25) * sev); o.f = Math.min(.5, (.15 + .05 * e.lv) * sev); }
+  const D = S.gal, P = poderJog(S), E = poderIni(e), r = P / E, q = E / P, rr = r * (.92 + Math.random() * .16), v = (a, b) => a + Math.random() * (b - a);
+  const o = { k: e.k, td, tc, lv: e.lv, nm: e.nm, m: e.m ? 1 : 0, r: Math.round(r * 100) / 100, w: rr >= 1 ? 1 : rr >= .75 ? 2 : 0 };
+  if (o.w === 1) {
+    // vencer inimigo muito fraco paga pouco (clamp em .25): sem farmar monstro pequeno
+    o.loot = Math.round(SAQUE(D) * (.6 + .4 * e.lv) * clamp(q, .25, 1.4) * (e.m ? 1.8 : 1) * v(.88, 1.12));
+    o.dmg = Math.max(1, Math.round(5 * Math.min(q, 2) * (1 + D * .1) * v(.8, 1.2)));
+  } else if (o.w === 2) o.dmg = Math.round(10 * (1 + D * .1) * v(.85, 1.15));
+  else { o.dmg = Math.round((10 + 8 * Math.min(q, 2)) * (1 + D * .12) * v(.85, 1.15)); o.f = clamp(.08 + .08 * q, .1, .45); }
   return o;
 }
 function chegada(S, d, msgs, enc) {
   const D = S.gal; let dmg = Math.round((2 + Math.random() * 4) * d / 120 * (1 + (S.engLv - 1) * .1) * (1 + D * .2));
   for (const e of enc || []) {
     dmg += e.dmg;
-    if (e.w) { S.credits += e.loot; say(msgs, `${e.nm} (nv.${e.lv}) derrotados pelo seu armamento nv.${S.wpLv}! Recompensa +${fmt(e.loot)} Cr.`, 'win'); }
+    if (e.w === 1) { S.credits += e.loot; say(msgs, `${e.nm} (nv.${e.lv}) derrotados pelo seu armamento nv.${S.wpLv}! Recompensa +${fmt(e.loot)} Cr.`, 'win'); }
+    else if (e.w === 2) say(msgs, `${e.nm} (nv.${e.lv}) recuaram: luta empatada, sem saque. Escapamos com avarias.`, 'ok');
     else {
       let m = `${e.nm} (nv.${e.lv}) venceram: seu armamento é nv.${S.wpLv}. `;
       const own = Object.keys(S.inv).filter((x) => S.inv[x].qty > 0);

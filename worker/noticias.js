@@ -12,6 +12,10 @@ const FONTES = [   // consultas de manchetes (Google News RSS); só o título é
   'https://news.google.com/rss/search?q=d%C3%B3lar+real+c%C3%A2mbio+when:1d&hl=pt-BR&gl=BR&ceid=BR:pt-419',
   'https://news.google.com/rss/search?q=oil+OR+energy+OR+inflation+OR+interest+rates+when:1d&hl=en-US&gl=US&ceid=US:en',
   'https://news.google.com/rss/search?q=global+economy+OR+stock+market+when:1d&hl=en-US&gl=US&ceid=US:en',
+  // notícias indiretas: geopolítica, comércio e bancos centrais costumam mexer com dólar, ouro e cripto
+  'https://news.google.com/rss/search?q=geopolitics+OR+war+OR+sanctions+OR+tariffs+OR+%22trade+war%22+when:1d&hl=en-US&gl=US&ceid=US:en',
+  'https://news.google.com/rss/search?q=central+bank+OR+%22interest+rate%22+OR+recession+OR+%22safe+haven%22+when:1d&hl=en-US&gl=US&ceid=US:en',
+  'https://news.google.com/rss/search?q=crypto+regulation+OR+ETF+OR+exchange+hack+OR+stablecoin+when:1d&hl=en-US&gl=US&ceid=US:en',
 ];
 // nada de pessoas, países ou empresas reais no texto final
 const PROIBIDO = /trump|biden|putin|zelensk|musk|lula|bolsonaro|powell|xi jinping|netanyahu|china|chin[eê]s|eua\b|estados unidos|r[uú]ssia|ucr[aâ]nia|israel|\bir[aã]\b|gaza|brasil|europa|opep|opec|\bfed\b|binance|coinbase|apple|google|tesla|nvidia|microsoft|amazon|meta\b|openai|sec\b|nasdaq|wall street|dow jones/i;
@@ -24,7 +28,7 @@ const limpa = (s, n) => String(s ?? '').replace(/<[^>]*>/g, '').replace(/\s+/g, 
 async function manchetes() {
   const r = await Promise.allSettled(FONTES.map((u) => fetch(u, { headers: { 'user-agent': 'Mozilla/5.0 Astromercante' } }).then((x) => (x.ok ? x.text() : Promise.reject(x.status)))));
   const out = [];
-  r.forEach((x) => { if (x.status !== 'fulfilled') return; let n = 0; for (const m of x.value.matchAll(/<item>[\s\S]*?<title>(?:<!\[CDATA\[)?([\s\S]*?)(?:\]\]>)?<\/title>/g)) { const t = limpa(m[1].replace(/ - [^-]+$/, ''), 160); if (t && n++ < 7) out.push(t); } });
+  r.forEach((x) => { if (x.status !== 'fulfilled') return; let n = 0; for (const m of x.value.matchAll(/<item>[\s\S]*?<title>(?:<!\[CDATA\[)?([\s\S]*?)(?:\]\]>)?<\/title>/g)) { const t = limpa(m[1].replace(/ - [^-]+$/, ''), 160); if (t && n++ < 6) out.push(t); } });
   return [...new Set(out)];
 }
 
@@ -42,7 +46,8 @@ REGRAS OBRIGATÓRIAS
 ${prods}
 - "d" é 1 se o preço tende a subir e -1 se tende a cair. "m" é a intensidade de 0.1 a 1. "h" é a duração em horas (1 a 5).
 - Título até 80 caracteres; texto de 1 ou 2 frases, até 220 caracteres. Sem emojis. Não é recomendação financeira.
-- Só crie notícia para manchetes que tratem claramente de um dos ativos reais indicados acima (ou da economia em geral, se afetar algum deles). Não invente nada sem manchete correspondente. Escolha no máximo 4, as mais relevantes e de assuntos diferentes. Se nenhuma manchete servir, devolva [].
+- Vale notícia direta (sobre o próprio ativo) e indireta, quando o efeito econômico for plausível. Exemplos: conflito ou tensão entre grandes potências tende a subir o ouro e o dólar e pressionar cripto; juros altos pressionam Bitcoin e altcoins; juros em queda ou estímulo favorecem cripto; regulação favorável ou aprovação de fundos sobe cripto; hack ou proibição derruba cripto; petróleo em alta afeta energia (o produto ligado ao Ethereum); dólar forte derruba o ouro. Escolha os produtos que seguem os ativos afetados.
+- Só crie notícia quando a manchete tiver esse tipo de ligação clara com algum dos ativos reais indicados acima. Não invente nada sem manchete correspondente. Escolha no máximo 4, as mais relevantes e de assuntos diferentes. Se nenhuma manchete servir, devolva [].
 
 SAÍDA: apenas JSON, um array: [{"ti":"...","tx":"...","r":["id1","id2"],"d":1,"m":0.5,"h":3}]
 
@@ -81,7 +86,7 @@ export async function atualizarNoticias(env, forcar = false) {
   let novos = [], vistos = new Set(ant.vistos || []);
   if (env.GEMINI_KEY) {
     try {
-      const todos = await manchetes(), titulos = todos.filter((t) => !vistos.has(sha(t))).slice(0, 40);
+      const todos = await manchetes(), titulos = todos.filter((t) => !vistos.has(sha(t))).slice(0, 55);
       if (titulos.length >= 4) { novos = validar(await gemini(env, prompt(titulos)), agora); titulos.forEach((t) => vistos.add(sha(t))); }
     } catch (e) { console.log('noticias:', e?.message || e); }
   }

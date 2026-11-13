@@ -109,7 +109,9 @@ const fmt = (n) => n.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximum
 
 function stk(S, id, now) { const o = S.stock[S.loc]?.[id]; return o ? 100 - (100 - o.v) * Math.pow(.94, (now - o.t) / 30000) : 100; }
 /** Liquidez do mercado: cada unidade negociada mexe LIQ do estoque (preço e estoque usam a mesma conta, então comprar e vender no mesmo lugar nunca dá lucro). */
-export const LIQ = .6, TAXA_VENDA = .97, COMBUSTIVEL = .5;
+export const LIQ = .4, TAXA_VENDA = .97, COMBUSTIVEL = .5;
+/** Profundidade do mercado: em galáxias avançadas os planetas movimentam muito mais unidades (os porões lá são maiores), sem mudar a lógica de preço. */
+export const liq = (S) => LIQ / (1 + 1.5 * S.gal);
 const setStk = (S, id, v, now) => { (S.stock[S.loc] ??= {})[id] = { v: Math.max(1, v), t: now }; };
 export function preco(S, id, st, c) {
   const r = RES_ID[id], ev = S.partida && !S.partida.eventos ? null : evAt(c.now);
@@ -240,16 +242,16 @@ const acoes = {
     if (S.trip) throw new Regra('Nave em trânsito.');
     const s0 = stk(S, a.id, c.now), esperado = Number(a.esperado), vitrine = preco(S, a.id, s0, c);
     if (esperado > 0 && Math.abs(vitrine / esperado - 1) > .08) throw new Regra('O preço mudou. Confira o mercado e tente de novo.');
-    const p = preco(S, a.id, lado === 'buy' ? s0 - n * LIQ / 2 : s0 + n * LIQ / 2, c) * (lado === 'buy' ? 1 : TAXA_VENDA), total = n * p, h = (S.inv[a.id] ??= { qty: 0, avg: 0 });
+    const p = preco(S, a.id, lado === 'buy' ? s0 - n * liq(S) / 2 : s0 + n * liq(S) / 2, c) * (lado === 'buy' ? 1 : TAXA_VENDA), total = n * p, h = (S.inv[a.id] ??= { qty: 0, avg: 0 });
     if (lado === 'buy') {
-      if (n > (s0 - 1) / LIQ) throw new Regra(`Este planeta só tem ${Math.floor((s0 - 1) / LIQ)} un. em oferta. Procure outro mercado.`);
+      if (n > (s0 - 1) / liq(S)) throw new Regra(`Este planeta só tem ${Math.floor((s0 - 1) / liq(S))} un. em oferta. Procure outro mercado.`);
       if (total > S.credits) throw new Regra(`Créditos insuficientes: faltam ${fmt(total - S.credits)}.`);
       if (used(S) + n > S.cap) throw new Regra(`Porão cheio (${used(S)}/${S.cap}). Venda ou faça upgrade.`);
-      h.avg = (h.avg * h.qty + total) / (h.qty + n); h.qty += n; S.credits -= total; setStk(S, a.id, s0 - n * LIQ, c.now);
+      h.avg = (h.avg * h.qty + total) / (h.qty + n); h.qty += n; S.credits -= total; setStk(S, a.id, s0 - n * liq(S), c.now);
       say(msgs, `Comprou ${n} × ${r.nome} por ${fmt(total)}.`);
     } else {
       if (n > h.qty) throw new Regra(`Você tem apenas ${h.qty} × ${r.nome}.`);
-      S.daily.p.profit += Math.max(0, n * (p - h.avg)); h.qty -= n; S.credits += total; setStk(S, a.id, s0 + n * LIQ, c.now); if (!h.qty) h.avg = 0;
+      S.daily.p.profit += Math.max(0, n * (p - h.avg)); h.qty -= n; S.credits += total; setStk(S, a.id, s0 + n * liq(S), c.now); if (!h.qty) h.avg = 0;
       say(msgs, `Vendeu ${n} × ${r.nome} por ${fmt(total)}.`);
     }
     S.daily.p.trades++;

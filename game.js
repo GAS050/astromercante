@@ -101,7 +101,7 @@ const qty = () => Math.max(1, Math.floor(+$('#qty').value) || 1);
 
 function trade(id, side) {
   if (CLOUD()) return act('negociar', { id, lado:side, n:qty(), esperado:px(id) });
-  const LIQ = .6, r = RES.find(x => x.id === id), n = qty(), s0 = stk(id), p = pxAt(id, side === 'buy' ? s0 - n * LIQ / 2 : s0 + n * LIQ / 2) * (side === 'buy' ? 1 : .97), h = S.inv[id], total = n * p;
+  const LIQ = .4 / (1 + 1.5 * S.gal), r = RES.find(x => x.id === id), n = qty(), s0 = stk(id), p = pxAt(id, side === 'buy' ? s0 - n * LIQ / 2 : s0 + n * LIQ / 2) * (side === 'buy' ? 1 : .97), h = S.inv[id], total = n * p;
   if (S.trip) return say('Nave em trânsito.', 'err');
   if (side === 'buy') {
     if (n > (s0 - 1) / LIQ) return say(`Este planeta só tem ${Math.floor((s0 - 1) / LIQ)} un. em oferta. Procure outro mercado.`, 'err');

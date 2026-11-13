@@ -557,20 +557,42 @@ function iniTela(e, t) {
 }
 const INIM = {};   // sprites dos inimigos (SVG em assets/inimigos), rasterizados uma vez em 128px
 const tierDe = lv => lv <= 2 ? 1 : lv === 3 ? 2 : lv <= 5 ? 3 : lv <= 7 ? 4 : 5;
+const CAM = ['sombra', 'membros', 'corpo', 'detalhes', 'brilho'];
 function inimSprite(m, tier) {
   const key = (m ? 'monstro_' : 'pirata_') + tier, o = INIM[key];
   if (o) return o.c || null;
-  const im = new Image(), e = INIM[key] = { c:null }; im.onload = () => { const c = document.createElement('canvas'); c.width = c.height = 128; c.getContext('2d').drawImage(im, 0, 0, 128, 128); e.c = c; }; im.src = `assets/inimigos/${key}.svg`;
-  return null;
+  const e = INIM[key] = { c:null, L:null }, url = `assets/inimigos/${key}.svg`;
+  const rast = u => new Promise(ok => { const im = new Image(); im.onload = () => { const c = document.createElement('canvas'); c.width = c.height = 128; c.getContext('2d').drawImage(im, 0, 0, 128, 128); ok(c); }; im.onerror = () => ok(null); im.src = u; });
+  if (!m) { rast(url).then(c => { e.c = c; }); return null; }
+  // monstros: cada camada (sombra, membros, corpo, detalhes, brilho) vira um sprite próprio, para o corpo e os membros se mexerem separados
+  fetch(url).then(r => r.text()).then(async txt => {
+    const L = {};
+    for (const nome of CAM) {
+      const svg = txt.replace(/<g id="([a-z]+)"/g, (t, id) => id === nome || !CAM.includes(id) ? t : `<g display="none" id="${id}"`);
+      L[nome] = await rast(URL.createObjectURL(new Blob([svg], { type:'image/svg+xml' })));
+    }
+    e.L = L; e.c = L.corpo || null;
+  }).catch(() => { rast(url).then(c => { e.c = c; }); });
+  return e.c;
+}
+/** Monstro em camadas: respira, balança os membros (asas batem, tentáculos ondulam) e pisca o brilho. */
+function monstroAnim(L, sz, tm, t, k) {
+  const lay = (c, f) => { if (!c) return; cx.save(); f && f(); cx.drawImage(c, -sz / 2, -sz / 2, sz, sz); cx.restore(); };
+  const w = Math.sin(tm * 2.1 + k), w2 = Math.sin(tm * 1.3 + k * 2), resp = 1 + Math.sin(tm * 1.7) * .035;
+  lay(L.sombra);
+  lay(L.membros, () => { if (t === 4) cx.scale(1 + w * .12, 1 - w * .04); else if (t === 5) cx.rotate(Math.sin(tm * .6) * .12); else { cx.rotate(w * .06); cx.scale(1 + w2 * .04, 1 - w2 * .04); } });
+  cx.save(); cx.translate(0, Math.sin(tm * 1.6 + k) * sz * .025); cx.scale(resp, resp);
+  lay(L.corpo); lay(L.detalhes);
+  cx.globalCompositeOperation = 'lighter'; cx.globalAlpha = .55 + .45 * Math.sin(tm * 3 + k); lay(L.brilho); cx.restore();
 }
 function desenhaInimigo(p, e, ts, alvo, forca) {   // p: posição na tela; alvo: ângulo para onde olha (só os piratas giram)
   const k = p.sc * (cam.z < .5 ? .7 : 1), tm = ts / 1000 + e.k * 1.7, tier = tierDe(e.lv), im = inimSprite(e.m, tier), sz = (e.m ? 26 + tier * 5 : 22 + tier * 3) * k;
   cx.save(); cx.translate(p.x, p.y);
   cx.fillStyle = e.m ? 'rgba(178,75,255,.11)' : 'rgba(255,50,50,.12)'; cx.beginPath(); cx.arc(0, 0, sz * .62, 0, 7); cx.fill();   // halo de aviso, sem shadowBlur
   if (im) {
-    if (e.m) { cx.translate(0, Math.sin(tm * 1.6) * sz * .04); cx.rotate(Math.sin(tm * .9) * .06); const pu = 1 + Math.sin(tm * 2.2) * .035; cx.scale(pu, pu); }   // flutua e pulsa
-    else cx.rotate(alvo + Math.PI / 2);
-    cx.drawImage(im, -sz / 2, -sz / 2, sz, sz);
+    const st = INIM[(e.m ? 'monstro_' : 'pirata_') + tier];
+    if (e.m && st && st.L) { cx.translate(Math.sin(tm * .8 + e.k) * sz * .03, Math.sin(tm * 1.1) * sz * .04); cx.rotate(Math.sin(tm * .9) * .05); monstroAnim(st.L, sz, tm, tier, e.k); }   // flutua e se mexe por camadas
+    else { cx.rotate(e.m ? 0 : alvo + Math.PI / 2); cx.drawImage(im, -sz / 2, -sz / 2, sz, sz); }
   }
   cx.restore();
   if (cam.z >= .5 || forca) { cx.save(); cx.font = '700 7px Chakra Petch, sans-serif'; cx.textAlign = 'center'; const tx = (e.m ? '☣ ' : '☠ ') + 'nv.' + e.lv, ty = p.y - (e.m ? 17 + tierDe(e.lv) * 2.5 : 14 + tierDe(e.lv) * 1.5) * p.sc; cx.lineWidth = 2; cx.strokeStyle = 'rgba(0,0,0,.7)'; cx.strokeText(tx, p.x, ty); cx.fillStyle = e.m ? '#e6b3ff' : '#ff8a8a'; cx.fillText(tx, p.x, ty); cx.restore(); }

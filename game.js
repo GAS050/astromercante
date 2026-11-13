@@ -282,7 +282,7 @@ function renderHangar() {   // hangar: minhas naves e loja (50 naves; patente e 
   const estado = NAVES.map(n => S.frota[n.id] ? (n.id === S.nave ? 'E' : 'O') : S.rank < n.rank ? 'L' : S.credits >= n.preco ? 'B' : 'P');
   const sig = hangarTab + '|' + emPartida + '|' + estado.join('') + '|' + Object.values(S.frota).map(f => f.c + '' + f.m + f.a).join(',');
   if (sig === hangarSig) return; hangarSig = sig;
-  const lista = NAVES.filter(n => hangarTab === 'minhas' ? S.frota[n.id] : !S.frota[n.id]);
+  const lista = NAVES.filter(n => S.frota[n.id]);
   const tile = n => {
     const f = S.frota[n.id], st = estado[n.id - 1], c = f ? f.c : 1, m = f ? f.m : 1, a = f ? f.a : 1;
     const img = `<div class="ntile-img" data-prev="${n.id}"><img loading="lazy" alt="" src="${nsrc(n.id, 'motor', m)}"><img loading="lazy" alt="" src="${nsrc(n.id, 'casco')}"><img loading="lazy" alt="" src="${nsrc(n.id, 'porao', c)}"><img loading="lazy" alt="" src="${nsrc(n.id, 'armas', a)}"></div>`;
@@ -291,7 +291,7 @@ function renderHangar() {   // hangar: minhas naves e loja (50 naves; patente e 
       : st === 'L' ? `<span class="tag lock">🔒 ${RANKS[n.rank][1]}</span>` : `<button type="button" class="buy" data-compra="${n.id}" ${st === 'P' || emPartida ? 'disabled' : ''}>${fmt(n.preco).replace(',00', '')} Cr</button>`;
     return `<div class="ntile ${st === 'E' ? 'eq' : ''} ${st === 'L' ? 'lk' : ''}">${img}<b>${n.nome}</b><small>Nave ${n.id} · ${info}</small>${btn}</div>`;
   };
-  el.innerHTML = `<h3 class="nave-t">Hangar</h3><div class="chips tabs"><button type="button" data-ht="minhas" class="${hangarTab === 'minhas' ? 'on' : ''}">Minhas (${Object.keys(S.frota).length})</button><button type="button" data-ht="loja" class="${hangarTab === 'loja' ? 'on' : ''}">Loja (${NAVES.length - Object.keys(S.frota).length})</button></div>`
+  el.innerHTML = `<h3 class="nave-t">Hangar <small>${Object.keys(S.frota).length} de ${NAVES.length} naves</small></h3><button type="button" class="buy hg-loja" data-shop="nave"><i class="fa-solid fa-bag-shopping"></i> Comprar mais naves na Loja</button>`
     + (emPartida ? '<p class="empty">Troca e compra de naves ficam desligadas durante uma partida.</p>' : '')
     + `<div class="ngrid">${lista.map(tile).join('') || '<p class="empty">Nada por aqui.</p>'}</div>`;
 }
@@ -831,8 +831,8 @@ function checkDay() {
 const RIVALS = [['Kira Vex',9000,380],['Dr. Orbit',14000,300],['Zenobia',6000,420],['Capitão Nulo',22000,220],['Lyra-7',11000,330],['Barão Rubro',40000,180]];
 let RANK = null, rankAt = 0, lastPos = 0;
 async function carregarRanking(force) {   // ranking global real (cloud): patrimônio guardado pelo servidor
-  if (MODE === 'partida' || !TOK || !CLOUD() || document.hidden || $('#p-notes').offsetParent === null) return;   // só busca com o painel à vista
-  if (!force && Date.now() - rankAt < 60000) return; rankAt = Date.now();
+  if (MODE === 'partida' || !TOK || !CLOUD() || document.hidden || ($('#p-notes').offsetParent === null && document.body.dataset.view !== 'home')) return;   // só busca com o painel à vista
+  if (!force && Date.now() - rankAt < (document.body.dataset.view === 'home' ? 20000 : 60000)) return; rankAt = Date.now();
   try { RANK = await api('/ranking'); } catch { return; }
   if (RANK.eu) { if (lastPos && RANK.eu.pos < lastPos) say(`Você subiu para #${RANK.eu.pos} no ranking global!`, 'win'); lastPos = RANK.eu.pos; }
   renderBoard();
@@ -840,8 +840,8 @@ async function carregarRanking(force) {   // ranking global real (cloud): patrim
 function renderBoard() {
   if (MODE === 'partida') { renderPlacar(); return; }
   if (!RANK) { $('#board').innerHTML = '<li class="empty">Carregando ranking…</li>'; return; }
-  const me = RANK.eu, rows = RANK.top.map((r, i) => `<li class="${me && r.n === me.n ? 'me' : ''}"><span><i class="pos">${i + 1}</i> ${avImg(r.a)}${r.n}</span><b class="mono">${fmt(r.w)}</b></li>`);
-  if (me && me.pos > RANK.top.length) rows.push(`<li class="gap"><span>…</span></li>`, `<li class="me"><span><i class="pos">${me.pos}</i> ${avImg(me.a)}${me.n}</span><b class="mono">${fmt(me.w)}</b></li>`);
+  const me = RANK.eu, rows = RANK.top.map((r, i) => `<li class="${me && r.n === me.n ? 'me' : ''}"><span><i class="pos">${i + 1}</i> ${avImg(r.a)}${r.n}</span><b class="mono">${fmt(me && r.n === me.n ? patTotal() : r.w)}</b></li>`);
+  if (me && me.pos > RANK.top.length && !RANK.top.some(r => r.n === me.n)) rows.push(`<li class="gap"><span>…</span></li>`, `<li class="me"><span><i class="pos">${me.pos}</i> ${avImg(me.a)}${me.n}</span><b class="mono">${fmt(me.w)}</b></li>`);
   $('#board').innerHTML = rows.join('') + `<li class="tot"><span>${RANK.total} piloto${RANK.total === 1 ? '' : 's'} na galáxia</span></li>`;
 }
 function board() {
@@ -871,7 +871,7 @@ function showChart(id) {
 
 /* ---------- Eventos ---------- */
 $('#hangar').addEventListener('click', e => {
-  const t = e.target.closest('[data-ht]'); if (t) { hangarTab = t.dataset.ht; hangarSig = ''; return renderHangar(); }
+  const t = e.target.closest('[data-shop]'); if (t) return void abrirLoja(t.dataset.shop);
   const c = e.target.closest('[data-compra]'); if (c) return void act('comprarNave', { i:+c.dataset.compra });
   const q = e.target.closest('[data-equip]'); if (q) return void act('equipar', { i:+q.dataset.equip }).then(ok => { if (ok) pvShip = 0; });
   const p = e.target.closest('[data-prev]'); if (p) { const i = +p.dataset.prev; pvShip = pvShip === i ? 0 : i; pvPin = null; renderWorld(); }

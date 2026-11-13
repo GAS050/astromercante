@@ -82,7 +82,9 @@ async function ranking(env, id) {
     rankCache = { t: Date.now(), top: r.results.map((x) => ({ n: apelido(x.nome, x.google, x.ap), a: x.av || 'a1', w: Math.round(x.w * 100) / 100 })), total: c.n };
   }
   const eu = await env.DB.prepare('SELECT s.patrimonio AS w, u.nome AS nome, u.google AS google, p.apelido AS ap, p.avatar AS av, (SELECT COUNT(*) FROM saves x WHERE x.patrimonio > s.patrimonio) + 1 AS pos FROM saves s JOIN usuarios u ON u.id = s.usuario LEFT JOIN perfis p ON p.usuario = u.id WHERE s.usuario = ?').bind(id).first();
-  return { top: rankCache.top, total: rankCache.total, eu: eu ? { pos: eu.pos, w: Math.round(eu.w * 100) / 100, n: apelido(eu.nome, eu.google, eu.ap), a: eu.av || 'a1' } : null };
+  let top = rankCache.top;   // a lista é guardada por 30 s, mas a linha do próprio jogador é sempre a atual
+  if (eu) { const n = apelido(eu.nome, eu.google, eu.ap), w = Math.round(eu.w * 100) / 100; if (top.some((x) => x.n === n)) top = top.map((x) => (x.n === n ? { ...x, w } : x)).sort((x, y) => y.w - x.w); }
+  return { top, total: rankCache.total, eu: eu ? { pos: eu.pos, w: Math.round(eu.w * 100) / 100, n: apelido(eu.nome, eu.google, eu.ap), a: eu.av || 'a1' } : null };
 }
 async function carregarJogo(env, id, now) {
   const row = await lerSave(env, id); let S = row ? JSON.parse(row.estado) : null;

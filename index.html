@@ -132,13 +132,20 @@
   </form>
   <p class="au-hint">Sua conta guarda o progresso na nuvem para jogar em qualquer aparelho. Usamos seu e-mail só para confirmar a conta e recuperar a senha.</p>
 </div></div>
-<div class="modal" id="loja" hidden><div class="card-panel lj">
-  <div class="lj-top"><h2>Loja do Consórcio</h2><button type="button" class="ghost" id="lj-x" aria-label="Fechar">✕</button></div>
-  <p class="pf-sub">Só aparência: nada aqui dá vantagem no jogo. Paga com os créditos da sua carreira.</p>
-  <p class="lj-cr">Em caixa: <b class="mono" id="lj-cr">—</b> Cr</p>
-  <div class="lj-tabs"><button type="button" class="on" data-t="avatar">Avatares</button><button type="button" data-t="moldura">Molduras</button></div>
-  <div class="lj-grid" id="lj-grid"></div>
+<div class="modal" id="loja" hidden><div class="card-panel lj" role="dialog" aria-label="Loja do Consórcio">
+  <div class="lj-top"><h2>Loja do Consórcio</h2><span class="lj-cr">Em caixa: <b class="mono" id="lj-cr">—</b> Cr</span><button type="button" class="ghost" id="lj-x" aria-label="Fechar">✕</button></div>
+  <div class="lj-body">
+    <nav class="lj-side" aria-label="Categorias">
+      <input id="lj-q" type="search" placeholder="Buscar…" autocomplete="off" aria-label="Buscar item">
+      <button type="button" data-t="nave" class="on"><i class="fa-solid fa-rocket"></i><span>Naves</span></button>
+      <button type="button" data-t="moldura"><i class="fa-regular fa-circle"></i><span>Molduras</span></button>
+      <button type="button" data-t="avatar"><i class="fa-solid fa-user-astronaut"></i><span>Avatares</span></button>
+    </nav>
+    <div class="lj-detail" id="lj-detail"></div>
+    <div class="lj-list" id="lj-list" role="listbox" aria-label="Produtos"></div>
+  </div>
   <p class="au-err" id="lj-err" role="alert"></p>
+  <p class="pf-sub">Avatares e molduras são só aparência. Naves mudam o jogo, mas dependem da patente.</p>
 </div></div>
 <div class="modal" id="perfil" hidden><div class="card-panel">
   <div class="au-brand">SEU PILOTO</div>

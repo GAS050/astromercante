@@ -894,7 +894,6 @@ document.querySelectorAll('.nav [data-view]').forEach(b => b.onclick = () => {
   document.body.dataset.view = b.dataset.view; if (b.dataset.view === 'market') carregarRanking();
   document.querySelectorAll('.nav button').forEach(x => x.classList.toggle('on', x === b));
 });
-$('#reset').onclick = () => { if (confirm('Apagar todo o progresso?')) { localStorage.removeItem(KEY); location.reload(); } };
 
 /* ---------- Loop principal ---------- */
 /* ---------- Cena de fundo da tela de login: planetas, parallax e uma nave viajando ---------- */

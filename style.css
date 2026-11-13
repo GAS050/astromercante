@@ -450,3 +450,6 @@ body.histon{overflow:hidden}
 .lj-row small{color:var(--mt)}.lj-row.sel{border-color:var(--cyan);background:rgba(62,230,255,.08)}.lj-row.tem .lj-p{color:var(--neon)}.lj-p{font-family:var(--mono,monospace);font-size:.85rem;white-space:nowrap}
 .hg-loja{width:100%;margin:6px 0 10px;padding:10px;border-radius:8px;background:rgba(57,255,136,.1)}
 @media (min-width:720px){.lj-body{grid-template-columns:150px minmax(0,1fr) 300px;grid-template-areas:"side list detail";align-items:start}.lj-list{max-height:62vh}.lj-detail{position:sticky;top:0}}
+
+@media (max-width:520px){.hm-stats{grid-template-columns:repeat(2,1fr)}.hm-stats b{font-size:1rem;overflow:visible;text-overflow:clip;white-space:normal;word-break:break-word}}
+.acct{cursor:pointer}

@@ -23,7 +23,7 @@
     h += `<button type="button" class="hm-go" data-hm="market">▶ ${S.trip ? 'Acompanhar viagem' : 'Continuar jogando'}<small>${rota} · ${esc(GALAXIES[S.gal]?.nome || '')}</small></button>`;
     if (noAr()) { const pos = PT.placar ? PT.placar.findIndex(x => x.eu) + 1 : 0; h += `<div class="hm-card hm-match"><div><b>${PT.modo === 'torneio' ? '🏆 Torneio' : '🤝 Partida entre amigos'} em andamento</b><small>Sala ${PT.codigo} · faltam ${mmss(PT.fim - NOW())}${pos ? ' · você está em ' + pos + 'º' : ''}</small></div><button type="button" data-hm="${MODE === 'partida' ? 'market' : 'volta'}">${MODE === 'partida' ? 'Jogar' : 'Voltar à partida'}</button></div>`; }
     const casco = S.hull == null ? 100 : S.hull;
-    h += `<div class="hm-stats"><div><small>Créditos</small><b class="mono">${fmt(S.credits).replace(',00', '')}</b></div><div><small>Nave</small><b>${esc(n.nome)}</b></div><div><small>Casco</small><b class="${casco < 30 ? 'down' : ''}">${casco}%</b></div><div><small>Porão</small><b>${used()}/${S.cap}</b></div></div>`;
+    h += `<div class="hm-stats"><div><small>Créditos</small><b class="mono">${fmt(S.credits)}</b></div><div><small>Nave</small><b>${esc(n.nome)}</b></div><div><small>Casco</small><b class="${casco < 30 ? 'down' : ''}">${casco}%</b></div><div><small>Porão</small><b>${used()}/${S.cap}</b></div></div>`;
     if (!emPartida && S.daily && S.daily.p) {
       h += `<div class="hm-card"><div class="hm-h"><b>Missões do dia</b><small>sequência ${S.streak || 0} dia(s)</small></div><ul class="mis">` + MIS.map(m => { const t = Math.round(m.n()), v = Math.min(Math.round(S.daily.p[m.k] || 0), t); return `<li class="${S.daily.done[m.k] ? 'done' : ''}"><span>${m.t} <b class="mono">${v}/${t}</b></span><small>+${m.r} Cr</small><i style="width:${v / t * 100}%"></i></li>`; }).join('') + '</ul></div>';
     }
@@ -34,7 +34,6 @@
     const novo = h; if (novo !== el._h) { el.innerHTML = novo; el._h = novo; }
   }
   el.addEventListener('click', e => { const b = e.target.closest('[data-hm]'); if (!b) return; const v = b.dataset.hm; if (v === 'volta') { ficouCarreira = ''; entrarModoPartida(); } else if (v === 'loja') abrirLoja('nave'); else go(v); });
-  $('#hud-gear').onclick = () => document.getElementById('nav-set').click();
   document.querySelectorAll('.nav [data-view]').forEach(b => b.addEventListener('click', () => { if (b.dataset.view === 'home') { if (!RANK) carregarRanking(); render(); } }));
   setInterval(render, 1000);
 })();

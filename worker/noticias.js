@@ -55,15 +55,20 @@ MANCHETES REAIS:
 ${titulos.map((t, i) => `${i + 1}. ${t}`).join('\n')}`;
 }
 
-async function gemini(env, texto) {
-  const modelo = env.GEMINI_MODEL || 'gemini-2.0-flash';
-  const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${modelo}:generateContent`, {
-    method: 'POST', headers: { 'content-type': 'application/json', 'x-goog-api-key': env.GEMINI_KEY },
-    body: JSON.stringify({ contents: [{ parts: [{ text: texto }] }], generationConfig: { responseMimeType: 'application/json', temperature: .9, maxOutputTokens: 1500 } }),
-  });
-  if (!r.ok) throw new Error('gemini ' + r.status);
-  const j = await r.json();
-  return JSON.parse(j?.candidates?.[0]?.content?.parts?.[0]?.text || '[]');
+// o gemini-2.0-flash foi desligado em 01/06/2026: tenta o modelo configurado e, se ele falhar, os próximos da lista
+const MODELOS_GEMINI = ['gemini-3.6-flash', 'gemini-2.5-flash', 'gemini-3.5-flash-lite', 'gemini-2.5-flash-lite'];
+async function gemini(env, texto, diag) {
+  const lista = [...new Set([env.GEMINI_MODEL, ...MODELOS_GEMINI].filter(Boolean))];
+  for (const modelo of lista) {
+    const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${modelo}:generateContent`, {
+      method: 'POST', headers: { 'content-type': 'application/json', 'x-goog-api-key': env.GEMINI_KEY },
+      body: JSON.stringify({ contents: [{ parts: [{ text: texto }] }], generationConfig: { responseMimeType: 'application/json', temperature: .9, maxOutputTokens: 6000 } }),
+    });
+    if (!r.ok) { diag.gemini = `erro ${r.status} em ${modelo}`; if (r.status === 401 || r.status === 403 || r.status === 429) throw new Error(diag.gemini); continue; }   // chave inválida/sem cota: não adianta trocar de modelo
+    const j = await r.json(); diag.gemini = 'ok ' + modelo;
+    return JSON.parse(j?.candidates?.[0]?.content?.parts?.[0]?.text || '[]');
+  }
+  throw new Error(diag.gemini || 'sem modelo');
 }
 
 const IDS = new Set(RES.map((r) => r.id));
@@ -83,15 +88,20 @@ export function validar(lista, agora) {
 export async function atualizarNoticias(env, forcar = false) {
   const agora = Date.now(), ant = JSON.parse((await env.PRECOS.get('news')) || '{}');
   if (!forcar && ant.t && agora - ant.t < INTERVALO) return ant;
-  let novos = [], vistos = new Set(ant.vistos || []);
+  const vistos = new Set(ant.vistos || []), diag = { t: agora, chave: !!env.GEMINI_KEY, manchetes: 0, gemini: env.GEMINI_KEY ? '—' : 'GEMINI_KEY não encontrada', gerou: 0 };
+  let novos = [], falhou = !env.GEMINI_KEY;
   if (env.GEMINI_KEY) {
     try {
-      const todos = await manchetes(), titulos = todos.filter((t) => !vistos.has(sha(t))).slice(0, 55);
-      if (titulos.length >= 4) { novos = validar(await gemini(env, prompt(titulos)), agora); titulos.forEach((t) => vistos.add(sha(t))); }
-    } catch (e) { console.log('noticias:', e?.message || e); }
+      const todos = await manchetes(), titulos = todos.filter((t) => !vistos.has(sha(t))).slice(0, 40);
+      diag.manchetes = todos.length;
+      if (!todos.length) falhou = true;
+      else if (titulos.length >= 4) { novos = validar(await gemini(env, prompt(titulos), diag), agora); titulos.forEach((t) => vistos.add(sha(t))); }
+    } catch (e) { falhou = true; diag.erro = String(e?.message || e).slice(0, 120); console.log('noticias:', diag.erro); }
   }
+  diag.gerou = novos.length;
   const itens = [...novos, ...(ant.itens || [])].filter((n) => agora - n.t0 < GUARDA).slice(0, MAX);
-  const out = { t: agora, itens, vistos: [...vistos].slice(-200) };
+  // se algo falhou, tenta de novo em ~10 min em vez de esperar 1 hora
+  const out = { t: falhou ? agora - INTERVALO + 10 * 60000 : agora, itens, vistos: [...vistos].slice(-200), diag };
   await env.PRECOS.put('news', JSON.stringify(out));
   return out;
 }

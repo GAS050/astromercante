@@ -663,6 +663,7 @@ async function rota(req, env, url) {
   await perfisInit(env);
   const m = req.method, p = url.pathname;
   const corpo = m === 'GET' ? {} : await req.json().catch(() => ({}));
+  if (p === '/noticias/diag' && m === 'GET') return (JSON.parse((await env.PRECOS.get('news')) || '{}').diag) || { aviso: 'a rotina de notícias ainda não rodou (roda a cada 5 min pelo Cron)' };   // só diagnóstico: nada secreto
   if (p === '/precos' && m === 'GET') {
     let d = JSON.parse((await env.PRECOS.get('latest')) || 'null');
     if (!d) d = await refresh(env);

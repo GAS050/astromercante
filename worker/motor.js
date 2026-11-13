@@ -123,6 +123,7 @@ const tripInfo = (S, to) => { const d = dist(planeta(S, S.loc), planeta(S, to));
 
 /* ---------- inimigos do mapa (piratas e monstros): patrulham por relógio, iguais para todos; o aparelho só desenha o que o servidor decide ---------- */
 const HH = (n) => { n = (n ^ 61) ^ (n >>> 16); n = Math.imul(n, 0x45d9f3b); n ^= n >>> 4; n = Math.imul(n, 0x45d9f3b); n ^= n >>> 15; return n >>> 0; };
+export const PAUSA = 4800;   // tempo que a nave fica parada lutando (a chegada atrasa esse tempo)
 export const nIni = (g) => 2 + Math.min(g, 2);
 export function ini(g, k) {
   const h = HH(g * 977 + k * 131 + 7), h2 = HH(h + 1), m = g >= 2 && k % 3 === 2, lv = Math.min(9, 1 + Math.floor((g + (k % 3)) * .8) + (m ? 1 : 0));
@@ -145,8 +146,7 @@ function encontros(S, t0, t1) {
     }
   }
   out.sort((x, y) => x.td - y.td);
-  const r = []; for (const x of out) if (r.length < 2 && (!r.length || x.tc - r[r.length - 1].tc > 4500)) r.push(x);
-  return r;
+  return out.slice(0, 1);   // uma luta por viagem: a nave para para lutar (PAUSA ms) e depois segue
 }
 /** O resultado é sorteado na partida da viagem e fica gravado: o que o jogador vê no mapa é exatamente o que acontece. */
 function lutar(S, e, td, tc) {
@@ -243,7 +243,7 @@ const acoes = {
     if (S.hull < 15) throw new Regra('Casco crítico: repare a nave na aba Frotas.');
     const t = tripInfo(S, to.id);
     if (t.cost > S.credits) throw new Regra(`Combustível custa ${fmt(t.cost)} Cr. Créditos insuficientes.`);
-    S.credits -= t.cost; S.trip = { from: S.loc, to: to.id, start: c.now, end: c.now + t.secs * 1000 }; const enc = encontros(S, S.trip.start, S.trip.end); if (enc.length) S.trip.enc = enc;
+    S.credits -= t.cost; S.trip = { from: S.loc, to: to.id, start: c.now, end: c.now + t.secs * 1000 }; const enc = encontros(S, S.trip.start, S.trip.end); if (enc.length) { S.trip.enc = enc; S.trip.end += PAUSA; }
     say(msgs, `Rumo a ${to.nome}: ${t.secs}s, combustível ${fmt(t.cost)} Cr.`, '');
   },
   saltar(S, c, msgs, a) {

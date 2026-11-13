@@ -469,7 +469,8 @@ function buildMap() {
 function shipPos(t) {
   if (S.trip) {
     const a = plan(S.trip.from)._s, b = plan(S.trip.to)._s, st = S.trip.start || S.trip.end - 6000;
-    let u = clamp((NOW() - st) / (S.trip.end - st), 0, 1); u = u * u * (3 - 2 * u);
+    const f0 = S.trip.enc && S.trip.enc[0], now = NOW(), m = f0 ? (now < f0.tc ? now - st : now < f0.tc + PAUSA ? f0.tc - st : now - st - PAUSA) : now - st;   // na luta a nave para
+    let u = clamp(m / (S.trip.end - st - (f0 ? PAUSA : 0)), 0, 1); u = u * u * (3 - 2 * u);
     return { x:a.x + (b.x - a.x) * u, y:a.y + (b.y - a.y) * u, ang:Math.atan2(b.y - a.y, b.x - a.x), sc:a.sc + (b.sc - a.sc) * u, fly:1 };
   }
   const s = plan(S.loc)._s, r = (PST[S.loc].r + 16) * s.sc, a = t / 2500;
@@ -548,6 +549,7 @@ function iniAt(e, t) {
   const pl = GALAXIES[e.g].planetas, tt = t / e.T + e.ph, n = Math.floor(tt), u = tt - n, q = i => pl[HH(e.g * 977 + e.k * 131 + i * 7919 + 13) % pl.length], x = Math.min(1, u / .8);
   return { a:q(n - 1), b:q(n), f:x * x * (3 - 2 * x) };
 }
+const PAUSA = 4800;   // igual ao servidor: tempo da luta, com a nave parada
 const iniOn = () => CLOUD() && !(S.partida && !S.partida.piratas);
 function iniTela(e, t) {
   const w = iniAt(e, t), a = plan(w.a.id), b = plan(w.b.id); if (!a || !b || !a._s || !b._s) return null;
@@ -602,7 +604,7 @@ function inimigos(ts, fase) {   // fase 0: patrulha (desenhada ANTES dos planeta
   const now = NOW(), enc = S.trip?.enc || [], n = 2 + Math.min(S.gal, 2), sp = shipPos(ts), rs = !S.trip && sel && sel !== S.loc && plan(sel), rf = rs && plan(S.loc);
   for (let k = 0; k < n; k++) {
     const e = iniG(S.gal, k), f = enc.find(x => x.k === k), pos = iniTela(e, now); if (!pos) continue;
-    if (f && S.trip) { if (now >= f.tc + 3200) continue; if (now >= f.td) { if (fase === 1) desenhaLuta(e, f, now, ts); continue; } }
+    if (f && S.trip) { if (now >= f.tc + PAUSA) continue; if (now >= f.td) { if (fase === 1) desenhaLuta(e, f, now, ts); continue; } }
     if (fase === 1) continue;
     // perto da nave (ou da rota escolhida)? só então mostra o anel de alcance e o nível
     const rr = e.R * pos.k; let perto = Math.hypot(pos.x - sp.x, pos.y - sp.y) < rr * 3.2;
@@ -612,26 +614,54 @@ function inimigos(ts, fase) {   // fase 0: patrulha (desenhada ANTES dos planeta
     cx.save(); cx.globalAlpha = .92; desenhaInimigo(pos, e, ts, ang, perto); cx.restore();
   }
 }
+let SHAKE = 0;
 function desenhaLuta(e, f, now, ts) {
-  const sp = shipPos(ts); let p;
-  if (now < f.tc) { const a = iniTela(e, f.td), q = clamp((now - f.td) / (f.tc - f.td), 0, 1), s2 = q * q; p = { x:a.x + (sp.x - a.x) * s2, y:a.y + (sp.y - a.y) * s2, sc:a.sc }; }
-  else { const o = ts / 160; p = { x:sp.x + Math.cos(o) * 12 * sp.sc, y:sp.y - 10 * sp.sc + Math.sin(o) * 5 * sp.sc, sc:sp.sc }; }
-  const ang = Math.atan2(sp.y - p.y, sp.x - p.x);
-  if (now < f.tc) {   // perseguição: alerta piscando sobre a sua nave
-    cx.save(); cx.fillStyle = `rgba(255,70,70,${.6 + .4 * Math.sin(ts / 90)})`; cx.font = '700 12px Chakra Petch, sans-serif'; cx.textAlign = 'center'; cx.fillText('⚠ ' + f.nm + ' na cola!', sp.x, sp.y - 24 * sp.sc); cx.restore();
-  } else if (now < f.tc + 2400) {   // combate: tiros trocados e clarões
-    cx.save(); cx.globalCompositeOperation = 'lighter'; cx.lineCap = 'round';
-    if (Math.floor(ts / 110) % 2) { cx.strokeStyle = e.m ? 'rgba(200,100,255,.9)' : 'rgba(255,70,50,.9)'; cx.lineWidth = 1.6; cx.beginPath(); cx.moveTo(p.x, p.y); cx.lineTo(sp.x, sp.y); cx.stroke(); }
-    if (Math.floor(ts / 110 + 1) % 2 && f.w) { cx.strokeStyle = 'rgba(80,240,255,.95)'; cx.lineWidth = 1.8; cx.beginPath(); cx.moveTo(sp.x, sp.y); cx.lineTo(p.x, p.y); cx.stroke(); }
-    const fl = .25 + .25 * Math.sin(ts / 40); cx.fillStyle = f.w ? `rgba(120,255,255,${fl})` : `rgba(255,60,40,${fl})`; cx.beginPath(); cx.arc(sp.x, sp.y, 10 * sp.sc, 0, 7); cx.fill(); cx.restore();
-  } else if (f.w) {   // vitória: o inimigo explode
-    const q = clamp((now - f.tc - 2400) / 800, 0, 1); cx.save(); cx.globalCompositeOperation = 'lighter'; cx.fillStyle = `rgba(255,${180 - q * 120 | 0},60,${1 - q})`; cx.beginPath(); cx.arc(p.x, p.y, (4 + q * 20) * p.sc, 0, 7); cx.fill(); cx.restore();
+  const sp = shipPos(ts), lt = now - f.tc, th = e.k * 1.3 - .8, dist0 = 30 * sp.sc, so = { x:sp.x + Math.cos(th) * dist0, y:sp.y + Math.sin(th) * dist0 * .8 - 4 * sp.sc }; let p;
+  if (lt < 0) { const a = iniTela(e, f.td), q = clamp((now - f.td) / (f.tc - f.td), 0, 1), s2 = q * q; p = { x:a.x + (so.x - a.x) * s2, y:a.y + (so.y - a.y) * s2, sc:a.sc }; }
+  else { p = { x:so.x + Math.cos(ts / 700) * 2.5 * sp.sc, y:so.y + Math.sin(ts / 500) * 2 * sp.sc, sc:sp.sc }; if (!f.w && lt > 3000) { const q = clamp((lt - 3000) / 1800, 0, 1); p.x += Math.cos(th) * 70 * q * sp.sc; p.y += Math.sin(th) * 50 * q * sp.sc - 20 * q * sp.sc; } }
+  const ang = Math.atan2(sp.y - p.y, sp.x - p.x), cor = e.m ? '200,100,255' : '255,80,60';
+  const hp = lt < 0 ? 1 : f.w ? 1 - clamp(lt / 3000, 0, 1) : 1 - .25 * clamp(lt / 3000, 0, 1), vivo = !(f.w && lt > 3000);
+  if (vivo) { cx.save(); cx.globalAlpha = !f.w && lt > 3000 ? clamp(1 - (lt - 3000) / 1800, 0, 1) : 1; desenhaInimigo(p, e, ts, ang, true); cx.restore(); }
+  if (lt >= 0 && lt < 3000) {   // troca de tiros: um projétil a cada 240ms, alternando os lados
+    const step = 240, j = Math.floor(lt / step); cx.save(); cx.globalCompositeOperation = 'lighter'; cx.lineCap = 'round';
+    for (let jj = Math.max(0, j - 3); jj <= j; jj++) {
+      const tt = (lt - jj * step) / 380; if (tt < 0 || tt > 1.4) continue; const meu = jj % 2 === 1, A = meu ? sp : p, B = meu ? p : sp, q = Math.min(tt, 1), q0 = Math.max(0, q - .3);
+      if (tt <= 1) { cx.strokeStyle = meu ? 'rgba(90,240,255,.95)' : `rgba(${cor},.95)`; cx.lineWidth = 2 * sp.sc; cx.beginPath(); cx.moveTo(A.x + (B.x - A.x) * q0, A.y + (B.y - A.y) * q0); cx.lineTo(A.x + (B.x - A.x) * q, A.y + (B.y - A.y) * q); cx.stroke(); }
+      else { const k = (tt - 1) / .4; cx.fillStyle = meu ? `rgba(120,255,255,${1 - k})` : `rgba(${cor},${1 - k})`; cx.beginPath(); cx.arc(B.x, B.y, (3 + 7 * k) * sp.sc, 0, 7); cx.fill(); if (!meu && tt < 1.15) SHAKE = Math.max(SHAKE, now + 150); }
+    }
+    cx.restore();
+    // barra de vida do inimigo
+    const w = 26 * p.sc, y0 = p.y - 26 * p.sc; cx.fillStyle = 'rgba(0,0,0,.65)'; cx.fillRect(p.x - w / 2 - 1, y0 - 1, w + 2, 5 * p.sc + 2); cx.fillStyle = hp > .5 ? '#ff6a4a' : '#ffb13a'; cx.fillRect(p.x - w / 2, y0, w * hp, 5 * p.sc);
+  } else if (lt >= 3000 && f.w) {   // vitória: explosão do inimigo
+    const q = clamp((lt - 3000) / 900, 0, 1); cx.save(); cx.globalCompositeOperation = 'lighter';
+    cx.fillStyle = `rgba(255,${200 - q * 120 | 0},60,${1 - q})`; cx.beginPath(); cx.arc(p.x, p.y, (5 + q * 26) * p.sc, 0, 7); cx.fill();
+    cx.strokeStyle = `rgba(255,255,200,${1 - q})`; cx.lineWidth = 2; cx.beginPath(); cx.arc(p.x, p.y, (8 + q * 40) * p.sc, 0, 7); cx.stroke(); cx.restore();
   }
-  if (now < f.tc + 2400 || !f.w) { cx.save(); cx.globalAlpha = now < f.tc + 2400 ? 1 : clamp(1 - (now - f.tc - 2400) / 800, 0, 1); desenhaInimigo(p, e, ts, ang, true); cx.restore(); }
-  if (now >= f.tc + 1200 && now < f.tc + 3200) {   // resultado flutuando sobre a nave
-    cx.save(); cx.font = '700 11px Chakra Petch, sans-serif'; cx.textAlign = 'center'; cx.fillStyle = f.w ? '#5dff9b' : '#ff6b6b'; cx.lineWidth = 3; cx.strokeStyle = 'rgba(0,0,0,.75)';
-    cx.strokeText(f.w ? `VITÓRIA! +${f.loot} Cr` : `DERROTA! casco -${f.dmg}%`, sp.x, sp.y - 26 * sp.sc - (now - f.tc - 1200) / 90); cx.fillText(f.w ? `VITÓRIA! +${f.loot} Cr` : `DERROTA! casco -${f.dmg}%`, sp.x, sp.y - 26 * sp.sc - (now - f.tc - 1200) / 90); cx.restore();
+  if (lt >= 3000) {   // resultado flutuando sobre a nave
+    const q = (lt - 3000) / 1800; cx.save(); cx.globalAlpha = clamp(1.6 - q * 1.2, 0, 1); cx.font = '700 11px Chakra Petch, sans-serif'; cx.textAlign = 'center'; cx.lineWidth = 3; cx.strokeStyle = 'rgba(0,0,0,.75)';
+    const tx = f.w ? `+${f.loot} Cr` : `casco -${f.dmg}%`, ty = sp.y - 26 * sp.sc - q * 18; cx.strokeText(tx, sp.x, ty); cx.fillStyle = f.w ? '#5dff9b' : '#ff6b6b'; cx.fillText(tx, sp.x, ty); cx.restore();
   }
+}
+
+/* ---------- avisos da luta: bordas do mapa + falas do Capitão ---------- */
+let capT = 0, alertaAtual = '', FL = { k:0 }, shaking = false;
+function cap(txt, tom, ms) {
+  const el = $('#cap'); if (!el) return; $('#cap-t').textContent = txt; el.className = 'cap ' + (tom || ''); el.hidden = false;
+  clearTimeout(capT); capT = setTimeout(() => { el.hidden = true; }, ms || 4800);
+}
+function setAlerta(c) { if (c === alertaAtual) return; alertaAtual = c; const el = $('#mapalert'); if (el) el.className = 'mapalert ' + c; }
+function alertas(now) {
+  const f = iniOn() && S.trip && S.trip.enc && S.trip.enc[0];
+  if (!f) { setAlerta(''); if (shaking) { shaking = false; $('.mapwrap').style.transform = ''; } return; }
+  if (FL.k !== S.trip.start) FL = { k:S.trip.start };
+  const diz = (n, ate, fn) => { if (!FL[n] && now >= ate - 1) { FL[n] = 1; if (now - ate < 2500) fn(); } };
+  const cl = f.m ? 'mon' : 'on';
+  if (now >= f.td && now < f.tc) setAlerta(cl); else if (now >= f.tc && now < f.tc + 3000) setAlerta(cl + ' fast'); else if (now >= f.tc + 3000 && now < f.tc + PAUSA) setAlerta(f.w ? 'win' : 'lose'); else setAlerta('');
+  diz(1, f.td, () => cap(`Comandante, ${f.nm} nv.${f.lv} na nossa cola!`, 'alert', 4500));
+  diz(2, f.tc, () => { const d = S.wpLv - f.lv; cap(`Armas nv.${S.wpLv} contra nv.${f.lv}. ${d >= 0 ? 'Vantagem nossa!' : d === -1 ? 'Luta apertada!' : 'Estamos em desvantagem!'}`, 'alert', 3000); });
+  diz(3, f.tc + 3000, () => cap(f.w ? `${f.nm} eliminados! Saque: +${f.loot} Cr.` : `Derrota! Casco -${f.dmg}% e carga perdida. Repare em Frotas.`, f.w ? 'win' : 'lose', 5200));
+  const w = $('.mapwrap');
+  if (now < SHAKE) { shaking = true; w.style.transform = `translate(${(Math.random() - .5) * 4}px,${(Math.random() - .5) * 4}px)`; } else if (shaking) { shaking = false; w.style.transform = ''; }
 }
 
 function drawShip(ts) {
@@ -697,6 +727,7 @@ function frame(ts) {
   PL.slice().sort((a, b) => a._s.y - b._s.y).forEach(p => drawPlanet(p, ts));
   if (t) { const d = plan(t.to)._s, k = (ts / 25) % 30; cx.strokeStyle = `rgba(62,230,255,${1 - k / 30})`; cx.lineWidth = 1.2; cx.beginPath(); cx.ellipse(d.x, d.y + 14 * d.sc, k * d.sc, k * d.sc * .35, 0, 0, 7); cx.stroke(); }
   inimigos(ts, 1);
+  alertas(NOW());
   drawShip(ts);
   if (cam.z < .5) { const sp = shipPos(ts), k = (ts / 40) % 24; cx.strokeStyle = `rgba(57,255,136,${1 - k / 24})`; cx.lineWidth = 1.4; cx.beginPath(); cx.arc(sp.x, sp.y, 4 + k, 0, 7); cx.stroke(); cx.fillStyle = '#39ff88'; cx.beginPath(); cx.arc(sp.x, sp.y, 2.2, 0, 7); cx.fill(); }
   const wk = (performance.now() - warpT) / 900; if (wk < 1) { g = cx.createRadialGradient(200, 150, 0, 200, 150, 300); g.addColorStop(0, '#fff'); g.addColorStop(1, '#3ee6ff'); cx.globalAlpha = 1 - wk; cx.fillStyle = g; cx.fillRect(0, 0, 400, 300); cx.globalAlpha = 1; }

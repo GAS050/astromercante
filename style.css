@@ -302,3 +302,24 @@ body[data-view=play] #p-play{display:block}
 
 .dim{opacity:.4;pointer-events:none}
 .avisoup{border:1px solid var(--amber);border-radius:4px;padding:6px 8px;font-size:.78rem;color:var(--amber);margin:8px 0}
+
+/* alerta de combate no mapa e avatar do Capitão */
+.mapalert{position:absolute;inset:0;pointer-events:none;border-radius:8px;opacity:0;transition:opacity .3s;border:2px solid transparent;z-index:4}
+.mapalert.on,.mapalert.mon{opacity:1;animation:alp 1s ease-in-out infinite}
+.mapalert.on{border-color:rgba(255,70,60,.85);box-shadow:inset 0 0 38px 8px rgba(255,40,30,.5)}
+.mapalert.mon{border-color:rgba(190,90,255,.85);box-shadow:inset 0 0 38px 8px rgba(160,60,255,.5)}
+.mapalert.fast{animation-duration:.45s}
+.mapalert.win{opacity:1;border-color:rgba(80,255,150,.85);box-shadow:inset 0 0 40px 8px rgba(60,255,140,.4);animation:alf 1.8s ease-out forwards}
+.mapalert.lose{opacity:1;border-color:rgba(255,70,60,.85);box-shadow:inset 0 0 40px 8px rgba(255,40,30,.5);animation:alf 1.8s ease-out forwards}
+@keyframes alp{0%,100%{opacity:1}50%{opacity:.35}}
+@keyframes alf{from{opacity:1}to{opacity:0}}
+.cap{position:absolute;left:8px;top:68px;display:flex;align-items:center;gap:8px;max-width:calc(100% - 60px);z-index:5;pointer-events:none;animation:capin .25s ease-out}
+.cap[hidden]{display:none}
+.cap img{width:54px;height:54px;flex:none;border-radius:50%;object-fit:cover;background:radial-gradient(circle,#16324f,#06142a);border:2px solid var(--cyan)}
+.cap p{margin:0;padding:7px 10px;border-radius:10px 10px 10px 2px;background:rgba(5,14,26,.93);border:1px solid var(--cyan);color:#dff6ff;font-size:.78rem;line-height:1.25}
+.cap.alert img{border-color:#ff5a4a;box-shadow:0 0 14px rgba(255,70,60,.7);animation:capshake .3s infinite}.cap.alert p{border-color:#ff5a4a}
+.cap.win img{border-color:#5dff9b;box-shadow:0 0 14px rgba(80,255,150,.6);animation:capjump .5s 3}.cap.win p{border-color:#5dff9b}
+.cap.lose img{border-color:#ff6b6b;filter:grayscale(.6)}.cap.lose p{border-color:#ff6b6b}
+@keyframes capin{from{opacity:0;transform:translateX(-10px)}to{opacity:1;transform:none}}
+@keyframes capshake{0%,100%{transform:translate(0)}25%{transform:translate(-1.5px,1px)}75%{transform:translate(1.5px,-1px)}}
+@keyframes capjump{50%{transform:translateY(-6px)}}

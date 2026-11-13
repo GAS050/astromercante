@@ -210,7 +210,8 @@ async function finalizar(env, p) {
   for (let i = 0; i < p.bots; i++) tabela.push({ id: 0, n: botNome(p.codigo, i), bot: 1, w: botPatrimonio(cfg, p.codigo, i, p.fim, p.inicio, p.fim) });
   tabela.sort((a, b) => b.w - a.w || a.bot - b.bot || a.id - b.id);
   tabela.forEach((t, i) => { t.pos = i + 1; t.w = Math.round(t.w * 100) / 100; });
-  const premios = premiacao(tabela.filter((t) => !t.bot).map((t) => ({ usuario: t.id, geral: t.pos })), tabela.length, cfg);
+  const dn = js.filter((j) => j.estado).map((j) => JSON.parse(j.estado).partida?.dano || 0), x = dn.length ? Math.min(1, dn.reduce((a, b) => a + b, 0) / dn.length / (cfg.saldo * .25)) : 0;   // desgaste médio da sala (0 a 1): 25% do saldo em reparos = máximo
+  const premios = premiacao(tabela.filter((t) => !t.bot).map((t) => ({ usuario: t.id, geral: t.pos })), tabela.length, cfg, x);
   tabela.forEach((t) => { if (!t.bot) t.premio = premios.get(t.id) || 0; });
   const ok = await env.DB.prepare("UPDATE partidas SET estado = 'fim', resultado = ? WHERE codigo = ? AND estado = 'andamento'").bind(JSON.stringify(tabela), p.codigo).run();
   if (!(ok.meta?.changes > 0)) return;   // outro pedido já encerrou

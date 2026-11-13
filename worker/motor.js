@@ -177,6 +177,8 @@ function lutar(S, e, td, tc) {
   return o;
 }
 /** Partidas podem desligar o desgaste do casco (cfg.casco === false): sem dano, sem reparo. As lutas continuam valendo (saque e carga perdida). */
+/** Desgaste sofrido na partida, valorizado ao preço do reparo (conta o dano e não o reparo pago, para não dar para fugir dele): alimenta o bônus do 1º colocado. */
+function contaDano(S, h0) { if (S.partida && S.hull < h0) S.partida.dano = (S.partida.dano || 0) + (h0 - S.hull) * porPct(S); }
 export const semCasco = (S) => !!(S.partida && S.partida.casco === false);
 function chegada(S, d, msgs, enc) {
   const sc = semCasco(S);
@@ -193,7 +195,9 @@ function chegada(S, d, msgs, enc) {
     }
   }
   if (sc) return;   // partida sem desgaste de casco: nada a descontar nem a reparar
+  const h0 = S.hull;
   S.hull = enc?.length ? Math.max(Math.min(S.hull, 5), S.hull - dmg) : Math.max(0, S.hull - dmg);
+  contaDano(S, h0);
   const rep = fixCost(S);
   if (enc?.length || dmg >= 8) say(msgs, `Casco -${dmg}% (agora ${S.hull}%).${rep ? ` Reparo: ${fmt(rep)} Cr.` : ''}`, S.hull < 50 ? 'err' : 'ok'); else note(msgs, `Casco -${dmg}% (agora ${S.hull}%).`);
   if (S.hull < 30) note(msgs, '⚠ Casco crítico: repare a nave na aba Frotas.', 'alert');
@@ -201,8 +205,9 @@ function chegada(S, d, msgs, enc) {
 
 function desgaste(S, d, msgs) {   // saltos entre galáxias: só desgaste do casco (piratas e monstros só existem onde você os vê, no mapa)
   if (semCasco(S)) return;
-  const dmg = desgasteViagem(S, d, 12);
+  const dmg = desgasteViagem(S, d, 12), h0 = S.hull;
   S.hull = Math.max(0, S.hull - dmg);
+  contaDano(S, h0);
   const rep = fixCost(S);
   if (dmg >= 8) say(msgs, `Casco -${dmg}% (agora ${S.hull}%).${rep ? ` Reparo: ${fmt(rep)} Cr.` : ''}`, 'err'); else note(msgs, `Casco -${dmg}% (agora ${S.hull}%).`);
   if (S.hull < 30) note(msgs, '⚠ Casco crítico: repare a nave na aba Frotas.', 'alert');
@@ -383,17 +388,19 @@ export function botPatrimonio(cfg, codigo, i, t, inicio, fim) {
   return Math.max(cfg.saldo * .5, cfg.saldo + ganho + ruido);
 }
 
-/** Premiação do torneio. humanos: [{usuario, geral}] ordenados por colocação; total: participantes (humanos + bots).
+/** Premiação do torneio. humanos: [{usuario, geral}] ordenados por colocação; total: participantes (humanos + bots); x (0 a 1): desgaste médio da sala.
  *  Bolo = soma das taxas dos humanos: 2 humanos → vencedor leva tudo; 3 ou mais → 60/30/10.
- *  Sozinho contra bots: recupera a taxa se terminar na metade de cima; se for 1º, ganha bônus conforme a dificuldade. */
-export function premiacao(humanos, total, cfg) {
+ *  Sozinho contra bots: recupera a taxa se terminar na metade de cima; se for 1º, ganha bônus conforme a dificuldade (bots contam só na colocação).
+ *  Com reparo de casco (padrão), 3 ou mais pilotos: quanto maior o desgaste da sala, mais o 1º leva, tirado do 2º e do 3º (até 70/22/8) — o total pago nunca passa do bolo.
+ *  Sem casco: 10% do bolo (ou do prêmio, se estiver sozinho) é retido como taxa de sala, então desligar o reparo nunca compensa mais do que mantê-lo. */
+export function premiacao(humanos, total, cfg, x = 0) {
   const taxa = cfg.taxa, premios = new Map();
   if (!taxa || !humanos.length) return premios;
-  const bolo = humanos.length * taxa;
+  const f = cfg.casco === false ? .9 : 1, bolo = humanos.length * taxa * f, k = cfg.casco === false ? 0 : clamp(x, 0, 1);
   if (humanos.length === 1) {
     const h = humanos[0];
-    if (h.geral <= Math.ceil(total / 2)) premios.set(h.usuario, taxa + (h.geral === 1 ? Math.round(taxa * ({ facil: 0, normal: .25, dificil: .5 }[cfg.dific] || 0)) : 0));
-  } else if (humanos.length === 2) premios.set(humanos[0].usuario, bolo);
-  else [0.6, 0.3, 0.1].forEach((f, i) => { if (humanos[i]) premios.set(humanos[i].usuario, Math.round(bolo * f)); });
+    if (h.geral <= Math.ceil(total / 2)) premios.set(h.usuario, Math.round((taxa + (h.geral === 1 ? Math.round(taxa * ({ facil: 0, normal: .25, dificil: .5 }[cfg.dific] || 0)) : 0)) * f));
+  } else if (humanos.length === 2) premios.set(humanos[0].usuario, Math.round(bolo));
+  else [.6 + .1 * k, .3 - .08 * k, .1 - .02 * k].forEach((p, i) => { if (humanos[i]) premios.set(humanos[i].usuario, Math.round(bolo * p)); });
   return premios;
 }

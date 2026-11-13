@@ -63,7 +63,7 @@ setInterval(() => { if (TOK && CLOUD() && MODE !== 'partida' && noAr() && !docum
 
 /* ---------- menu ---------- */
 const resumo = c => `${c.duracao} min · saldo ${fmt(c.saldo).replace(',00', '')} Cr · ${c.galaxias.map(i => GALAXIES[i].nome).join(', ')}`
-  + ` · ${c.jogadores} jogadores${c.bots ? ' (bots completam, ' + DIFIC[c.dific] + ')' : ''}${c.eventos ? '' : ' · sem eventos'}${c.piratas ? '' : ' · sem piratas'}${c.casco === false ? ' · sem desgaste de casco' : ''}`;
+  + ` · ${c.jogadores} jogadores${c.bots ? ' (bots completam, ' + DIFIC[c.dific] + ')' : ''}${c.eventos ? '' : ' · sem eventos'}${c.piratas ? '' : ' · sem piratas'}${c.casco === false ? ' · sem desgaste de casco' + (c.taxa ? ' (prêmio −10%)' : '') : (c.taxa ? ' · com casco (1º pode levar até 70% do bolo)' : '')}`;
 function renderPlay() {
   const el = $('#play'); if (!el) return;
   const digitado = $('#join-cod') ? $('#join-cod').value : null, tinhaFoco = document.activeElement && document.activeElement.id === 'join-cod';   // a atualização da tela não pode apagar o que a pessoa está digitando
@@ -97,7 +97,7 @@ function formHtml() {
   <label class="prow">Eventos de mercado <input type="checkbox" data-f="eventos" ${f.eventos ? 'checked' : ''}></label>
   ${t ? '<div class="prow"><span>Piratas e monstros</span><b>sempre ligados</b></div>' : `<label class="prow">Piratas e monstros <input type="checkbox" data-f="piratas" ${f.piratas ? 'checked' : ''}></label>`}
   <label class="prow">Desgaste e reparo de casco <input type="checkbox" data-f="casco" ${f.casco ? 'checked' : ''}></label>
-  ${f.casco ? '' : '<p class="empty">Sem desgaste: viagens e lutas não danificam o casco, então não há reparo. Piratas e monstros continuam valendo: vencer rende saque e perder custa parte da carga.</p>'}
+  ${f.casco ? (t ? '<p class="empty"><b>Com casco:</b> quanto mais desgaste a sala sofrer (viagens e lutas), mais o 1º colocado leva do bolo, tirado do 2º e do 3º: de 60/30/10 até 70/22/8. O total pago não muda. Com 2 pilotos ou sozinho contra bots não há esse ajuste.</p>' : '') : `<p class="empty">Sem desgaste: viagens e lutas não danificam o casco, então não há reparo. Piratas e monstros continuam valendo: vencer rende saque e perder custa parte da carga.${t ? ' <b>Em torneio, salas sem casco retêm 10% do prêmio (taxa de sala)</b>, para que desligar o reparo não compense mais do que mantê-lo.' : ''}</p>`}
   ${t ? `<label class="prow">Taxa de entrada <select data-f="taxa">${TAXAS.map(x => `<option value="${x}" ${x === f.taxa ? 'selected' : ''}>${fmt(x).replace(',00', '')} Cr</option>`).join('')}</select></label>
   <p class="empty">A taxa sai dos seus créditos da carreira. Com 3 ou mais pilotos, o bolo (soma das taxas) paga 60% / 30% / 10% ao 1º, 2º e 3º; com 2, o vencedor leva tudo. Sozinho contra bots, você recupera a taxa se terminar na metade de cima e ganha um bônus se vencer (nos bots Normal e Difícil).</p>` : ''}
   <p class="err" id="f-err"></p>

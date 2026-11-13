@@ -28,11 +28,9 @@
     const casco = S.hull == null ? 100 : S.hull;
     h += `<div class="hm-stats"><div><small>Créditos</small><b class="mono">${fmt(S.credits)}</b></div><div><small>Nave</small><b>${esc(n.nome)}</b></div><div><small>Casco</small><b class="${casco < 30 ? 'down' : ''}">${casco}%</b></div><div><small>Porão</small><b>${used()}/${S.cap}</b></div></div>`;
     if (!emPartida && S.daily && S.daily.p) {
-      h += `<div class="hm-card"><div class="hm-h"><b>Missões do dia</b><small>sequência de ${pl(S.streak || 0, 'dia')}</small></div><ul class="mis">` + MIS.map(m => { const t = Math.round(m.n()), v = Math.min(Math.round(S.daily.p[m.k] || 0), t); return `<li class="${S.daily.done[m.k] ? 'done' : ''}"><span>${m.t} <b class="mono">${v}/${t}</b></span><small>+${m.r} Cr</small><i style="width:${v / t * 100}%"></i></li>`; }).join('') + '</ul></div>';
+      h += `<div class="hm-card"><div class="hm-h"><b>Missões do dia</b><small>Sequência de ${pl(S.streak || 0, 'dia')}</small></div><ul class="mis">` + MIS.map(m => { const t = Math.round(m.n()), v = Math.min(Math.round(S.daily.p[m.k] || 0), t); return `<li class="${S.daily.done[m.k] ? 'done' : ''}"><span>${m.t} <b class="mono">${v}/${t}</b></span><small>+${m.r} Cr</small><i style="width:${v / t * 100}%"></i></li>`; }).join('') + '</ul></div>';
     }
-    const up = proxUp(), pode = up != null && S.credits >= up && !emPartida;
-    h += `<div class="hm-tiles"><button type="button" data-hm="play"><i class="fa-solid fa-trophy"></i><b>Torneios</b><small>Desafie outros pilotos</small></button><button type="button" data-hm="fleet"><i class="fa-solid fa-rocket"></i><b>Frotas</b><small>${pode ? '<span class="hm-dot"></span>Melhoria disponível' : 'Nave e melhorias'}</small></button></div>`;
-    carregarMeu(); if (meu && typeof pjSecoes === 'function') h += `<div class="hm-card hm-meu"><div class="hm-h"><b>Meu perfil</b><small>como os outros pilotos veem você</small></div>${pjSecoes(meu)}</div>`;
+    carregarMeu(); if (meu && typeof pjSecoes === 'function') h += `<div class="hm-card hm-meu"><div class="hm-h"><b>Meu perfil</b><small>Como os outros pilotos veem você</small></div>${pjSecoes(meu)}</div>`;
     if (!emPartida && typeof rkCard === 'function') h += rkCard();
     h += `<div class="hm-tip"><img src="assets/avatar/capitao.webp" alt="" width="44" height="44"><p><b>Dica do Capitão</b>${DICAS[Math.floor(Date.now() / 864e5) % DICAS.length]}</p></div>`;
     const novo = h; if (novo !== el._h) { el.innerHTML = novo; el._h = novo; }

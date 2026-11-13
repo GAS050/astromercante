@@ -28,7 +28,7 @@ const rkFmt = (w, per) => per ? (w > 0 ? '+' : w < 0 ? '−' : '') + fmt(Math.ab
 function rkCard() {
   const nPend = AM ? AM.recebidos.length : 0, d = (RK.d[rkKey()] || {}).data, luc = (RK.tab === 'global' && RK.g === 'lucro') || (RK.tab === 'amigos' && RK.sub === 'lucro'), per = luc || RK.tab === 'semana' || RK.tab === 'mes' || (RK.tab === 'amigos' && RK.sub !== 'total');
   const tab = (k, t, b) => `<button type="button" data-rk="${k}" class="${RK.tab === k ? 'on' : ''}">${t}${b ? `<i class="rk-b">${b}</i>` : ''}</button>`;
-  let h = `<div class="hm-card rk"><div class="hm-h"><b>Ranking</b><small>${RK.tab === 'global' ? (luc ? 'lucro total' : 'patrimônio total') : RK.tab === 'amigos' ? 'você e seus amigos' : 'ganho no ' + (RK.tab === 'mes' ? 'mês' : 'semana')}</small></div>`
+  let h = `<div class="hm-card rk"><div class="hm-h"><b>Ranking</b><small>${RK.tab === 'global' ? (luc ? 'Lucro total' : 'Patrimônio total') : RK.tab === 'amigos' ? 'Você e seus amigos' : 'Ganho no ' + (RK.tab === 'mes' ? 'mês' : 'semana')}</small></div>`
     + `<div class="rk-tabs">${tab('global', 'Global')}${tab('semana', 'Semana')}${tab('mes', 'Mês')}${tab('amigos', 'Amigos', nPend)}</div>`;
   if (RK.tab === 'amigos') h += `<div class="rk-sub">${['total', 'lucro', 'semana', 'mes'].map(q => `<button type="button" data-rks="${q}" class="${RK.sub === q ? 'on' : ''}">${{ total: 'Patrimônio', lucro: 'Lucro', semana: 'Semana', mes: 'Mês' }[q]}</button>`).join('')}</div>`;
   if (RK.tab === 'global') h += `<div class="rk-sub">${[['pat', 'Patrimônio'], ['lucro', 'Lucro total']].map(([q, t]) => `<button type="button" data-rkg="${q}" class="${RK.g === q ? 'on' : ''}">${t}</button>`).join('')}</div>`;
@@ -134,7 +134,7 @@ setInterval(() => {
 
 /* ---- perfil público de outro piloto: só o que já é público (apelido, avatar, patente, nave, ranking, troféus) ---- */
 const pjM = document.querySelector('#jogador'), pjB = document.querySelector('#pj-body'); let pjD = null;
-const pjFmt = v => fmt(Math.abs(v)).replace(',00', '');
+const pjFmt = v => { const x = Math.abs(v); return x >= 1e9 ? (x / 1e9).toFixed(1).replace('.', ',') + ' bi' : x >= 1e6 ? (x / 1e6).toFixed(1).replace('.', ',') + ' mi' : fmt(x).replace(',00', ''); };   // valores enormes viram "196,9 mi" para caber nos cartões
 const pjData = t => { if (!t) return ''; const d = new Date(t); return d.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' }); };
 function pjSecoes(d) {   // seções do perfil (estatísticas, nave, conquistas, selos, torneios, troféus): usadas no perfil público e no Início
   const T = d.tro;

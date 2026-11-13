@@ -267,9 +267,9 @@ function upgrade(k) {
 const ROTULO = { cap:'Porão', eng:'Motor', wp:'Armamento' };
 function upRowsNave() {   // melhorias da nave equipada (níveis 1 a 5)
   if (!S.frota || !S.frota[S.nave]) return '';
-  const n = NAVES[S.nave - 1], f = S.frota[S.nave], val = { cap:L => capDe(n, L), eng:L => engDe(n, L).toFixed(1), wp:L => wpDe(n, L).toFixed(1) }, dica = { cap:'capacidade', eng:'classe do motor (viagens mais rápidas)', wp:'poder de fogo contra piratas' };
+  const n = NAVES[S.nave - 1], f = S.frota[S.nave], val = { cap:L => capDe(n, L), eng:L => engDe(n, L).toFixed(1), wp:L => wpDe(n, L).toFixed(1) }, dica = { cap:'Capacidade', eng:'Classe do motor (viagens mais rápidas)', wp:'Poder de fogo contra piratas' };
   const outra = pvShip && pvShip !== S.nave;   // olhando a prévia de outra nave: os upgrades abaixo continuam sendo da nave equipada
-  return `<div class="${outra ? 'dim' : ''}"><h3 class="nave-t">${n.nome} <small>nave ${S.nave} de ${NAVES.length}</small></h3><p class="empty">Porão ${used()}/${S.cap} · motor ${S.engLv.toFixed(1)} · armas ${S.wpLv.toFixed(1)}</p>` + ['cap', 'eng', 'wp'].map(k => {
+  return `<div class="${outra ? 'dim' : ''}"><h3 class="nave-t">${n.nome} <small>Nave ${S.nave} de ${NAVES.length}</small></h3><p class="empty">Porão ${used()}/${S.cap} · Motor ${S.engLv.toFixed(1)} · Armas ${S.wpLv.toFixed(1)}</p>` + ['cap', 'eng', 'wp'].map(k => {
     const L = f[PVK[k]], max = L >= 5;
     return `<div class="up"><div><b>${ROTULO[k]} nv.${L}/5</b><small>${dica[k]}: ${val[k](L)}${max ? '' : ' → ' + val[k](L + 1)}</small></div><button class="buy" data-up="${k}" ${max ? 'disabled' : ''}>${max ? 'MÁX' : fmt(upCusto(n, k, L)) + ' Cr'}</button></div>`;
   }).join('') + '</div>';
@@ -390,7 +390,7 @@ function drawHangar(cv2, o, ts, big) {
   c.fillStyle = '#fff'; for (let i = 0; i < 24; i++) { c.globalAlpha = .3 + .5 * Math.abs(Math.sin(ts / 900 + i)); c.fillRect((i * 37) % 100, (i * 23) % H, .5, .5); } c.globalAlpha = 1;
   c.strokeStyle = 'rgba(62,230,255,.55)'; c.lineWidth = .5; c.setLineDash([2, 2]); c.lineDashOffset = -ts / 90;
   [[28, 6.5], [20, 4.6]].forEach(([rx, ry]) => { c.beginPath(); c.ellipse(50, H * .84, rx, ry, 0, 0, 7); c.stroke(); }); c.setLineDash([]);
-  c.save(); c.translate(50, H * .46 + Math.sin(ts / 700) * 1.2); paintShip(c, o, ts, (big ? 88 : 76) - (o.id - 1) * (big ? .36 : .3)); c.restore();   // naves pequenas são desenhadas maiores na caixa, para aparecerem
+  c.save(); c.translate(50, H * .46 + Math.sin(ts / 700) * 1.2); paintShip(c, o, ts, big ? 86 - (o.id - 1) * .56 : 76 - (o.id - 1) * .3); c.restore();   // naves pequenas são desenhadas maiores na caixa, para aparecerem
 
   if (big && o.label) { c.fillStyle = '#3ee6ff'; c.font = '600 3.6px Chakra Petch, sans-serif'; c.textAlign = 'left'; c.fillText(o.label, 3, 6); }
 }
@@ -826,7 +826,7 @@ function checkDay() {
   S.streak = S.lastDay === y ? S.streak + 1 : 1; S.lastDay = d;
   S.daily = { day:d, p:{ trades:0, trips:0, profit:0 }, done:{} };
   const b = 100 * Math.min(S.streak, 7); S.credits += b; save();
-  setTimeout(() => say(`Bônus diário: ${fmt(b)} Cr (sequência de ${S.streak} dia/s). Volte amanhã para mais!`, 'win'), 800);
+  setTimeout(() => say(`Bônus diário: ${fmt(b)} Cr (sequência de ${pl(S.streak, 'dia')}). Volte amanhã para mais!`, 'win'), 800);
 }
 /* Rivais simulados. Para ranking global real, envie {nome, patrimônio} a uma API (Cloudflare Worker + KV, Supabase) em renderMeta(). */
 const RIVALS = [['Kira Vex',9000,380],['Dr. Orbit',14000,300],['Zenobia',6000,420],['Capitão Nulo',22000,220],['Lyra-7',11000,330],['Barão Rubro',40000,180]];
@@ -854,7 +854,7 @@ function renderMeta() {
   if (!CLOUD()) MIS.forEach(m => { if (!d.done[m.k] && d.p[m.k] >= m.n()) { d.done[m.k] = 1; S.credits += m.r; save(); $('#hud-credits').textContent = fmt(S.credits); say(`Missão cumprida: ${m.t}! +${fmt(m.r)} Cr`, 'win'); } });
   $('#mis').innerHTML = MIS.map(m => { const n = Math.round(m.n()), v = Math.min(Math.round(d.p[m.k]), n);
     return `<li class="${d.done[m.k] ? 'done' : ''}"><span>${m.t} <b class="mono">${v}/${n}</b></span><small>+${m.r} Cr</small><i style="width:${v / n * 100}%"></i></li>`; }).join('');
-  $('#streak').textContent = `· sequência ${S.streak}d`;
+  $('#streak').textContent = `· Sequência de ${pl(S.streak, 'dia')}`;
   if (MODE === 'partida') { renderPlacar(); return; }
   if (CLOUD()) { carregarRanking(); return; }
   const rows = board(), pos = rows.findIndex(r => r.me) + 1;

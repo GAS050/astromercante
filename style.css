@@ -607,3 +607,11 @@ body[data-view=loja] #p-loja{display:flex}
 }
 .hm-meu .pj-nave,.hm-meu .pj-cq{margin-bottom:4px}.hm-meu h3{color:var(--cyan);font-size:.95rem;margin:14px 0 6px}
 .nav button{font-size:.68rem;min-width:0}@media (max-width:360px){.nav button{font-size:.62rem}}
+
+/* valores com "Cr" nunca quebram de linha; textos ao lado encolhem no lugar */
+.lj-buy .buy,.lj-it .buy,.lj-p,.lj-row>span:last-child,.hm-pat b,.hm-stats b,.pj-st b,.board li b,.up .buy,.mono{white-space:nowrap}
+.hm-id{min-width:0;flex:1}.hm-pat{flex:none;max-width:60%}.hm-pat b{font-size:clamp(.85rem,4.4vw,1.05rem)}
+.up>div:first-child{min-width:0}.up .buy{flex:none}
+.lj-buy .buy{padding:10px 8px}
+.pj-st b{font-size:clamp(.8rem,3.6vw,1rem)}
+.hm-h{gap:4px 10px;flex-wrap:wrap}

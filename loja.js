@@ -20,9 +20,9 @@ function ljMiniNave(n, f) {
   return `<div class="lj-nv"><img alt="" src="${nsrc(n.id, 'motor', m)}"><img alt="" src="${nsrc(n.id, 'casco')}"><img alt="" src="${nsrc(n.id, 'porao', c)}"><img alt="" src="${nsrc(n.id, 'armas', a)}"></div>`;
 }
 const LJ_ST = [
-  { k: 'cap', ic: 'fa-boxes-stacked', rot: 'Porão', txt: 'mercadoria por viagem: mais lucro em cada carga', val: (n, f) => capDe(n, f ? f.c : 1), max: 922, mx: n => capDe(n, 5), fmt: v => v },
-  { k: 'eng', ic: 'fa-bolt', rot: 'Motor', txt: 'viagens mais rápidas', val: (n, f) => engDe(n, f ? f.m : 1), max: 4.2, mx: n => engDe(n, 5), fmt: v => v.toFixed(1) },
-  { k: 'wp', ic: 'fa-crosshairs', rot: 'Armas', txt: 'poder de fogo contra piratas e monstros', val: (n, f) => wpDe(n, f ? f.a : 1), max: 6, mx: n => wpDe(n, 5), fmt: v => v.toFixed(1) }
+  { k: 'cap', ic: 'fa-boxes-stacked', rot: 'Porão', txt: 'Mercadoria por viagem: mais lucro em cada carga', val: (n, f) => capDe(n, f ? f.c : 1), max: 922, mx: n => capDe(n, 5), fmt: v => v },
+  { k: 'eng', ic: 'fa-bolt', rot: 'Motor', txt: 'Viagens mais rápidas', val: (n, f) => engDe(n, f ? f.m : 1), max: 4.2, mx: n => engDe(n, 5), fmt: v => v.toFixed(1) },
+  { k: 'wp', ic: 'fa-crosshairs', rot: 'Armas', txt: 'Poder de fogo contra piratas e monstros', val: (n, f) => wpDe(n, f ? f.a : 1), max: 6, mx: n => wpDe(n, 5), fmt: v => v.toFixed(1) }
 ];
 function ljStats(n) {
   const f = S.frota[n.id], at = NAVES[(S.nave || 1) - 1], fa = S.frota[S.nave];
@@ -63,7 +63,7 @@ function ljRender() {
   else if (it.cond) ac = `<span class="tag lock">🔒 ${ljEsc(it.cond)}</span>`;
   else ac = `<button type="button" class="buy" data-ac="buy"${S.credits < it.preco || sem ? ' disabled' : ''}>Comprar · ${ljFmt(it.preco)} Cr</button>`;
   const falta = !it.tem && !it.cond && S.credits < it.preco ? `<small class="lj-falta">Faltam ${ljFmt(it.preco - S.credits)} Cr</small>` : '', pt = it.tipo === 'nave' && it.bloq ? '<small class="lj-falta">Indisponível durante uma partida.</small>' : '';
-  $('#lj-detail').innerHTML = `<div class="lj-thumb r-${it.raridade === 'épico' ? 'epico' : it.raridade === 'lendário' ? 'lendario' : it.raridade}">${it.thumb}</div><div class="lj-info"><b>${ljEsc(it.nome)}</b><small>${rot[it.tipo]} · ${it.raridade}</small><small>${it.tipo === 'nave' ? '' : ljEsc(it.desc)}</small></div>${it.stats || ''}<div class="lj-buy">${ac}${falta}${pt}</div>`;
+  $('#lj-detail').innerHTML = `<div class="lj-thumb r-${it.raridade === 'épico' ? 'epico' : it.raridade === 'lendário' ? 'lendario' : it.raridade}">${it.thumb}</div><div class="lj-info"><b>${ljEsc(it.nome)}</b><small>${rot[it.tipo]} · ${it.raridade[0].toUpperCase() + it.raridade.slice(1)}</small><small>${it.tipo === 'nave' ? '' : ljEsc(it.desc)}</small></div>${it.stats || ''}<div class="lj-buy">${ac}${falta}${pt}</div>`;
   const row = $('#lj-list .sel'); if (row && row.scrollIntoView) row.scrollIntoView({ block: 'nearest' });
 }
 $('#lj-q').addEventListener('input', e => { ljQ = e.target.value; ljSel = null; ljRender(); });

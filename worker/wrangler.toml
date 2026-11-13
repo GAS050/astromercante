@@ -1,16 +1,22 @@
 name = "astromercante-precos"
 main = "index.js"
 compatibility_date = "2024-11-01"
-keep_vars = true   # as variáveis e segredos já configurados no painel (ALLOWED_ORIGIN, EMAIL_REMETENTE, GOOGLE_CLIENT_ID, chaves) continuam valendo no deploy pelo GitHub
+keep_vars = true   # variáveis e segredos criados no painel (ex.: chave da Brevo) continuam valendo
 
 [triggers]
 crons = ["*/5 * * * *"]          # atualiza a cada 5 min (~8.640 chamadas/mês à CoinGecko)
 
 [[kv_namespaces]]
 binding = "PRECOS"
-id = "COLE_AQUI_O_ID_DO_KV"       # gerado por: npx wrangler kv namespace create PRECOS
+id = "761e067aa67243c08cd6f9d93053fcf7"       # gerado por: npx wrangler kv namespace create PRECOS
 
 [[d1_databases]]
 binding = "DB"
 database_name = "astromercante"
-database_id = "COLE_AQUI_O_ID_DO_D1"   # gerado por: npx wrangler d1 create astromercante
+database_id = "970d19d6-7dff-47f4-b079-6235c1d1852c"   # gerado por: npx wrangler d1 create astromercante
+
+[vars]
+EMAIL_REMETENTE = "nao-responda@SEU-DOMINIO.com"   # remetente validado na Brevo
+GOOGLE_CLIENT_ID = "655503554422-0cmvq61j6o0gsg5n171agcuh1eljn80q.apps.googleusercontent.com"                          # opcional: ID do cliente OAuth do Google
+PBKDF2_ITER = "50000"             # sobe para 100000 se usar o plano pago da Workers (mais seguro)
+ALLOWED_ORIGIN = "https://astromercante.5xcontax5.workers.dev"              # depois de publicar o jogo, troque pelo endereço dele (ex.: https://astromercante.pages.dev)

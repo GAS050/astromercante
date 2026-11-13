@@ -17,21 +17,32 @@ const STALE_MS = 30 * 60 * 1000;
 const json = (r) => (r.ok ? r.json() : Promise.reject(r.status));
 const num = (v) => { const n = Number(v); return Number.isFinite(n) ? +n.toFixed(4) : null; };
 
+// CoinGecko recusa (403) pedidos sem identificação vindos de IPs compartilhados: manda User-Agent e, se existir, a chave Demo (grátis) do segredo COINGECKO_KEY
+const cgHeaders = (env) => ({ accept: 'application/json', 'user-agent': 'Mozilla/5.0 (compatible; Astromercante/1.0; +https://astromercante.pages.dev)', ...(env.COINGECKO_KEY ? { 'x-cg-demo-api-key': env.COINGECKO_KEY } : {}) });
+async function dolar(env) {   // variação do dólar contra o real: AwesomeAPI e, se ela falhar, o câmbio diário do BCE (Frankfurter)
+  try { const n = num((await fetch(FX, { headers: { 'user-agent': 'Mozilla/5.0 Astromercante', ...(env.AWESOME_KEY ? { 'x-api-key': env.AWESOME_KEY } : {}) } }).then(json))?.USDBRL?.pctChange); if (n !== null) return { n, via: 'awesome' }; } catch {}
+  const de = new Date(Date.now() - 8 * 864e5).toISOString().slice(0, 10), j = await fetch(`https://api.frankfurter.dev/v1/${de}..?base=USD&symbols=BRL`).then(json);
+  const v = Object.keys(j.rates || {}).sort().map((d) => j.rates[d].BRL).filter(Number.isFinite);
+  if (v.length < 2) throw new Error('sem dados');
+  return { n: num((v[v.length - 1] / v[v.length - 2] - 1) * 100), via: 'frankfurter' };
+}
 async function refresh(env) {
   const prev = JSON.parse((await env.PRECOS.get('latest')) || '{}');
   const next = { ...prev };
   const [cg, fx] = await Promise.allSettled([
-    fetch(CG, { headers: env.COINGECKO_KEY ? { 'x-cg-demo-api-key': env.COINGECKO_KEY } : {} }).then(json),
-    fetch(FX).then(json),
+    fetch(CG, { headers: cgHeaders(env) }).then(json),
+    dolar(env),
   ]);
   if (cg.status === 'fulfilled') {
     const d = cg.value;
     Object.entries(CG_IDS).forEach(([k, id]) => { const v = d[id]; const n = num(v?.usd_24h_change); if (n !== null) next[k] = n; });
   }
-  if (fx.status === 'fulfilled') { const n = num(fx.value?.USDBRL?.pctChange); if (n !== null) next.fx = n; }
-  next.diag = { cg: cg.status === 'fulfilled' ? 'ok' : 'erro ' + String(cg.reason?.message || cg.reason).slice(0, 60), faltando: FEED_KEYS.filter((k) => next[k] == null), quando: Date.now() };   // para conferir em /precos
-  // só grava se algo novo chegou; se as APIs falharem, o último valor bom continua valendo
-  if (cg.status === 'fulfilled' || fx.status === 'fulfilled' || !prev.diag) { next.ant = {}; FEED_KEYS.forEach((k) => { if (prev[k] != null) next.ant[k] = prev[k]; }); next.updated = Date.now(); await env.PRECOS.put('latest', JSON.stringify(next)); }
+  if (fx.status === 'fulfilled' && fx.value.n !== null) next.fx = fx.value.n;
+  const err = (r) => (r.status === 'fulfilled' ? 'ok' : 'erro ' + String(r.reason?.message || r.reason).slice(0, 60));
+  next.diag = { cg: err(cg), fx: fx.status === 'fulfilled' ? 'ok via ' + fx.value.via : err(fx), faltando: FEED_KEYS.filter((k) => next[k] == null), quando: Date.now() };   // para conferir em /precos
+  // "updated" e "ant" só andam quando algo novo chegou; se as APIs falharem, o último valor bom continua valendo (e o aviso de dados velhos aparece)
+  if (cg.status === 'fulfilled' || fx.status === 'fulfilled') { next.ant = {}; FEED_KEYS.forEach((k) => { if (prev[k] != null) next.ant[k] = prev[k]; }); next.updated = Date.now(); }
+  await env.PRECOS.put('latest', JSON.stringify(next));
   return next;
 }
 

@@ -1,6 +1,11 @@
 // Worker do ASTROMERCANTE: busca os preços reais a cada 5 min (Cron) e guarda no KV.
 // Os jogadores só leem o cache, então o número de chamadas às APIs não depende de quantos jogam.
-const CG = 'https://api.coingecko.com/api/v3/simple/price?ids=bitcoin,pax-gold,ethereum&vs_currencies=usd&include_24hr_change=true';
+import { FEEDS } from './dados.js';
+// ativos reais: os 3 dos itens básicos + 1 por produto novo (uma única chamada traz todos)
+const CG_IDS = { btc: 'bitcoin', gold: 'pax-gold', eth: 'ethereum' };
+Object.entries(FEEDS).forEach(([k, v]) => { CG_IDS[k] = v.cg; });
+const FEED_KEYS = ['fx', ...Object.keys(CG_IDS)];
+const CG = 'https://api.coingecko.com/api/v3/simple/price?ids=' + Object.values(CG_IDS).join(',') + '&vs_currencies=usd&include_24hr_change=true';
 const FX = 'https://economia.awesomeapi.com.br/json/last/USD-BRL';
 import { Regra, novo, normalizar, migrar, resolver, precisaResolver, fechar, executar, patrimonio, patrimonioTotal, RANKS, validarCfg, novoPartida, valorFinal, botPatrimonio, botNome, premiacao, desbloqueada, intensidade } from './motor.js';
 import { GALAXIES } from './dados.js';
@@ -20,11 +25,11 @@ async function refresh(env) {
   ]);
   if (cg.status === 'fulfilled') {
     const d = cg.value;
-    [['btc', d.bitcoin], ['gold', d['pax-gold']], ['eth', d.ethereum]].forEach(([k, v]) => { const n = num(v?.usd_24h_change); if (n !== null) next[k] = n; });
+    Object.entries(CG_IDS).forEach(([k, id]) => { const v = d[id]; const n = num(v?.usd_24h_change); if (n !== null) next[k] = n; });
   }
   if (fx.status === 'fulfilled') { const n = num(fx.value?.USDBRL?.pctChange); if (n !== null) next.fx = n; }
   // só grava se algo novo chegou; se as APIs falharem, o último valor bom continua valendo
-  if (cg.status === 'fulfilled' || fx.status === 'fulfilled') { next.ant = {}; ['btc', 'gold', 'eth', 'fx'].forEach((k) => { if (prev[k] != null) next.ant[k] = prev[k]; }); next.updated = Date.now(); await env.PRECOS.put('latest', JSON.stringify(next)); }
+  if (cg.status === 'fulfilled' || fx.status === 'fulfilled') { next.ant = {}; FEED_KEYS.forEach((k) => { if (prev[k] != null) next.ant[k] = prev[k]; }); next.updated = Date.now(); await env.PRECOS.put('latest', JSON.stringify(next)); }
   return next;
 }
 
@@ -63,7 +68,7 @@ let feedCache = { t: 0, d: null };
 async function feedAtual(env) {
   if (Date.now() - feedCache.t < 30000 && feedCache.d) return feedCache.d;
   const d = JSON.parse((await env.PRECOS.get('latest')) || 'null') || {};
-  feedCache = { t: Date.now(), d: { change: { btc: d.btc, gold: d.gold, eth: d.eth, fx: d.fx }, ant: d.ant || {}, feedAt: Number(d.updated) || 0 } };
+  feedCache = { t: Date.now(), d: { change: Object.fromEntries(FEED_KEYS.map((k) => [k, d[k]])), ant: d.ant || {}, feedAt: Number(d.updated) || 0 } };
   return feedCache.d;
 }
 async function gravarJogo(env, id, S, c, base) {   // compare-and-swap: só grava se ninguém mudou a conta nesse meio-tempo
@@ -658,7 +663,7 @@ async function rota(req, env, url) {
   if (p === '/precos' && m === 'GET') {
     let d = JSON.parse((await env.PRECOS.get('latest')) || 'null');
     if (!d) d = await refresh(env);
-    return { btc: d.btc ?? null, gold: d.gold ?? null, eth: d.eth ?? null, fx: d.fx ?? null, ant: d.ant ?? null, updated: d.updated ?? null, stale: !d.updated || Date.now() - d.updated > STALE_MS };
+    return { ...Object.fromEntries(FEED_KEYS.map((k) => [k, d[k] ?? null])), ant: d.ant ?? null, updated: d.updated ?? null, stale: !d.updated || Date.now() - d.updated > STALE_MS };
   }
   if (p === '/auth/registrar' && m === 'POST') {
     const nome = corpo.nome || '', senha = corpo.senha, ip = req.headers.get('CF-Connecting-IP') || 'ip';

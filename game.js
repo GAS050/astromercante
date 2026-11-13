@@ -10,10 +10,11 @@ const RES = [
   { id:'especiarias', nome:'Especiarias de Júpiter', base:25,  vol:.004, src:'fx',   corr:'Correl. Câmbio (USD/BRL)',    icon:'fa-dollar-sign' },
 ];
 RES.push(
-  { id:'plasma',      nome:'Plasma Sombrio',  base:300,  vol:.007, src:'eth',  corr:'Correl. Energia (ETH)',      icon:'fa-bolt',           t:1 },
-  { id:'antimateria', nome:'Antimatéria',     base:900,  vol:.008, src:'btc',  corr:'Correl. Tech / Cripto (BTC)', icon:'fa-atom',           t:2 },
-  { id:'cristal',     nome:'Cristal Temporal', base:2400, vol:.009, src:'gold', corr:'Correl. Ouro (PAXG)',        icon:'fa-hourglass-half', t:3 });
+  { id:'plasma',      nome:'Plasma Sombrio',  base:300,  vol:.007, src:'xmr',  corr:'Correl. Privacidade (Monero · XMR)', icon:'fa-bolt',           t:1 },
+  { id:'antimateria', nome:'Antimatéria',     base:900,  vol:.008, src:'sol',  corr:'Correl. Alta velocidade (Solana · SOL)', icon:'fa-atom',           t:2 },
+  { id:'cristal',     nome:'Cristal Temporal', base:2400, vol:.009, src:'xaut', corr:'Correl. Ouro digital (Tether Gold · XAUt)', icon:'fa-hourglass-half', t:3 });
 RES.push(...MINERALS);
+const FEED_KEYS = ['btc', 'gold', 'eth', 'fx', ...Object.keys(FEEDS)];   // ativos reais seguidos (FEEDS vem de galaxias.js)
 const $ = (s, r = document) => r.querySelector(s);
 const pl = (n, um, varios) => `${n} ${n === 1 ? um : varios || um + 's'}`;   // concordância: pl(1,'dia') → "1 dia"; pl(3,'salto') → "3 saltos"
 const avSrc = id => id === 'cap' ? 'assets/avatar/capitao.webp' : `assets/avatar/${/^(a[1-8]|b[1-6])$/.test(id) ? id : 'a1'}.svg?v=2`;
@@ -45,7 +46,7 @@ async function fetchFeed() {
   if (CONFIG.PRECOS_URL) {          // caminho principal: Worker com cache (veja worker/README.md)
     try {
       const d = await get(CONFIG.PRECOS_URL.replace(/\/$/, '') + '/precos'), c = {}, a = {};
-      ['btc', 'gold', 'eth', 'fx'].forEach(k => { if (Number.isFinite(d[k])) c[k] = d[k]; if (Number.isFinite(d.ant?.[k])) a[k] = d.ant[k]; });
+      FEED_KEYS.forEach(k => { if (Number.isFinite(d[k])) c[k] = d[k]; if (Number.isFinite(d.ant?.[k])) a[k] = d.ant[k]; });
       if (Object.keys(c).length) { change = c; ant = a; feedAt = +d.updated || 0; try { localStorage.setItem(FEED_KEY, JSON.stringify({ change, ant, feedAt })); } catch {} }
     } catch {}
     live = Object.keys(change).length > 0; setFeed(); return;   // se o Worker falhar, usa a simulação (não sobrecarrega as APIs)
@@ -964,7 +965,7 @@ let firstState = true;
 function aplicarEstado(r) {   // o servidor manda; este aparelho só mostra
   if (r.agora) SKEW = r.agora - Date.now();
   if (r.feed) {
-    const c = {}, a = {}; ['btc', 'gold', 'eth', 'fx'].forEach(k => { if (Number.isFinite(r.feed.change?.[k])) c[k] = r.feed.change[k]; if (Number.isFinite(r.feed.ant?.[k])) a[k] = r.feed.ant[k]; });
+    const c = {}, a = {}; FEED_KEYS.forEach(k => { if (Number.isFinite(r.feed.change?.[k])) c[k] = r.feed.change[k]; if (Number.isFinite(r.feed.ant?.[k])) a[k] = r.feed.ant[k]; });
     change = c; ant = a; feedAt = r.feed.feedAt || 0; live = Object.keys(c).length > 0; setFeed();
   }
   if (r.v) V = r.v;

@@ -12,9 +12,9 @@ export const RES = [
   { id: 'titanio', nome: 'Minério de Titânio', base: 45, vol: .003, src: 'gold' },
   { id: 'helio3', nome: 'Gás Hélio-3', base: 80, vol: .005, src: 'eth' },
   { id: 'especiarias', nome: 'Especiarias de Júpiter', base: 25, vol: .004, src: 'fx' },
-  { id: 'plasma', nome: 'Plasma Sombrio', base: 300, vol: .007, src: 'eth', t: 1 },
-  { id: 'antimateria', nome: 'Antimatéria', base: 900, vol: .008, src: 'btc', t: 2 },
-  { id: 'cristal', nome: 'Cristal Temporal', base: 2400, vol: .009, src: 'gold', t: 3 },
+  { id: 'plasma', nome: 'Plasma Sombrio', base: 300, vol: .007, src: 'xmr', t: 1 },
+  { id: 'antimateria', nome: 'Antimatéria', base: 900, vol: .008, src: 'sol', t: 2 },
+  { id: 'cristal', nome: 'Cristal Temporal', base: 2400, vol: .009, src: 'xaut', t: 3 },
   ...MINERALS.map((m) => ({ id: m.id, nome: m.nome, base: m.base, vol: m.vol, src: m.src, t: m.t })),
 ];
 const RES_ID = Object.fromEntries(RES.map((r) => [r.id, r]));

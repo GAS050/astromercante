@@ -102,11 +102,24 @@ GALAXIES, MINERALS = [], []
 g1 = [planeta(i, n, x, y, t, ty, m, 'orionis') for i, (_, n, x, y, t, ty, m) in enumerate(HOME)]
 for p, h in zip(g1, HOME): p['id'] = h[0]
 GALAXIES.append(dict(id='orionis', nome='Orionis', t=0, eng=1, wx=0, wy=0, planetas=g1))
-SRC = ['btc', 'gold', 'eth', 'fx']
+# Cada produto segue o preço (variação 24 h) de um ativo REAL da CoinGecko. chave -> (id na CoinGecko, símbolo, nome)
+FEEDS = {
+    'xmr': ('monero', 'XMR', 'Monero'), 'sol': ('solana', 'SOL', 'Solana'), 'xaut': ('tether-gold', 'XAUt', 'Tether Gold'),
+    'xlm': ('stellar', 'XLM', 'Stellar'), 'ada': ('cardano', 'ADA', 'Cardano'), 'avax': ('avalanche-2', 'AVAX', 'Avalanche'),
+    'trx': ('tron', 'TRX', 'TRON'), 'fil': ('filecoin', 'FIL', 'Filecoin'), 'atom': ('cosmos', 'ATOM', 'Cosmos'),
+    'rndr': ('render-token', 'RENDER', 'Render'), 'ltc': ('litecoin', 'LTC', 'Litecoin'), 'doge': ('dogecoin', 'DOGE', 'Dogecoin'),
+    'xrp': ('ripple', 'XRP', 'XRP'), 'dot': ('polkadot', 'DOT', 'Polkadot'), 'near': ('near', 'NEAR', 'NEAR'),
+    'algo': ('algorand', 'ALGO', 'Algorand'), 'hbar': ('hedera-hashgraph', 'HBAR', 'Hedera'), 'sui': ('sui', 'SUI', 'Sui'),
+    'apt': ('aptos', 'APT', 'Aptos'), 'etc': ('ethereum-classic', 'ETC', 'Ethereum Classic'), 'bch': ('bitcoin-cash', 'BCH', 'Bitcoin Cash'),
+    'link': ('chainlink', 'LINK', 'Chainlink'), 'uni': ('uniswap', 'UNI', 'Uniswap'),
+}
+MSRC = dict(poeira='xlm', fibra='ada', escama='avax', magma='trx', nevoa='fil', polen='atom', chip='rndr', neon='ltc', veneno='doge',
+            cinza='xrp', escura='dot', eco='near', prisma='algo', luz='hbar', perola='sui', coral='apt', cinzas='etc', brasa='bch',
+            relogio='link', origem='uni')
 for gi, (gid, nome, t, eng, tipos, mins, nomes) in enumerate(GAL, start=1):
     tipos, nomes = tipos.split(), nomes.split(',')
     for j, (mid, mn, base, ic) in enumerate(mins):
-        MINERALS.append(dict(id=mid, nome=mn, base=base, vol=round(.008 + .002*gi, 3), src=SRC[(gi+j) % 4], corr=f'Mineral de {nome}', icon=ic, t=t, ex=1))
+        MINERALS.append(dict(id=mid, nome=mn, base=base, vol=round(.008 + .002*gi, 3), src=MSRC[mid], corr=f'Mineral de {nome} · {FEEDS[MSRC[mid]][2]} ({FEEDS[MSRC[mid]][1]})', icon=ic, t=t, ex=1))
     lo, hi = max(.42, .78 - .06*gi), 1.15 + .1*gi
     pts, pl = posicoes(len(nomes)), []
     for i, ((x, y), n) in enumerate(zip(pts, nomes)):
@@ -123,7 +136,8 @@ import itertools
 assert all(((WORLD[a][0]-WORLD[b][0])**2+(WORLD[a][1]-WORLD[b][1])**2)**.5 >= 520 for a, b in itertools.combinations(WORLD, 2)), 'galáxias muito próximas'
 out = '// GERADO por tools/gerar_galaxias.py: dados fixos do jogo. Edite o script, não este arquivo.\n'
 out += 'const GALAXIES = ' + json.dumps(GALAXIES, ensure_ascii=False, separators=(',', ':')) + ';\n'
+out += 'const FEEDS = ' + json.dumps({k: dict(cg=v[0], sym=v[1], nome=v[2]) for k, v in FEEDS.items()}, ensure_ascii=False, separators=(',', ':')) + ';\n'
 out += 'const MINERALS = ' + json.dumps(MINERALS, ensure_ascii=False, separators=(',', ':')) + ';\n'
 open(os.path.join(RAIZ, 'galaxias.js'), 'w', encoding='utf8').write(out)
-open(os.path.join(RAIZ, 'worker', 'dados.js'), 'w', encoding='utf8').write('// GERADO por tools/gerar_galaxias.py (mesmos dados do jogo, usados pelo servidor para validar as ações).\nexport const GALAXIES = ' + json.dumps(GALAXIES, ensure_ascii=False, separators=(',', ':')) + ';\nexport const MINERALS = ' + json.dumps(MINERALS, ensure_ascii=False, separators=(',', ':')) + ';\n')
+open(os.path.join(RAIZ, 'worker', 'dados.js'), 'w', encoding='utf8').write('// GERADO por tools/gerar_galaxias.py (mesmos dados do jogo, usados pelo servidor para validar as ações).\nexport const GALAXIES = ' + json.dumps(GALAXIES, ensure_ascii=False, separators=(',', ':')) + ';\nexport const FEEDS = ' + json.dumps({k: dict(cg=v[0], sym=v[1], nome=v[2]) for k, v in FEEDS.items()}, ensure_ascii=False, separators=(',', ':')) + ';\nexport const MINERALS = ' + json.dumps(MINERALS, ensure_ascii=False, separators=(',', ':')) + ';\n')
 print(len(GALAXIES), 'galáxias,', sum(len(g['planetas']) for g in GALAXIES), 'planetas,', len(MINERALS), 'minérios,', sum(len(v) for v in POOL.values()), 'SVG sem uso')

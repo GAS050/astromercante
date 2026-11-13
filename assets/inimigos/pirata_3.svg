@@ -1,0 +1,83 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256">
+  <defs>
+    <linearGradient id="metal" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#8f95a0"/><stop offset=".45" stop-color="#4a4f59"/><stop offset="1" stop-color="#1b1e25"/></linearGradient>
+    <linearGradient id="metalM" x1="1" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#8f95a0"/><stop offset=".45" stop-color="#4a4f59"/><stop offset="1" stop-color="#1b1e25"/></linearGradient>
+    <linearGradient id="casco" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#6e6560"/><stop offset=".5" stop-color="#3a3433"/><stop offset="1" stop-color="#151215"/></linearGradient>
+    <linearGradient id="espinha" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#5a5f69"/><stop offset=".5" stop-color="#2e3239"/><stop offset="1" stop-color="#181a1f"/></linearGradient>
+    <radialGradient id="torre" cx=".35" cy=".3" r=".75"><stop offset="0" stop-color="#a8aeb8"/><stop offset=".5" stop-color="#50555f"/><stop offset="1" stop-color="#1a1c22"/></radialGradient>
+    <linearGradient id="ferrugem" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#c66d3b"/><stop offset="1" stop-color="#5a2812"/></linearGradient>
+    <linearGradient id="ouro" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#f2d27c"/><stop offset=".5" stop-color="#b48a36"/><stop offset="1" stop-color="#5c4318"/></linearGradient>
+    <radialGradient id="fogo" cx=".5" cy=".25" r=".75"><stop offset="0" stop-color="#fff6cc"/><stop offset=".3" stop-color="#ffb83a"/><stop offset=".65" stop-color="#ff4a18" stop-opacity=".7"/><stop offset="1" stop-color="#ff2a00" stop-opacity="0"/></radialGradient>
+    <filter id="desfoque" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="4"/></filter>
+  </defs>
+  <g id="sombra" opacity=".45" filter="url(#desfoque)" transform="translate(7 9)">
+    <path fill="#000" d="M128 20L156 38L186 74L208 136L200 186L172 212L84 212L56 186L48 136L70 74L100 38Z"/>
+  </g>
+  <g id="corpo">
+    <rect x="84" y="200" width="22" height="20" rx="4" fill="url(#metal)" stroke="#111318"/>
+    <rect x="117" y="200" width="22" height="22" rx="4" fill="url(#metal)" stroke="#111318"/>
+    <rect x="150" y="200" width="22" height="20" rx="4" fill="url(#metal)" stroke="#111318"/>
+    <path fill="url(#casco)" stroke="#111318" stroke-width="1.6" d="M128 20L156 38L186 74L208 136L200 186L172 210L84 210L56 186L48 136L70 74L100 38Z"/>
+    <g>
+      <path fill="url(#metal)" stroke="#111318" stroke-width="1.3" d="M74 80L104 60L108 126L58 144L54 136Z"/>
+      <path fill="url(#metal)" stroke="#111318" stroke-width="1.3" d="M58 152L108 134L110 192L86 204L62 184Z"/>
+    </g>
+    <g transform="matrix(-1 0 0 1 256 0)">
+      <path fill="url(#metalM)" stroke="#111318" stroke-width="1.3" d="M74 80L104 60L108 126L58 144L54 136Z"/>
+      <path fill="url(#metalM)" stroke="#111318" stroke-width="1.3" d="M58 152L108 134L110 192L86 204L62 184Z"/>
+    </g>
+    <rect x="112" y="36" width="32" height="172" rx="6" fill="url(#espinha)" stroke="#111318"/>
+  </g>
+  <g id="detalhes">
+    <path fill="none" stroke="url(#ouro)" stroke-width="3" stroke-linejoin="round" d="M100 40L128 22L156 40"/>
+    <path fill="none" stroke="url(#ouro)" stroke-width="2.2" d="M50 136L58 186L84 208M206 136L198 186L172 208"/>
+    <path fill="url(#ferrugem)" opacity=".85" d="M64 160L84 154L88 176L70 180Z"/>
+    <path fill="url(#ferrugem)" opacity=".8" d="M166 86L180 92L184 114L168 112Z"/>
+    <path fill="url(#ferrugem)" opacity=".7" d="M116 176L130 174L132 194L118 196Z"/>
+    <rect x="80" y="96" width="16" height="12" fill="#5d616a" stroke="#2a2c31" transform="rotate(-10 88 102)"/>
+    <path fill="none" stroke="#0e1014" stroke-width="1.1" opacity=".85" d="M112 100H144M112 168H144M66 112L104 98M154 98L192 112M70 170L108 162M148 162L188 170"/>
+    <g fill="#a7adb6">
+      <circle cx="78" cy="88" r="1.4"/><circle cx="100" cy="70" r="1.4"/><circle cx="62" cy="140" r="1.4"/><circle cx="104" cy="124" r="1.4"/>
+      <circle cx="178" cy="88" r="1.4"/><circle cx="156" cy="70" r="1.4"/><circle cx="194" cy="140" r="1.4"/><circle cx="152" cy="124" r="1.4"/>
+      <circle cx="66" cy="182" r="1.4"/><circle cx="104" cy="190" r="1.4"/><circle cx="190" cy="182" r="1.4"/><circle cx="152" cy="190" r="1.4"/>
+    </g>
+    <rect x="114" y="128" width="28" height="32" rx="4" fill="url(#metal)" stroke="#111318"/>
+    <rect x="118" y="134" width="5" height="4" fill="#ff8a3a"/><rect x="125.5" y="134" width="5" height="4" fill="#ff8a3a"/><rect x="133" y="134" width="5" height="4" fill="#ff8a3a"/>
+    <rect x="118" y="142" width="20" height="3" fill="#b8281e"/>
+    <rect x="122" y="36" width="4.5" height="30" rx="1.5" fill="url(#metal)" stroke="#111318" stroke-width=".8"/>
+    <rect x="129.5" y="36" width="4.5" height="30" rx="1.5" fill="url(#metal)" stroke="#111318" stroke-width=".8"/>
+    <circle cx="128" cy="74" r="15" fill="url(#torre)" stroke="#111318" stroke-width="1.3"/>
+    <circle cx="128" cy="74" r="7" fill="none" stroke="url(#ouro)" stroke-width="2"/>
+    <rect x="86" y="84" width="4" height="26" rx="1.5" fill="url(#metal)" stroke="#111318" stroke-width=".8"/>
+    <rect x="93" y="84" width="4" height="26" rx="1.5" fill="url(#metal)" stroke="#111318" stroke-width=".8"/>
+    <circle cx="91.5" cy="114" r="12" fill="url(#torre)" stroke="#111318" stroke-width="1.2"/>
+    <rect x="159" y="84" width="4" height="26" rx="1.5" fill="url(#metal)" stroke="#111318" stroke-width=".8"/>
+    <rect x="166" y="84" width="4" height="26" rx="1.5" fill="url(#metal)" stroke="#111318" stroke-width=".8"/>
+    <circle cx="164.5" cy="114" r="12" fill="url(#torre)" stroke="#111318" stroke-width="1.2"/>
+    <rect x="80" y="146" width="4" height="22" rx="1.5" fill="url(#metal)" stroke="#111318" stroke-width=".8"/>
+    <circle cx="84" cy="170" r="9" fill="url(#torre)" stroke="#111318"/>
+    <rect x="172" y="146" width="4" height="22" rx="1.5" fill="url(#metal)" stroke="#111318" stroke-width=".8"/>
+    <circle cx="172" cy="170" r="9" fill="url(#torre)" stroke="#111318"/>
+    <circle cx="91.5" cy="114" r="3.5" fill="#d8342a"/><circle cx="164.5" cy="114" r="3.5" fill="#d8342a"/>
+    <ellipse cx="95" cy="219" rx="9" ry="3.5" fill="#2b0e08"/>
+    <ellipse cx="128" cy="221" rx="9" ry="3.5" fill="#2b0e08"/>
+    <ellipse cx="161" cy="219" rx="9" ry="3.5" fill="#2b0e08"/>
+  </g>
+  <g id="brilho">
+    <g filter="url(#desfoque)">
+      <ellipse cx="95" cy="230" rx="12" ry="14" fill="#ff5a1a" opacity=".85"/>
+      <ellipse cx="128" cy="232" rx="13" ry="15" fill="#ff5a1a" opacity=".85"/>
+      <ellipse cx="161" cy="230" rx="12" ry="14" fill="#ff5a1a" opacity=".85"/>
+      <rect x="116" y="132" width="24" height="8" fill="#ff7a2a" opacity=".6"/>
+      <circle cx="124" cy="36" r="4" fill="#ff5a22"/><circle cx="132" cy="36" r="4" fill="#ff5a22"/>
+    </g>
+    <ellipse cx="95" cy="227" rx="7" ry="10" fill="url(#fogo)"/>
+    <ellipse cx="128" cy="229" rx="7.5" ry="11" fill="url(#fogo)"/>
+    <ellipse cx="161" cy="227" rx="7" ry="10" fill="url(#fogo)"/>
+    <path fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" opacity=".42" d="M126 23L101 40L72 75L51 136"/>
+    <path fill="none" stroke="#fff" stroke-width="1.4" stroke-linecap="round" opacity=".35" d="M76 82L102 64M60 154L106 137M114 40V200"/>
+    <ellipse cx="123" cy="69" rx="4" ry="3" fill="#fff" opacity=".45"/>
+    <ellipse cx="87.5" cy="110" rx="3.5" ry="2.5" fill="#fff" opacity=".4"/>
+    <ellipse cx="160.5" cy="110" rx="3.5" ry="2.5" fill="#fff" opacity=".4"/>
+  </g>
+</svg>

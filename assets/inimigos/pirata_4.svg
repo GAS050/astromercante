@@ -1,0 +1,86 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256">
+  <defs>
+    <linearGradient id="metal" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#8f95a0"/><stop offset=".45" stop-color="#4a4f59"/><stop offset="1" stop-color="#1b1e25"/></linearGradient>
+    <linearGradient id="casco" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#7a6a5e"/><stop offset=".5" stop-color="#3e3532"/><stop offset="1" stop-color="#151215"/></linearGradient>
+    <linearGradient id="vela" x1="0" y1="0" x2=".6" y2="1"><stop offset="0" stop-color="#c2443a"/><stop offset=".5" stop-color="#7e1e18"/><stop offset="1" stop-color="#3a0a08"/></linearGradient>
+    <radialGradient id="torre" cx=".35" cy=".3" r=".75"><stop offset="0" stop-color="#a8aeb8"/><stop offset=".5" stop-color="#50555f"/><stop offset="1" stop-color="#1a1c22"/></radialGradient>
+    <radialGradient id="osso" cx=".4" cy=".35" r=".7"><stop offset="0" stop-color="#fbf2dc"/><stop offset=".7" stop-color="#d8c69c"/><stop offset="1" stop-color="#8c7a52"/></radialGradient>
+    <linearGradient id="ferrugem" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#c66d3b"/><stop offset="1" stop-color="#5a2812"/></linearGradient>
+    <linearGradient id="ouro" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#f2d27c"/><stop offset=".5" stop-color="#b48a36"/><stop offset="1" stop-color="#5c4318"/></linearGradient>
+    <radialGradient id="fogo" cx=".5" cy=".25" r=".75"><stop offset="0" stop-color="#fff6cc"/><stop offset=".3" stop-color="#ffb83a"/><stop offset=".65" stop-color="#ff4a18" stop-opacity=".7"/><stop offset="1" stop-color="#ff2a00" stop-opacity="0"/></radialGradient>
+    <filter id="desfoque" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="4"/></filter>
+  </defs>
+  <g id="sombra" opacity=".45" filter="url(#desfoque)" transform="translate(7 9)">
+    <path fill="#000" d="M128 16C148 36 164 74 166 120L166 190L152 220L104 220L90 190L90 120C92 74 108 36 128 16Z"/>
+    <path fill="#000" d="M42 96L214 96L206 128L194 150L176 158L150 160L124 162L100 158L78 156L58 148L50 126Z"/>
+  </g>
+  <g id="corpo">
+    <rect x="96" y="208" width="20" height="18" rx="4" fill="url(#metal)" stroke="#111318"/>
+    <rect x="118" y="208" width="20" height="20" rx="4" fill="url(#metal)" stroke="#111318"/>
+    <rect x="140" y="208" width="20" height="18" rx="4" fill="url(#metal)" stroke="#111318"/>
+    <g fill="url(#metal)" stroke="#111318" stroke-width=".8">
+      <rect x="82" y="128" width="10" height="9" rx="1"/><rect x="82" y="150" width="10" height="9" rx="1"/><rect x="82" y="172" width="10" height="9" rx="1"/>
+      <rect x="164" y="128" width="10" height="9" rx="1"/><rect x="164" y="150" width="10" height="9" rx="1"/><rect x="164" y="172" width="10" height="9" rx="1"/>
+    </g>
+    <path fill="url(#casco)" stroke="#111318" stroke-width="1.6" d="M128 16C148 36 164 74 166 120L166 190L152 218L104 218L90 190L90 120C92 74 108 36 128 16Z"/>
+    <path fill="none" stroke="#0e1014" stroke-width="1.1" opacity=".8" d="M104 40C112 60 116 90 116 120V214M152 40C144 60 140 90 140 120V214M92 166H164M94 196H162"/>
+    <rect x="126" y="70" width="4" height="150" fill="#2a2d33"/>
+  </g>
+  <g id="detalhes">
+    <path fill="url(#ouro)" d="M128 16L136 32L128 28L120 32Z"/>
+    <path fill="none" stroke="url(#ouro)" stroke-width="2.4" d="M128 20C147 40 162 76 164 120V188"/>
+    <path fill="none" stroke="url(#ouro)" stroke-width="2.4" d="M128 20C109 40 94 76 92 120V188"/>
+    <path fill="url(#ferrugem)" opacity=".85" d="M98 176L114 172L116 190L100 192Z"/>
+    <path fill="url(#ferrugem)" opacity=".8" d="M142 66L154 72L156 88L142 86Z"/>
+    <rect x="144" y="180" width="14" height="12" fill="#5d616a" stroke="#2a2c31" transform="rotate(10 151 186)"/>
+    <rect x="116" y="70" width="24" height="18" rx="3" fill="url(#metal)" stroke="#111318"/>
+    <rect x="119" y="74" width="4" height="3" fill="#ff8a3a"/><rect x="126" y="74" width="4" height="3" fill="#ff8a3a"/><rect x="133" y="74" width="4" height="3" fill="#ff8a3a"/>
+    <rect x="122.5" y="32" width="4" height="22" rx="1.5" fill="url(#metal)" stroke="#111318" stroke-width=".8"/>
+    <rect x="129.5" y="32" width="4" height="22" rx="1.5" fill="url(#metal)" stroke="#111318" stroke-width=".8"/>
+    <circle cx="128" cy="58" r="11" fill="url(#torre)" stroke="#111318" stroke-width="1.2"/>
+    <circle cx="128" cy="58" r="4" fill="#d8342a"/>
+    <path fill="url(#vela)" fill-rule="evenodd" stroke="#2a0806" stroke-width="1.2" d="M44 100L212 100L206 128L198 124L194 150L184 142L176 158L162 148L150 160L136 150L124 162L112 148L100 158L90 146L78 156L70 140L58 148L54 126L48 130ZM68 112L82 108L77 124ZM176 116L190 112L186 128L180 122ZM96 136L104 132L102 142Z"/>
+    <path fill="none" stroke="#2a0806" stroke-width="1" opacity=".6" d="M84 100L86 150M128 100V160M172 100L170 150"/>
+    <rect x="38" y="94" width="180" height="7" rx="3.5" fill="url(#ouro)" stroke="#3a2a10" stroke-width=".8"/>
+    <g fill="url(#osso)">
+      <rect x="102" y="123" width="52" height="6" rx="3" transform="rotate(24 128 126)"/>
+      <rect x="102" y="123" width="52" height="6" rx="3" transform="rotate(-24 128 126)"/>
+      <circle cx="104" cy="113" r="4"/><circle cx="104" cy="139" r="4"/><circle cx="152" cy="113" r="4"/><circle cx="152" cy="139" r="4"/>
+      <circle cx="128" cy="118" r="13"/>
+      <rect x="120.5" y="124" width="15" height="10" rx="2.5"/>
+    </g>
+    <circle cx="122.5" cy="117" r="4" fill="#2a0806"/>
+    <circle cx="133.5" cy="117" r="4" fill="#2a0806"/>
+    <path fill="#2a0806" d="M128 121L125.5 126H130.5Z"/>
+    <path fill="none" stroke="#5a4a2a" stroke-width="1" d="M124.5 128V134M128 128V134M131.5 128V134"/>
+    <rect x="101" y="160" width="3.5" height="16" rx="1.5" fill="url(#metal)" stroke="#111318" stroke-width=".7"/>
+    <circle cx="108" cy="178" r="9" fill="url(#torre)" stroke="#111318"/>
+    <rect x="151.5" y="160" width="3.5" height="16" rx="1.5" fill="url(#metal)" stroke="#111318" stroke-width=".7"/>
+    <circle cx="148" cy="178" r="9" fill="url(#torre)" stroke="#111318"/>
+    <rect x="123" y="196" width="4" height="20" rx="1.5" fill="url(#metal)" stroke="#111318" stroke-width=".7"/>
+    <rect x="129" y="196" width="4" height="20" rx="1.5" fill="url(#metal)" stroke="#111318" stroke-width=".7"/>
+    <circle cx="128" cy="196" r="10" fill="url(#torre)" stroke="#111318"/>
+    <g fill="#a7adb6"><circle cx="98" cy="120" r="1.3"/><circle cx="158" cy="120" r="1.3"/><circle cx="98" cy="200" r="1.3"/><circle cx="158" cy="200" r="1.3"/><circle cx="112" cy="40" r="1.3"/><circle cx="144" cy="40" r="1.3"/></g>
+    <ellipse cx="106" cy="225" rx="8" ry="3" fill="#2b0e08"/>
+    <ellipse cx="128" cy="227" rx="8" ry="3" fill="#2b0e08"/>
+    <ellipse cx="150" cy="225" rx="8" ry="3" fill="#2b0e08"/>
+  </g>
+  <g id="brilho">
+    <g filter="url(#desfoque)">
+      <ellipse cx="106" cy="234" rx="10" ry="12" fill="#ff5a1a" opacity=".85"/>
+      <ellipse cx="128" cy="236" rx="11" ry="13" fill="#ff5a1a" opacity=".85"/>
+      <ellipse cx="150" cy="234" rx="10" ry="12" fill="#ff5a1a" opacity=".85"/>
+      <circle cx="122.5" cy="117" r="3" fill="#ff3a1a"/><circle cx="133.5" cy="117" r="3" fill="#ff3a1a"/>
+      <circle cx="40" cy="97" r="4" fill="#ff5a22"/><circle cx="216" cy="97" r="4" fill="#ff5a22"/>
+    </g>
+    <ellipse cx="106" cy="231" rx="6" ry="9" fill="url(#fogo)"/>
+    <ellipse cx="128" cy="233" rx="6.5" ry="10" fill="url(#fogo)"/>
+    <ellipse cx="150" cy="231" rx="6" ry="9" fill="url(#fogo)"/>
+    <circle cx="122.5" cy="117" r="1.6" fill="#ffb070"/><circle cx="133.5" cy="117" r="1.6" fill="#ffb070"/>
+    <path fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" opacity=".42" d="M126 20C108 40 95 76 93 120V186"/>
+    <path fill="none" stroke="#fff" stroke-width="1.5" stroke-linecap="round" opacity=".35" d="M46 102H210"/>
+    <path fill="none" stroke="#ffd0b0" stroke-width="1.2" stroke-linecap="round" opacity=".3" d="M50 104L55 124"/>
+    <ellipse cx="124" cy="112" rx="5" ry="3" fill="#fff" opacity=".4"/>
+    <ellipse cx="124" cy="54" rx="3.5" ry="2.5" fill="#fff" opacity=".45"/>
+  </g>
+</svg>

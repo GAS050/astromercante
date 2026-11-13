@@ -1,0 +1,55 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256">
+  <defs>
+    <radialGradient id="pele" cx=".38" cy=".3" r=".8"><stop offset="0" stop-color="#e7a4ff"/><stop offset=".35" stop-color="#9a3fd6"/><stop offset=".75" stop-color="#4a167a"/><stop offset="1" stop-color="#1c0838"/></radialGradient>
+    <radialGradient id="interno" cx=".5" cy=".5" r=".5"><stop offset="0" stop-color="#b6ff5a" stop-opacity=".9"/><stop offset=".6" stop-color="#3fd67a" stop-opacity=".35"/><stop offset="1" stop-color="#1a7a5a" stop-opacity="0"/></radialGradient>
+    <linearGradient id="tent" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#8a3ad0"/><stop offset=".6" stop-color="#d04aa8"/><stop offset="1" stop-color="#4ad8ff" stop-opacity=".2"/></linearGradient>
+    <radialGradient id="olho" cx=".4" cy=".35" r=".7"><stop offset="0" stop-color="#ffffff"/><stop offset=".3" stop-color="#d8ff7a"/><stop offset=".75" stop-color="#4ad84a"/><stop offset="1" stop-color="#0e4a1a"/></radialGradient>
+    <filter id="desfoque" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="4"/></filter>
+  </defs>
+  <g id="sombra" opacity=".4" filter="url(#desfoque)" transform="translate(6 8)">
+    <ellipse cx="128" cy="100" rx="62" ry="58" fill="#000"/>
+    <path fill="#000" d="M80 140L70 220L96 150L110 230L124 156L136 230L150 150L176 220L172 140Z"/>
+  </g>
+  <g id="membros">
+    <path fill="url(#tent)" stroke="#2a0a48" stroke-width="1" d="M78 134C66 160 72 190 62 222C82 196 86 166 94 142Z"/>
+    <path fill="url(#tent)" stroke="#2a0a48" stroke-width="1" d="M100 146C94 178 104 204 96 234C114 208 116 178 114 150Z"/>
+    <path fill="url(#tent)" stroke="#2a0a48" stroke-width="1" d="M178 134C190 160 184 190 194 222C174 196 170 166 162 142Z"/>
+    <path fill="url(#tent)" stroke="#2a0a48" stroke-width="1" d="M156 146C162 178 152 204 160 234C142 208 140 178 142 150Z"/>
+    <path fill="url(#tent)" stroke="#2a0a48" stroke-width="1" d="M122 150C116 182 132 206 126 238C142 212 140 180 134 150Z"/>
+    <g fill="#5af0ff" opacity=".85">
+      <circle cx="74" cy="176" r="2"/><circle cx="68" cy="204" r="1.6"/><circle cx="104" cy="186" r="2"/><circle cx="102" cy="214" r="1.6"/>
+      <circle cx="182" cy="176" r="2"/><circle cx="188" cy="204" r="1.6"/><circle cx="152" cy="186" r="2"/><circle cx="154" cy="214" r="1.6"/>
+      <circle cx="128" cy="190" r="2"/><circle cx="130" cy="220" r="1.6"/>
+    </g>
+  </g>
+  <g id="corpo">
+    <path fill="url(#pele)" stroke="#2a0a48" stroke-width="1.5" d="M128 38C168 38 192 68 192 104C192 128 184 140 176 146C166 140 160 150 150 148C142 156 134 152 128 156C122 152 114 156 106 148C96 150 90 140 80 146C72 140 64 128 64 104C64 68 88 38 128 38Z"/>
+    <ellipse cx="128" cy="104" rx="38" ry="30" fill="url(#interno)"/>
+  </g>
+  <g id="detalhes">
+    <path fill="none" stroke="#2a0a48" stroke-width="1.4" opacity=".6" d="M128 42C120 70 118 110 128 152M98 50C88 76 84 110 94 146M158 50C168 76 172 110 162 146M70 92C90 98 110 98 128 96C146 98 166 98 186 92"/>
+    <path fill="none" stroke="#ff5ad0" stroke-width="1" opacity=".5" d="M104 70C112 80 114 92 110 104M152 70C144 80 142 92 146 104M84 116C96 122 104 130 106 140M172 116C160 122 152 130 150 140"/>
+    <g fill="#c06af0" opacity=".55">
+      <circle cx="90" cy="70" r="3"/><circle cx="166" cy="70" r="3"/><circle cx="80" cy="104" r="2.4"/><circle cx="176" cy="104" r="2.4"/>
+      <circle cx="112" cy="54" r="2"/><circle cx="144" cy="54" r="2"/>
+    </g>
+    <ellipse cx="108" cy="96" rx="14" ry="15" fill="#1a0630"/>
+    <ellipse cx="148" cy="96" rx="14" ry="15" fill="#1a0630"/>
+    <ellipse cx="108" cy="96" rx="11" ry="12" fill="url(#olho)"/>
+    <ellipse cx="148" cy="96" rx="11" ry="12" fill="url(#olho)"/>
+    <ellipse cx="109" cy="98" rx="3" ry="7" fill="#0a1a06"/>
+    <ellipse cx="147" cy="98" rx="3" ry="7" fill="#0a1a06"/>
+  </g>
+  <g id="brilho">
+    <g filter="url(#desfoque)">
+      <circle cx="108" cy="96" r="12" fill="#a8ff4a" opacity=".6"/>
+      <circle cx="148" cy="96" r="12" fill="#a8ff4a" opacity=".6"/>
+      <ellipse cx="128" cy="124" rx="24" ry="12" fill="#5af0ff" opacity=".35"/>
+    </g>
+    <path fill="none" stroke="#f6d6ff" stroke-width="2.4" stroke-linecap="round" opacity=".55" d="M78 82C84 60 102 44 126 42"/>
+    <path fill="none" stroke="#5af0ff" stroke-width="1.6" stroke-linecap="round" opacity=".5" d="M188 110C186 126 182 138 176 146"/>
+    <ellipse cx="104" cy="90" rx="3" ry="3.5" fill="#fff" opacity=".9"/>
+    <ellipse cx="144" cy="90" rx="3" ry="3.5" fill="#fff" opacity=".9"/>
+    <ellipse cx="104" cy="58" rx="12" ry="5" fill="#fff" opacity=".22" transform="rotate(-20 104 58)"/>
+  </g>
+</svg>

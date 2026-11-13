@@ -1,0 +1,72 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256">
+  <defs>
+    <radialGradient id="carapaca" cx=".38" cy=".3" r=".8"><stop offset="0" stop-color="#b8ff6a"/><stop offset=".3" stop-color="#3fb85a"/><stop offset=".7" stop-color="#1a5a4a"/><stop offset="1" stop-color="#0a2228"/></radialGradient>
+    <linearGradient id="perna" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#9a4ad8"/><stop offset=".5" stop-color="#4e1a86"/><stop offset="1" stop-color="#1c0838"/></linearGradient>
+    <linearGradient id="garra" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ff8ae0"/><stop offset=".45" stop-color="#b02a8a"/><stop offset="1" stop-color="#3a0a30"/></linearGradient>
+    <radialGradient id="olho" cx=".4" cy=".35" r=".7"><stop offset="0" stop-color="#ffffff"/><stop offset=".3" stop-color="#ff9af0"/><stop offset=".75" stop-color="#e02ab0"/><stop offset="1" stop-color="#4a0638"/></radialGradient>
+    <filter id="desfoque" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="4"/></filter>
+  </defs>
+  <g id="sombra" opacity=".4" filter="url(#desfoque)" transform="translate(6 8)">
+    <ellipse cx="128" cy="138" rx="56" ry="50" fill="#000"/>
+    <path fill="#000" d="M40 30L80 60L100 110L60 100ZM216 30L176 60L156 110L196 100Z"/>
+    <path fill="#000" d="M76 130L24 120L20 140L76 150ZM180 130L232 120L236 140L180 150ZM80 166L30 196L40 206L90 180ZM176 166L226 196L216 206L166 180Z"/>
+  </g>
+  <g id="membros">
+    <g>
+      <path fill="url(#perna)" stroke="#16052a" stroke-width="1.2" d="M84 128L48 114L24 128L28 134L48 124L80 140Z"/>
+      <path fill="url(#perna)" stroke="#16052a" stroke-width="1.2" d="M82 150L44 152L22 176L28 180L48 162L84 162Z"/>
+      <path fill="url(#perna)" stroke="#16052a" stroke-width="1.2" d="M88 170L58 186L44 214L50 216L66 194L94 180Z"/>
+      <path fill="url(#perna)" stroke="#16052a" stroke-width="1.2" d="M100 112L84 90L66 82L76 68L92 80L110 106Z"/>
+      <path fill="url(#garra)" stroke="#2a0620" stroke-width="1.2" d="M76 74C56 70 40 56 38 34C50 22 70 26 80 40C86 50 86 64 76 74Z"/>
+      <path fill="url(#garra)" stroke="#2a0620" stroke-width="1.2" d="M38 34L30 12L52 26Z"/>
+      <path fill="url(#garra)" stroke="#2a0620" stroke-width="1.2" d="M56 28L66 8L72 34Z"/>
+    </g>
+    <g transform="matrix(-1 0 0 1 256 0)">
+      <path fill="url(#perna)" stroke="#16052a" stroke-width="1.2" d="M84 128L48 114L24 128L28 134L48 124L80 140Z"/>
+      <path fill="url(#perna)" stroke="#16052a" stroke-width="1.2" d="M82 150L44 152L22 176L28 180L48 162L84 162Z"/>
+      <path fill="url(#perna)" stroke="#16052a" stroke-width="1.2" d="M88 170L58 186L44 214L50 216L66 194L94 180Z"/>
+      <path fill="url(#perna)" stroke="#16052a" stroke-width="1.2" d="M100 112L84 90L66 82L76 68L92 80L110 106Z"/>
+      <path fill="url(#garra)" stroke="#2a0620" stroke-width="1.2" d="M76 74C56 70 40 56 38 34C50 22 70 26 80 40C86 50 86 64 76 74Z"/>
+      <path fill="url(#garra)" stroke="#2a0620" stroke-width="1.2" d="M38 34L30 12L52 26Z"/>
+      <path fill="url(#garra)" stroke="#2a0620" stroke-width="1.2" d="M56 28L66 8L72 34Z"/>
+    </g>
+    <g fill="#5af0ff" opacity=".85">
+      <circle cx="48" cy="120" r="2"/><circle cx="46" cy="156" r="2"/><circle cx="62" cy="190" r="2"/>
+      <circle cx="208" cy="120" r="2"/><circle cx="210" cy="156" r="2"/><circle cx="194" cy="190" r="2"/>
+      <circle cx="58" cy="48" r="2.6"/><circle cx="198" cy="48" r="2.6"/>
+    </g>
+  </g>
+  <g id="corpo">
+    <path fill="url(#carapaca)" stroke="#071a1a" stroke-width="1.6" d="M128 88C156 88 182 104 186 134C190 166 166 192 128 194C90 192 66 166 70 134C74 104 100 88 128 88Z"/>
+    <path fill="#1a0a30" opacity=".5" d="M128 176C110 176 96 184 92 190C104 196 116 198 128 198C140 198 152 196 164 190C160 184 146 176 128 176Z"/>
+  </g>
+  <g id="detalhes">
+    <path fill="none" stroke="#071a1a" stroke-width="1.4" opacity=".7" d="M128 92V192M84 118C104 124 152 124 172 118M76 148C100 156 156 156 180 148M98 96C92 120 92 160 102 188M158 96C164 120 164 160 154 188"/>
+    <g fill="#8aff6a" opacity=".45">
+      <circle cx="112" cy="138" r="4"/><circle cx="144" cy="138" r="4"/><circle cx="112" cy="168" r="3.4"/><circle cx="144" cy="168" r="3.4"/>
+      <circle cx="86" cy="134" r="3"/><circle cx="170" cy="134" r="3"/><circle cx="128" cy="160" r="3"/>
+    </g>
+    <path fill="#e02ab0" opacity=".6" d="M128 128L120 140L128 152L136 140Z"/>
+    <circle cx="110" cy="104" r="9" fill="#14051f"/><circle cx="146" cy="104" r="9" fill="#14051f"/>
+    <circle cx="128" cy="98" r="7" fill="#14051f"/>
+    <circle cx="94" cy="112" r="5.5" fill="#14051f"/><circle cx="162" cy="112" r="5.5" fill="#14051f"/>
+    <circle cx="110" cy="104" r="7" fill="url(#olho)"/><circle cx="146" cy="104" r="7" fill="url(#olho)"/>
+    <circle cx="128" cy="98" r="5.4" fill="url(#olho)"/>
+    <circle cx="94" cy="112" r="4.2" fill="url(#olho)"/><circle cx="162" cy="112" r="4.2" fill="url(#olho)"/>
+    <path fill="#c02a8a" stroke="#2a0620" stroke-width=".8" d="M118 88L114 74L122 84ZM138 88L142 74L134 84Z"/>
+  </g>
+  <g id="brilho">
+    <g filter="url(#desfoque)">
+      <circle cx="110" cy="104" r="8" fill="#ff4ad0" opacity=".7"/><circle cx="146" cy="104" r="8" fill="#ff4ad0" opacity=".7"/>
+      <circle cx="128" cy="98" r="6" fill="#ff4ad0" opacity=".7"/>
+      <circle cx="58" cy="48" r="5" fill="#5af0ff" opacity=".6"/><circle cx="198" cy="48" r="5" fill="#5af0ff" opacity=".6"/>
+      <ellipse cx="128" cy="140" rx="12" ry="14" fill="#ff4ad0" opacity=".35"/>
+    </g>
+    <circle cx="107.5" cy="101" r="2" fill="#fff"/><circle cx="143.5" cy="101" r="2" fill="#fff"/>
+    <circle cx="126.5" cy="96" r="1.5" fill="#fff"/><circle cx="92.5" cy="110.5" r="1.2" fill="#fff"/><circle cx="160.5" cy="110.5" r="1.2" fill="#fff"/>
+    <path fill="none" stroke="#e8ffb0" stroke-width="2.4" stroke-linecap="round" opacity=".5" d="M76 130C80 108 100 92 124 90"/>
+    <path fill="none" stroke="#ffc0f0" stroke-width="1.6" stroke-linecap="round" opacity=".5" d="M42 36C46 50 58 62 72 66"/>
+    <path fill="none" stroke="#ffc0f0" stroke-width="1.2" stroke-linecap="round" opacity=".35" d="M184 40C190 46 196 54 198 62"/>
+    <ellipse cx="104" cy="122" rx="14" ry="6" fill="#fff" opacity=".18" transform="rotate(-25 104 122)"/>
+  </g>
+</svg>

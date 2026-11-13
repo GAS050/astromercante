@@ -1,0 +1,80 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256">
+  <defs>
+    <linearGradient id="metal" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#8f95a0"/><stop offset=".45" stop-color="#4a4f59"/><stop offset="1" stop-color="#1b1e25"/></linearGradient>
+    <linearGradient id="metalM" x1="1" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#8f95a0"/><stop offset=".45" stop-color="#4a4f59"/><stop offset="1" stop-color="#1b1e25"/></linearGradient>
+    <linearGradient id="casco" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#7d6b60"/><stop offset=".5" stop-color="#433834"/><stop offset="1" stop-color="#1a1517"/></linearGradient>
+    <linearGradient id="ferrugem" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#c66d3b"/><stop offset="1" stop-color="#5a2812"/></linearGradient>
+    <linearGradient id="ouro" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#f2d27c"/><stop offset=".5" stop-color="#b48a36"/><stop offset="1" stop-color="#5c4318"/></linearGradient>
+    <radialGradient id="vidro" cx=".35" cy=".3" r=".8"><stop offset="0" stop-color="#ffe4b4"/><stop offset=".35" stop-color="#ff7a30"/><stop offset="1" stop-color="#4a0f0a"/></radialGradient>
+    <radialGradient id="fogo" cx=".5" cy=".25" r=".75"><stop offset="0" stop-color="#fff6cc"/><stop offset=".3" stop-color="#ffb83a"/><stop offset=".65" stop-color="#ff4a18" stop-opacity=".7"/><stop offset="1" stop-color="#ff2a00" stop-opacity="0"/></radialGradient>
+    <filter id="desfoque" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="4"/></filter>
+  </defs>
+  <g id="sombra" opacity=".45" filter="url(#desfoque)" transform="translate(7 9)">
+    <path fill="#000" d="M128 30L150 58L158 112L160 180L152 208L104 208L96 180L98 112L106 58Z"/>
+    <path fill="#000" d="M68 92L90 88L96 172L76 178L64 160ZM74 36H86V96H74Z"/>
+    <path fill="#000" d="M188 92L166 88L160 172L180 178L192 160ZM170 36H182V96H170Z"/>
+  </g>
+  <g id="corpo">
+    <g>
+      <rect x="90" y="116" width="12" height="22" fill="url(#metal)" stroke="#111318"/>
+      <rect x="74" y="38" width="11" height="62" rx="2" fill="url(#metal)" stroke="#111318"/>
+      <path fill="url(#casco)" stroke="#111318" stroke-width="1.5" d="M68 92L90 88L96 172L76 178L64 160Z"/>
+    </g>
+    <g transform="matrix(-1 0 0 1 256 0)">
+      <rect x="90" y="116" width="12" height="22" fill="url(#metalM)" stroke="#111318"/>
+      <rect x="74" y="38" width="11" height="62" rx="2" fill="url(#metalM)" stroke="#111318"/>
+      <path fill="url(#casco)" stroke="#111318" stroke-width="1.5" d="M68 92L90 88L96 172L76 178L64 160Z"/>
+    </g>
+    <rect x="101" y="174" width="23" height="34" rx="5" fill="url(#metal)" stroke="#111318"/>
+    <rect x="132" y="174" width="23" height="34" rx="5" fill="url(#metal)" stroke="#111318"/>
+    <path fill="url(#casco)" stroke="#111318" stroke-width="1.5" d="M128 30L150 58L158 112L160 180L148 200L108 200L96 180L98 112L106 58Z"/>
+  </g>
+  <g id="detalhes">
+    <path fill="url(#ouro)" d="M128 40L145 62L140 67L128 51L116 67L111 62Z"/>
+    <path fill="url(#ouro)" stroke="#3a2a10" stroke-width=".8" d="M128 62L141 76L139 95L117 95L115 76Z"/>
+    <path fill="url(#vidro)" d="M128 66L137 77L135.5 91L120.5 91L119 77Z"/>
+    <path fill="none" stroke="#0e1014" stroke-width="1.2" opacity=".85" d="M101 110L155 110M99 140L157 140M98 168L158 168M128 100L128 196M112 112L110 166M144 112L146 166"/>
+    <path fill="url(#ferrugem)" opacity=".85" d="M104 118L122 116L124 134L102 136Z"/>
+    <path fill="url(#ferrugem)" opacity=".75" d="M140 146L154 148L155 164L138 160Z"/>
+    <rect x="132" y="116" width="16" height="12" fill="#5d616a" stroke="#2a2c31" transform="rotate(8 140 122)"/>
+    <path fill="#b8281e" d="M68 112L91 108L92 122L68 126Z"/>
+    <path fill="#b8281e" d="M188 112L165 108L164 122L188 126Z"/>
+    <path fill="url(#ferrugem)" opacity=".8" d="M70 140L88 138L90 160L74 164Z"/>
+    <rect x="72" y="58" width="15" height="5" rx="1" fill="url(#ouro)"/>
+    <rect x="72" y="80" width="15" height="5" rx="1" fill="url(#ouro)"/>
+    <rect x="169" y="58" width="15" height="5" rx="1" fill="url(#ouro)"/>
+    <rect x="169" y="80" width="15" height="5" rx="1" fill="url(#ouro)"/>
+    <rect x="72" y="32" width="15" height="9" rx="2" fill="#2a2c31" stroke="#111318"/>
+    <rect x="169" y="32" width="15" height="9" rx="2" fill="#2a2c31" stroke="#111318"/>
+    <g fill="#a7adb6">
+      <circle cx="104" cy="104" r="1.3"/><circle cx="152" cy="104" r="1.3"/><circle cx="102" cy="150" r="1.3"/><circle cx="154" cy="150" r="1.3"/>
+      <circle cx="102" cy="190" r="1.3"/><circle cx="154" cy="190" r="1.3"/><circle cx="74" cy="100" r="1.3"/><circle cx="182" cy="100" r="1.3"/>
+      <circle cx="78" cy="170" r="1.3"/><circle cx="178" cy="170" r="1.3"/>
+    </g>
+    <ellipse cx="112.5" cy="207" rx="9" ry="4" fill="#2b0e08"/>
+    <ellipse cx="143.5" cy="207" rx="9" ry="4" fill="#2b0e08"/>
+    <ellipse cx="78" cy="176" rx="5" ry="2.5" fill="#2b0e08"/>
+    <ellipse cx="178" cy="176" rx="5" ry="2.5" fill="#2b0e08"/>
+    <path fill="none" stroke="#0e1014" stroke-width="1" d="M104 182H121M104 188H121M135 182H152M135 188H152"/>
+  </g>
+  <g id="brilho">
+    <g filter="url(#desfoque)">
+      <ellipse cx="112.5" cy="222" rx="13" ry="19" fill="#ff5a1a" opacity=".85"/>
+      <ellipse cx="143.5" cy="222" rx="13" ry="19" fill="#ff5a1a" opacity=".85"/>
+      <ellipse cx="78" cy="184" rx="6" ry="9" fill="#ff5a1a" opacity=".8"/>
+      <ellipse cx="178" cy="184" rx="6" ry="9" fill="#ff5a1a" opacity=".8"/>
+      <circle cx="79.5" cy="34" r="7" fill="#ff6a22"/>
+      <circle cx="176.5" cy="34" r="7" fill="#ff6a22"/>
+    </g>
+    <ellipse cx="112.5" cy="217" rx="8" ry="13" fill="url(#fogo)"/>
+    <ellipse cx="143.5" cy="217" rx="8" ry="13" fill="url(#fogo)"/>
+    <ellipse cx="78" cy="181" rx="3.5" ry="6" fill="url(#fogo)"/>
+    <ellipse cx="178" cy="181" rx="3.5" ry="6" fill="url(#fogo)"/>
+    <circle cx="79.5" cy="35" r="3" fill="#ffd9a0"/>
+    <circle cx="176.5" cy="35" r="3" fill="#ffd9a0"/>
+    <path fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" opacity=".45" d="M126 33L107 59L99 112L97 178"/>
+    <path fill="none" stroke="#fff" stroke-width="1.6" stroke-linecap="round" opacity=".35" d="M69 95L65 158M75 40V98"/>
+    <path fill="none" stroke="#fff" stroke-width="1.2" stroke-linecap="round" opacity=".3" d="M167 91L162 168M171 40V98"/>
+    <path fill="#fff" opacity=".7" d="M125 70L121 77L122 86L124 78Z"/>
+  </g>
+</svg>

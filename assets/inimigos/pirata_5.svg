@@ -1,0 +1,97 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256">
+  <defs>
+    <linearGradient id="metal" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#8f95a0"/><stop offset=".45" stop-color="#4a4f59"/><stop offset="1" stop-color="#1b1e25"/></linearGradient>
+    <linearGradient id="casco" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#7c6a5c"/><stop offset=".5" stop-color="#3e3431"/><stop offset="1" stop-color="#141114"/></linearGradient>
+    <linearGradient id="conves" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#5a5550"/><stop offset=".5" stop-color="#2c2928"/><stop offset="1" stop-color="#121013"/></linearGradient>
+    <radialGradient id="torre" cx=".35" cy=".3" r=".75"><stop offset="0" stop-color="#a8aeb8"/><stop offset=".5" stop-color="#50555f"/><stop offset="1" stop-color="#1a1c22"/></radialGradient>
+    <linearGradient id="ferrugem" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#c66d3b"/><stop offset="1" stop-color="#5a2812"/></linearGradient>
+    <linearGradient id="ouro" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#f6da88"/><stop offset=".5" stop-color="#b48a36"/><stop offset="1" stop-color="#5c4318"/></linearGradient>
+    <radialGradient id="cranio" cx=".38" cy=".3" r=".75"><stop offset="0" stop-color="#ffeab0"/><stop offset=".45" stop-color="#c99a42"/><stop offset="1" stop-color="#5c4318"/></radialGradient>
+    <radialGradient id="fogo" cx=".5" cy=".25" r=".75"><stop offset="0" stop-color="#fff6cc"/><stop offset=".3" stop-color="#ffb83a"/><stop offset=".65" stop-color="#ff4a18" stop-opacity=".7"/><stop offset="1" stop-color="#ff2a00" stop-opacity="0"/></radialGradient>
+    <filter id="desfoque" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="4"/></filter>
+  </defs>
+  <g id="sombra" opacity=".5" filter="url(#desfoque)" transform="translate(135 138) scale(.9) translate(-128 -128)">
+    <path fill="#000" d="M128 12C156 24 182 54 192 96L212 140L206 192L182 216L74 216L50 192L44 140L64 96C74 54 100 24 128 12Z"/>
+    <path fill="#000" d="M28 132H48V196H28ZM208 132H228V196H208Z"/>
+  </g>
+  <g id="corpo" transform="translate(128 126) scale(.9) translate(-128 -128)">
+    <g fill="url(#metal)" stroke="#111318" stroke-width=".9">
+      <rect x="28" y="134" width="20" height="6" rx="2"/><rect x="28" y="150" width="20" height="6" rx="2"/><rect x="28" y="166" width="20" height="6" rx="2"/><rect x="30" y="182" width="20" height="6" rx="2"/>
+      <rect x="208" y="134" width="20" height="6" rx="2"/><rect x="208" y="150" width="20" height="6" rx="2"/><rect x="208" y="166" width="20" height="6" rx="2"/><rect x="206" y="182" width="20" height="6" rx="2"/>
+      <rect x="50" y="104" width="16" height="5" rx="2"/><rect x="190" y="104" width="16" height="5" rx="2"/>
+      <rect x="54" y="88" width="14" height="5" rx="2"/><rect x="188" y="88" width="14" height="5" rx="2"/>
+    </g>
+    <rect x="70" y="200" width="32" height="30" rx="6" fill="url(#metal)" stroke="#111318" stroke-width="1.2"/>
+    <rect x="106" y="200" width="20" height="28" rx="5" fill="url(#metal)" stroke="#111318" stroke-width="1.2"/>
+    <rect x="130" y="200" width="20" height="28" rx="5" fill="url(#metal)" stroke="#111318" stroke-width="1.2"/>
+    <rect x="154" y="200" width="32" height="30" rx="6" fill="url(#metal)" stroke="#111318" stroke-width="1.2"/>
+    <path fill="url(#casco)" stroke="#111318" stroke-width="1.8" d="M128 12C156 24 182 54 192 96L212 140L206 192L182 216L74 216L50 192L44 140L64 96C74 54 100 24 128 12Z"/>
+    <path fill="url(#conves)" stroke="#0e0c0e" stroke-width="1.2" d="M128 32C146 42 160 64 166 96L178 140L172 186L84 186L78 140L90 96C96 64 110 42 128 32Z"/>
+  </g>
+  <g id="detalhes" transform="translate(128 126) scale(.9) translate(-128 -128)">
+    <path fill="none" stroke="url(#ouro)" stroke-width="3" stroke-linejoin="round" d="M128 14C155 26 180 55 190 97L210 140L204 191L181 214"/>
+    <path fill="none" stroke="url(#ouro)" stroke-width="3" stroke-linejoin="round" d="M128 14C101 26 76 55 66 97L46 140L52 191L75 214"/>
+    <path fill="none" stroke="#0e1014" stroke-width="1.1" opacity=".8" d="M70 110L88 112M62 140H80M64 170H80M186 110L168 112M194 140H176M192 170H176M86 70L100 80M170 70L156 80"/>
+    <g fill="url(#ouro)">
+      <circle cx="48" cy="137" r="2.6"/><circle cx="48" cy="153" r="2.6"/><circle cx="48" cy="169" r="2.6"/><circle cx="50" cy="185" r="2.6"/>
+      <circle cx="208" cy="137" r="2.6"/><circle cx="208" cy="153" r="2.6"/><circle cx="208" cy="169" r="2.6"/><circle cx="206" cy="185" r="2.6"/>
+    </g>
+    <path fill="url(#ferrugem)" opacity=".85" d="M56 150L72 146L74 170L58 172Z"/>
+    <path fill="url(#ferrugem)" opacity=".8" d="M176 100L188 104L192 124L180 122Z"/>
+    <path fill="url(#ferrugem)" opacity=".7" d="M96 150L112 148L112 170L94 168Z"/>
+    <rect x="150" y="150" width="16" height="14" fill="#5d616a" stroke="#2a2c31" transform="rotate(-8 158 157)"/>
+    <rect x="96" y="148" width="64" height="44" rx="7" fill="url(#casco)" stroke="#111318" stroke-width="1.2"/>
+    <rect x="102" y="154" width="52" height="8" rx="2" fill="#2b0e08"/>
+    <g fill="#ff8a3a"><rect x="105" y="156" width="6" height="4"/><rect x="114" y="156" width="6" height="4"/><rect x="123" y="156" width="6" height="4"/><rect x="132" y="156" width="6" height="4"/><rect x="141" y="156" width="6" height="4"/></g>
+    <path fill="url(#ouro)" d="M112 170H144L140 182H116Z"/>
+    <g fill="url(#metal)" stroke="#111318" stroke-width=".7">
+      <rect x="95" y="80" width="3.5" height="18" rx="1.5"/><rect x="101.5" y="80" width="3.5" height="18" rx="1.5"/>
+      <rect x="151" y="80" width="3.5" height="18" rx="1.5"/><rect x="157.5" y="80" width="3.5" height="18" rx="1.5"/>
+      <rect x="91" y="114" width="3.5" height="18" rx="1.5"/><rect x="97.5" y="114" width="3.5" height="18" rx="1.5"/>
+      <rect x="155" y="114" width="3.5" height="18" rx="1.5"/><rect x="161.5" y="114" width="3.5" height="18" rx="1.5"/>
+      <rect x="122" y="90" width="5" height="26" rx="1.5"/><rect x="129" y="90" width="5" height="26" rx="1.5"/>
+    </g>
+    <circle cx="100" cy="100" r="10" fill="url(#torre)" stroke="#111318" stroke-width="1.1"/>
+    <circle cx="156" cy="100" r="10" fill="url(#torre)" stroke="#111318" stroke-width="1.1"/>
+    <circle cx="96" cy="134" r="10" fill="url(#torre)" stroke="#111318" stroke-width="1.1"/>
+    <circle cx="160" cy="134" r="10" fill="url(#torre)" stroke="#111318" stroke-width="1.1"/>
+    <circle cx="128" cy="122" r="14" fill="url(#torre)" stroke="#111318" stroke-width="1.3"/>
+    <circle cx="128" cy="122" r="6" fill="none" stroke="url(#ouro)" stroke-width="2"/>
+    <g fill="url(#cranio)" stroke="#3a2a10" stroke-width=".8">
+      <path d="M108 66L88 54L92 50L112 60Z"/><path d="M148 66L168 54L164 50L144 60Z"/>
+      <path d="M110 46L92 36L94 30L114 40Z"/><path d="M146 46L164 36L162 30L142 40Z"/>
+      <circle cx="128" cy="48" r="17"/>
+      <rect x="118" y="58" width="20" height="13" rx="3"/>
+    </g>
+    <path fill="none" stroke="#3a2a10" stroke-width="1.2" d="M123 61V71M128 61V71M133 61V71"/>
+    <ellipse cx="121" cy="48" rx="5" ry="5.5" fill="#2b0806"/>
+    <ellipse cx="135" cy="48" rx="5" ry="5.5" fill="#2b0806"/>
+    <path fill="#2b0806" d="M128 53L125 58H131Z"/>
+    <ellipse cx="86" cy="229" rx="12" ry="4" fill="#2b0e08"/>
+    <ellipse cx="116" cy="227" rx="7" ry="3" fill="#2b0e08"/>
+    <ellipse cx="140" cy="227" rx="7" ry="3" fill="#2b0e08"/>
+    <ellipse cx="170" cy="229" rx="12" ry="4" fill="#2b0e08"/>
+    <path fill="none" stroke="#0e1014" stroke-width="1" d="M74 208H98M74 214H98M158 208H182M158 214H182"/>
+  </g>
+  <g id="brilho" transform="translate(128 126) scale(.9) translate(-128 -128)">
+    <g filter="url(#desfoque)">
+      <ellipse cx="86" cy="240" rx="17" ry="15" fill="#ff5a1a" opacity=".9"/>
+      <ellipse cx="116" cy="236" rx="10" ry="11" fill="#ff5a1a" opacity=".8"/>
+      <ellipse cx="140" cy="236" rx="10" ry="11" fill="#ff5a1a" opacity=".8"/>
+      <ellipse cx="170" cy="240" rx="17" ry="15" fill="#ff5a1a" opacity=".9"/>
+      <circle cx="121" cy="48" r="4" fill="#ff2a10"/><circle cx="135" cy="48" r="4" fill="#ff2a10"/>
+      <rect x="102" y="154" width="52" height="8" fill="#ff7a2a" opacity=".6"/>
+      <circle cx="28" cy="137" r="4" fill="#ff5a22"/><circle cx="28" cy="153" r="4" fill="#ff5a22"/><circle cx="28" cy="169" r="4" fill="#ff5a22"/><circle cx="30" cy="185" r="4" fill="#ff5a22"/>
+      <circle cx="228" cy="137" r="4" fill="#ff5a22"/><circle cx="228" cy="153" r="4" fill="#ff5a22"/><circle cx="228" cy="169" r="4" fill="#ff5a22"/><circle cx="226" cy="185" r="4" fill="#ff5a22"/>
+    </g>
+    <ellipse cx="86" cy="236" rx="10" ry="11" fill="url(#fogo)"/>
+    <ellipse cx="116" cy="233" rx="5.5" ry="7" fill="url(#fogo)"/>
+    <ellipse cx="140" cy="233" rx="5.5" ry="7" fill="url(#fogo)"/>
+    <ellipse cx="170" cy="236" rx="10" ry="11" fill="url(#fogo)"/>
+    <circle cx="121" cy="48" r="2" fill="#ffb070"/><circle cx="135" cy="48" r="2" fill="#ffb070"/>
+    <path fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" opacity=".4" d="M124 16C99 29 76 56 67 96L47 140L52 186"/>
+    <path fill="none" stroke="#fff" stroke-width="1.4" stroke-linecap="round" opacity=".3" d="M126 35C110 45 97 66 91 96L80 140"/>
+    <ellipse cx="121" cy="40" rx="6" ry="3.5" fill="#fff" opacity=".45"/>
+    <ellipse cx="123" cy="117" rx="4" ry="3" fill="#fff" opacity=".4"/>
+  </g>
+</svg>

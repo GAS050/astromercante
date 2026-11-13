@@ -5,17 +5,19 @@ import { RES } from './motor.js';
 import { GALAXIES, FEEDS } from './dados.js';
 
 const INTERVALO = 55 * 60 * 1000, GUARDA = 24 * 3600 * 1000, MAX = 20;
-const FONTES = [   // consultas de manchetes (Google News RSS); só o título é usado como inspiração
-  'https://news.google.com/rss/search?q=bitcoin+when:1d&hl=en-US&gl=US&ceid=US:en',
-  'https://news.google.com/rss/search?q=ethereum+OR+solana+OR+crypto+market+when:1d&hl=en-US&gl=US&ceid=US:en',
-  'https://news.google.com/rss/search?q=gold+price+when:1d&hl=en-US&gl=US&ceid=US:en',
-  'https://news.google.com/rss/search?q=d%C3%B3lar+real+c%C3%A2mbio+when:1d&hl=pt-BR&gl=BR&ceid=BR:pt-419',
-  'https://news.google.com/rss/search?q=oil+OR+energy+OR+inflation+OR+interest+rates+when:1d&hl=en-US&gl=US&ceid=US:en',
-  'https://news.google.com/rss/search?q=global+economy+OR+stock+market+when:1d&hl=en-US&gl=US&ceid=US:en',
-  // notícias indiretas: geopolítica, comércio e bancos centrais costumam mexer com dólar, ouro e cripto
-  'https://news.google.com/rss/search?q=geopolitics+OR+war+OR+sanctions+OR+tariffs+OR+%22trade+war%22+when:1d&hl=en-US&gl=US&ceid=US:en',
-  'https://news.google.com/rss/search?q=central+bank+OR+%22interest+rate%22+OR+recession+OR+%22safe+haven%22+when:1d&hl=en-US&gl=US&ceid=US:en',
-  'https://news.google.com/rss/search?q=crypto+regulation+OR+ETF+OR+exchange+hack+OR+stablecoin+when:1d&hl=en-US&gl=US&ceid=US:en',
+const FONTES = [   // feeds RSS públicos de veículos; só o título de cada matéria é usado como inspiração (o texto do jogo é sempre fictício)
+  ['coindesk', 'https://www.coindesk.com/arc/outboundfeeds/rss/'],
+  ['cointelegraph', 'https://cointelegraph.com/rss'],
+  ['decrypt', 'https://decrypt.co/feed'],
+  ['cryptoslate', 'https://cryptoslate.com/feed/'],
+  ['cnbc-economia', 'https://www.cnbc.com/id/20910258/device/rss/rss.html'],
+  ['cnbc-financas', 'https://www.cnbc.com/id/10000664/device/rss/rss.html'],
+  ['bbc-negocios', 'https://feeds.bbci.co.uk/news/business/rss.xml'],
+  ['bbc-mundo', 'https://feeds.bbci.co.uk/news/world/rss.xml'],
+  ['guardian-negocios', 'https://www.theguardian.com/business/rss'],
+  ['guardian-mundo', 'https://www.theguardian.com/world/rss'],
+  ['g1-economia', 'https://g1.globo.com/rss/g1/economia/'],
+  ['google-ouro', 'https://news.google.com/rss/search?q=gold+price+when:1d&hl=en-US&gl=US&ceid=US:en'],
 ];
 // nada de pessoas, países ou empresas reais no texto final
 const PROIBIDO = /trump|biden|putin|zelensk|musk|lula|bolsonaro|powell|xi jinping|netanyahu|china|chin[eê]s|eua\b|estados unidos|r[uú]ssia|ucr[aâ]nia|israel|\bir[aã]\b|gaza|brasil|europa|opep|opec|\bfed\b|binance|coinbase|apple|google|tesla|nvidia|microsoft|amazon|meta\b|openai|sec\b|nasdaq|wall street|dow jones/i;
@@ -27,7 +29,7 @@ const limpa = (s, n) => String(s ?? '').replace(/<[^>]*>/g, '').replace(/\s+/g, 
 
 // lê só o começo de cada feed (as primeiras manchetes ficam nos primeiros KB): poupa CPU, que no plano grátis é de só 10 ms por execução
 async function comecoDe(u, max = 14000) {
-  const r = await fetch(u, { headers: { 'user-agent': 'Mozilla/5.0 Astromercante' } });
+  const r = await fetch(u, { headers: { 'user-agent': 'Mozilla/5.0 (compatible; Astromercante/1.0)', accept: 'application/rss+xml, application/xml, text/xml, */*' } });
   if (!r.ok) throw new Error('http ' + r.status);
   if (!r.body) return (await r.text()).slice(0, max);
   const rd = r.body.getReader(), dec = new TextDecoder(); let t = '';
@@ -35,10 +37,16 @@ async function comecoDe(u, max = 14000) {
   try { await rd.cancel(); } catch {}
   return t;
 }
-async function manchetes() {
-  const r = await Promise.allSettled(FONTES.map((u) => comecoDe(u)));
-  const out = [];
-  r.forEach((x) => { if (x.status !== 'fulfilled') return; let n = 0; for (const m of x.value.matchAll(/<item>[\s\S]*?<title>(?:<!\[CDATA\[)?([\s\S]*?)(?:\]\]>)?<\/title>/g)) { const t = limpa(m[1].replace(/ - [^-]+$/, ''), 160); if (t && n++ < 6) out.push(t); } });
+async function manchetes(diag) {
+  const r = await Promise.allSettled(FONTES.map(([, u]) => comecoDe(u)));
+  const out = [], rel = [];
+  r.forEach((x, i) => {
+    const nome = FONTES[i][0];
+    if (x.status !== 'fulfilled') return rel.push(`${nome}: ${String(x.reason?.message || x.reason).slice(0, 30)}`);
+    let n = 0; for (const m of x.value.matchAll(/<item[\s>][\s\S]*?<title[^>]*>(?:<!\[CDATA\[)?([\s\S]*?)(?:\]\]>)?<\/title>/g)) { const t = limpa(m[1].replace(/ - [^-]+$/, ''), 160); if (t && n++ < 6) out.push(t); }
+    rel.push(`${nome}: ${n}`);
+  });
+  if (diag) diag.fontes = rel;
   return [...new Set(out)];
 }
 
@@ -102,7 +110,7 @@ export async function atualizarNoticias(env, forcar = false) {
   let novos = [], falhou = !env.GEMINI_KEY;
   if (env.GEMINI_KEY) {
     try {
-      const todos = await manchetes(), titulos = todos.filter((t) => !vistos.has(sha(t))).slice(0, 40);
+      const todos = await manchetes(diag), titulos = todos.filter((t) => !vistos.has(sha(t))).slice(0, 40);
       diag.manchetes = todos.length;
       if (!todos.length) falhou = true;
       else if (titulos.length >= 4) { novos = validar(await gemini(env, prompt(titulos), diag), agora); titulos.forEach((t) => vistos.add(sha(t))); }

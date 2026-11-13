@@ -1,5 +1,5 @@
 Áudio do jogo.
-Músicas (em loop, baixinhas): musica_menu.mp3 (aba Início) e musica_jogo.mp3 (demais telas).
-  Origem: geradas no Gemini ("The Geometry of Thought" = menu; "Between Two Distant Moons" = jogo).
+Músicas (em loop, baixinhas): musica_intro.mp3 (só na história e no tutorial) e musica_jogo.mp3 (o resto do jogo, sem trocar por aba).
+  Origem: geradas no Gemini ("The Geometry of Thought" = intro; "Between Two Distant Moons" = jogo).
 Efeitos: hoje são sintetizados no navegador. Para trocar por arquivos, coloque aqui (mp3/ogg) e liste em efeitos.js (ARQUIVOS):
   compra, venda, viagem, chegada, patente, conquista, alerta, tiro, vitoria, derrota, rugido

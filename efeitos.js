@@ -2,8 +2,8 @@
    Sons são sintetizados (WebAudio) e podem ser trocados por arquivos listando-os em ARQUIVOS; músicas entram em MUSICAS. */
 (() => {
   const ARQUIVOS = {};   // ex.: { compra: 'assets/audio/compra.mp3', venda: 'assets/audio/venda.mp3' }
-  const MUSICAS = { menu: 'assets/audio/musica_menu.mp3', jogo: 'assets/audio/musica_jogo.mp3' };   // ex.: { menu: 'assets/audio/musica_menu.mp3', jogo: 'assets/audio/musica_jogo.mp3' }
-  const KEY = 'astromercante_audio', def = { mus: true, vm: .22, vs: .8 };
+  const MUSICAS = { intro: 'assets/audio/musica_intro.mp3', jogo: 'assets/audio/musica_jogo.mp3' };   // intro: só na história e no tutorial; jogo: o resto, sem trocar por aba
+  const KEY = 'astromercante_audio', def = { mus: true, vm: .15, vs: .8 };
   let cfg = { ...def }; try { cfg = { ...def, ...JSON.parse(localStorage.getItem(KEY) || '{}') }; } catch {}
   const salva = () => { try { localStorage.setItem(KEY, JSON.stringify(cfg)); } catch {} };
   const reduz = () => matchMedia('(prefers-reduced-motion: reduce)').matches || (typeof S !== 'undefined' && S.fx === false);
@@ -44,16 +44,16 @@
   }
   window.SND = { toca };
 
-  /* música: em loop, baixinha, uma faixa para o menu (Início) e outra para jogar; pausa quando a aba some */
-  const temMus = () => !!(MUSICAS.menu || MUSICAS.jogo);
+  /* música: em loop, baixinha, a faixa da abertura (história e tutorial) e a do jogo; pausa quando a aba some */
+  const temMus = () => !!(MUSICAS.intro || MUSICAS.jogo);
   const faixas = {}; let atual = '', alvo = '';
   const vol = () => (cfg.mus && S.sound !== false ? cfg.vm : 0);
-  function faixa(k) { const src = MUSICAS[k] || MUSICAS.menu || MUSICAS.jogo; if (!src) return null; const id = src; if (!faixas[id]) { const a = new Audio(src); a.loop = true; a.volume = 0; a.preload = 'none'; a.onerror = () => { MUSICAS.menu = MUSICAS.jogo = null; }; faixas[id] = a; } return faixas[id]; }
+  function faixa(k) { const src = MUSICAS[k] || MUSICAS.jogo || MUSICAS.intro; if (!src) return null; const id = src; if (!faixas[id]) { const a = new Audio(src); a.loop = true; a.volume = 0; a.preload = 'none'; a.onerror = () => { MUSICAS.intro = MUSICAS.jogo = null; }; faixas[id] = a; } return faixas[id]; }
   function musicaTick() {
     if (!temMus() || typeof S === 'undefined') return;
-    const k = document.body.dataset.view === 'home' ? 'menu' : 'jogo', a = faixa(k), mudo = document.hidden || !cfg.mus || !S.sound || document.body.classList.contains('gated');
+    const b = document.body.classList, k = b.contains('histon') || b.contains('tuton') ? 'intro' : 'jogo', a = faixa(k), mudo = document.hidden || !cfg.mus || !S.sound || document.body.classList.contains('gated');
     Object.entries(faixas).forEach(([id, f]) => {   // fade suave entre as faixas
-      const ativa = a && f === a && !mudo, meta = ativa ? vol() : 0, v = f.volume + (meta - f.volume) * .15;
+      const ativa = a && f === a && !mudo, meta = ativa ? vol() : 0, v = f.volume + (meta - f.volume) * .06;
       f.volume = Math.min(1, Math.max(0, Math.abs(meta - v) < .005 ? meta : v));
       if (ativa && f.paused && userTocou) f.play().catch(() => {}); else if (!ativa && f.volume === 0 && !f.paused) f.pause();
     });

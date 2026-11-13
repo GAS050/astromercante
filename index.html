@@ -16,7 +16,7 @@
 (function () { try { var t = localStorage.getItem('astromercante_tok'), h = document.documentElement; h.classList.add('pre'); if (t) h.classList.add('pretok'); setTimeout(function () { h.classList.remove('pre', 'pretok'); }, 5000); } catch (e) {} })();
 </script>
 </head>
-<body data-view="market">
+<body data-view="home">
 <div id="skel" aria-hidden="true"><div class="sk sk-h"></div><div class="sk sk-map"></div><div class="sk sk-r"></div><div class="sk sk-r"></div><div class="sk sk-r"></div>
   <p id="skel-msg">Conectando ao servidor… <button type="button" onclick="location.reload()">Recarregar</button></p></div>
 <canvas id="intro" class="intro" aria-hidden="true"></canvas>
@@ -33,7 +33,7 @@
   <div class="stat" title="Créditos + carga + parte do valor da nave e das melhorias"><small>Patrimônio</small><b id="hud-networth" class="mono">0,00</b></div>
   <div class="stat"><small>Tempo de ciclo</small><b id="hud-cycle" class="mono">--</b></div>
   <div class="feed" id="feed" data-state="loading"><i></i><span id="feed-text">Conectando</span></div>
-  <button class="acct" id="acct" type="button" hidden>Entrar</button>
+  <div class="hud-acts"><button class="acct" id="acct" type="button" hidden>Entrar</button><button class="gear" id="hud-gear" type="button" aria-label="Configurações"><i class="fa-solid fa-gear"></i></button></div>
 </header>
 <div class="goal" id="goal" hidden><span id="goal-t"></span><div class="goal-b"><i id="goal-i"></i></div></div>
 <div class="evt" id="evt" hidden></div>
@@ -41,6 +41,7 @@
 <div class="tut" id="tut" hidden role="dialog" aria-live="polite"><img src="assets/avatar/capitao.webp" alt="Capitão" width="56" height="56"><div class="tut-c"><p id="tut-t"></p><div class="tut-a"><button type="button" class="buy" id="tut-ok" hidden></button><button type="button" class="ghost" id="tut-skip">Pular tutorial</button></div></div></div>
 
 <main class="grid">
+  <section class="card-panel view" id="p-home"><div id="home"></div></section>
   <section class="card-panel view" id="p-map">
     <h2>Carta estelar</h2>
     <div class="mapwrap"><canvas id="map" class="map" aria-label="Carta estelar: arraste para explorar as galáxias"></canvas>
@@ -102,10 +103,11 @@
 </main>
 
 <nav class="nav">
-  <button data-view="play"><i class="fa-solid fa-trophy"></i>Partidas</button>
-  <button data-view="market" class="on"><i class="fa-solid fa-chart-line"></i>Negociação</button>
+  <button data-view="home" class="on"><i class="fa-solid fa-house"></i>Início</button>
+  <button data-view="market"><i class="fa-solid fa-chart-line"></i>Negociação</button>
+  <button data-view="play"><i class="fa-solid fa-trophy"></i>Torneios</button>
   <button data-view="fleet"><i class="fa-solid fa-rocket"></i>Frotas</button>
-  <button data-view="settings"><i class="fa-solid fa-gear"></i>Config.</button>
+  <button data-view="settings" id="nav-set" hidden><i class="fa-solid fa-gear"></i>Config.</button>
 </nav>
 
 <div class="modal" id="auth" hidden><div class="card-panel">
@@ -152,6 +154,7 @@
 <script src="game.js" defer></script>
 <script src="partidas.js" defer></script>
 <script src="perfil.js" defer></script>
+<script src="home.js" defer></script>
 <script src="tutorial.js" defer></script>
 </body>
 </html>

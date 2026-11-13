@@ -53,7 +53,7 @@
     }
   }
   let tutSel = 0;
-  ok.onclick = () => { if (i === 0) passo(1); else if (i === 5) fim(); };
+  ok.onclick = () => { if (i === 0) { passo(1); document.querySelector('.nav [data-view=market]').click(); } else if (i === 5) fim(); };
   $('#tut-skip').onclick = fim;
   const redo = $('#tut-redo'); if (redo) redo.onclick = () => { rec = null; tutSel = 0; wr(0); i = 0; shown = ''; document.querySelector('.nav [data-view=market]').click(); tick(); };
   setInterval(tick, 600);

@@ -121,6 +121,56 @@ const hops = (S, i) => Math.max(1, Math.round(Math.hypot(GALAXIES[i].wx - GALAXI
 const jumpCost = (S, i) => Math.round(150 * (1 + i) * hops(S, i) * (1 + .3 * (S.engLv - 1) + .25 * (S.capLv - 1)) * (1 + (100 - S.hull) / 150));
 const tripInfo = (S, to) => { const d = dist(planeta(S, S.loc), planeta(S, to)); return { d, cost: Math.round(d * .8 * (1 + .3 * (S.engLv - 1) + .25 * (S.capLv - 1)) * (1 + (100 - S.hull) / 150)), secs: Math.max(3, Math.round(d / (18 + S.engLv * 7) * (S.hull < 40 ? 1.3 : 1))) }; };
 
+/* ---------- inimigos do mapa (piratas e monstros): patrulham por relógio, iguais para todos; o aparelho só desenha o que o servidor decide ---------- */
+const HH = (n) => { n = (n ^ 61) ^ (n >>> 16); n = Math.imul(n, 0x45d9f3b); n ^= n >>> 4; n = Math.imul(n, 0x45d9f3b); n ^= n >>> 15; return n >>> 0; };
+export const nIni = (g) => 3 + Math.min(g, 4);
+export function ini(g, k) {
+  const pl = GALAXIES[g].planetas, h = HH(g * 977 + k * 131 + 7), h2 = HH(h + 1), ia = h % pl.length; let ib = h2 % pl.length;
+  if (ib === ia) ib = (ia + 1 + ((h2 >> 8) % (pl.length - 1))) % pl.length;
+  const m = g >= 2 && k % 3 === 2, lv = Math.min(9, 1 + Math.floor((g + (k % 3)) * .8) + (m ? 1 : 0));
+  return { k, a: pl[ia], b: pl[ib], T: 55000 + (h >> 4) % 45000, ph: ((h2 >> 6) % 1000) / 1000, m, lv, R: m ? 38 : 26, nm: m ? (lv >= 5 ? 'Leviatã estelar' : 'Monstro do vazio') : (lv >= 4 ? 'Frota pirata' : 'Piratas') };
+}
+export const iniF = (e, t) => { const u = (t / e.T + e.ph) % 1, s = u < .5 ? u * 2 : 2 - u * 2; return s * s * (3 - 2 * s); };
+function encontros(S, t0, t1) {
+  if (S.partida && !S.partida.piratas) return [];
+  const A = planeta(S, S.trip.from), B = planeta(S, S.trip.to), out = [];
+  for (let k = 0; k < nIni(S.gal); k++) {
+    const e = ini(S.gal, k);
+    for (let t = t0; t <= t1 - 800; t += 400) {
+      const u = (t - t0) / (t1 - t0), q = u * u * (3 - 2 * u), sx = A.x + (B.x - A.x) * q, sy = A.y + (B.y - A.y) * q, f = iniF(e, t);
+      const d = Math.hypot(e.a.x + (e.b.x - e.a.x) * f - sx, e.a.y + (e.b.y - e.a.y) * f - sy);
+      if (d <= e.R) { const tc = Math.round(t + clamp(d / 45 * 1000, 1200, 5000)); if (tc <= t1 - 500) out.push(lutar(S, e, t, tc)); break; }
+    }
+  }
+  out.sort((x, y) => x.td - y.td);
+  const r = []; for (const x of out) if (r.length < 2 && (!r.length || x.tc - r[r.length - 1].tc > 4500)) r.push(x);
+  return r;
+}
+/** O resultado é sorteado na partida da viagem e fica gravado: o que o jogador vê no mapa é exatamente o que acontece. */
+function lutar(S, e, td, tc) {
+  const D = S.gal, diff = S.wpLv - e.lv, win = diff >= 0 || (diff === -1 && Math.random() < .5), sev = diff === -1 ? .5 : 1, o = { k: e.k, td, tc, lv: e.lv, nm: e.nm, m: e.m ? 1 : 0, w: win ? 1 : 0 };
+  if (win) { o.loot = Math.round((100 + Math.random() * 200) * (1 + D) * (1 + e.lv * .15) * (e.m ? 2 : 1) * (diff === -1 ? .5 : 1)); o.dmg = 1 + (Math.random() * 3 | 0) + (diff < 0 ? 3 : 0); }
+  else { o.dmg = Math.round((6 + Math.random() * 8) * (1 + e.lv * .25) * sev); o.f = Math.min(.5, (.15 + .05 * e.lv) * sev); }
+  return o;
+}
+function chegada(S, d, msgs, enc) {
+  const D = S.gal; let dmg = Math.round((2 + Math.random() * 4) * d / 120 * (1 + (S.engLv - 1) * .1) * (1 + D * .2));
+  for (const e of enc || []) {
+    dmg += e.dmg;
+    if (e.w) { S.credits += e.loot; say(msgs, `${e.nm} (nv.${e.lv}) derrotados pelo seu armamento nv.${S.wpLv}! Recompensa +${fmt(e.loot)} Cr.`, 'win'); }
+    else {
+      let m = `${e.nm} (nv.${e.lv}) venceram: seu armamento é nv.${S.wpLv}. `;
+      const own = Object.keys(S.inv).filter((x) => S.inv[x].qty > 0);
+      if (own.length) { const x = own[Math.random() * own.length | 0], q = Math.max(1, Math.ceil(S.inv[x].qty * e.f)); S.inv[x].qty -= q; if (S.inv[x].qty <= 0) { S.inv[x].qty = 0; S.inv[x].avg = 0; } m += `Perdeu ${q} × ${RES_ID[x].nome}. `; }
+      say(msgs, m.trim(), 'err');
+    }
+  }
+  S.hull = enc?.length ? Math.max(Math.min(S.hull, 5), S.hull - dmg) : Math.max(0, S.hull - dmg);
+  const rep = fixCost(S);
+  if (enc?.length || dmg >= 8) say(msgs, `Casco -${dmg}% (agora ${S.hull}%).${rep ? ` Reparo: ${fmt(rep)} Cr.` : ''}`, S.hull < 50 ? 'err' : 'ok'); else note(msgs, `Casco -${dmg}% (agora ${S.hull}%).`);
+  if (S.hull < 30) note(msgs, '⚠ Casco crítico: repare a nave na aba Frotas.', 'alert');
+}
+
 function desgaste(S, d, msgs) {   // piratas, monstros e tempestades: o sorteio é do servidor
   const D = S.gal;
   let dmg = Math.round((2 + Math.random() * 4) * d / 120 * (1 + (S.engLv - 1) * .1) * (1 + D * .2)), msg = '', kind = 'err';
@@ -150,7 +200,7 @@ export function resolver(S, c, msgs) {
     const b = 100 * Math.min(S.streak, 7); S.credits += b; say(msgs, `Bônus diário: ${fmt(b)} Cr (sequência de ${S.streak} dia/s). Volte amanhã para mais!`, 'win'); mudou = true;
   }
   if (S.trip && c.now >= S.trip.end) {
-    const dd = dist(planeta(S, S.trip.from), planeta(S, S.trip.to)); S.loc = S.trip.to; S.trip = null; S.daily.p.trips++; desgaste(S, dd, msgs);
+    const dd = dist(planeta(S, S.trip.from), planeta(S, S.trip.to)); S.loc = S.trip.to; const enc = S.trip.enc; S.trip = null; S.daily.p.trips++; chegada(S, dd, msgs, enc);
     const m = planeta(S, S.loc).m, deals = Object.keys(m).filter((k) => m[k] < 1).map((k) => SHORT[k]);
     say(msgs, `Chegada em ${planeta(S, S.loc).nome}.` + (deals.length ? ` Compre barato: ${deals.join(', ')}.` : ''), 'ok'); mudou = true;
   }
@@ -201,7 +251,7 @@ const acoes = {
     if (S.hull < 15) throw new Regra('Casco crítico: repare a nave na aba Frotas.');
     const t = tripInfo(S, to.id);
     if (t.cost > S.credits) throw new Regra(`Combustível custa ${fmt(t.cost)} Cr. Créditos insuficientes.`);
-    S.credits -= t.cost; S.trip = { from: S.loc, to: to.id, start: c.now, end: c.now + t.secs * 1000 };
+    S.credits -= t.cost; S.trip = { from: S.loc, to: to.id, start: c.now, end: c.now + t.secs * 1000 }; const enc = encontros(S, S.trip.start, S.trip.end); if (enc.length) S.trip.enc = enc;
     say(msgs, `Rumo a ${to.nome}: ${t.secs}s, combustível ${fmt(t.cost)} Cr.`, '');
   },
   saltar(S, c, msgs, a) {

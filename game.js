@@ -525,6 +525,68 @@ function trafego(ts) {
   });
   cx.restore();
 }
+/* ---------- piratas e monstros: o servidor decide as lutas (S.trip.enc); aqui só se desenha. Mesma fórmula de patrulha do servidor. ---------- */
+const HH = n => { n = (n ^ 61) ^ (n >>> 16); n = Math.imul(n, 0x45d9f3b); n ^= n >>> 4; n = Math.imul(n, 0x45d9f3b); n ^= n >>> 15; return n >>> 0; };
+function iniG(g, k) {
+  const pl = GALAXIES[g].planetas, h = HH(g * 977 + k * 131 + 7), h2 = HH(h + 1), ia = h % pl.length; let ib = h2 % pl.length;
+  if (ib === ia) ib = (ia + 1 + ((h2 >> 8) % (pl.length - 1))) % pl.length;
+  const m = g >= 2 && k % 3 === 2, lv = Math.min(9, 1 + Math.floor((g + (k % 3)) * .8) + (m ? 1 : 0));
+  return { k, a:pl[ia].id, b:pl[ib].id, T:55000 + (h >> 4) % 45000, ph:((h2 >> 6) % 1000) / 1000, m, lv, R:m ? 38 : 26 };
+}
+const iniFr = (e, t) => { const u = (t / e.T + e.ph) % 1, s = u < .5 ? u * 2 : 2 - u * 2; return s * s * (3 - 2 * s); };
+const iniOn = () => CLOUD() && !(S.partida && !S.partida.piratas);
+function iniTela(e, t) { const a = plan(e.a), b = plan(e.b); if (!a || !b || !a._s || !b._s) return null; const f = iniFr(e, t); return { x:a._s.x + (b._s.x - a._s.x) * f, y:a._s.y + (b._s.y - a._s.y) * f, sc:a._s.sc + (b._s.sc - a._s.sc) * f, k:Math.hypot(a._s.x - b._s.x, a._s.y - b._s.y) / Math.max(1, Math.hypot(plan(e.a).x - plan(e.b).x, plan(e.a).y - plan(e.b).y)) }; }
+function desenhaInimigo(p, e, ts, alvo, forca) {   // p: posição na tela; alvo: ângulo para onde olha
+  const k = p.sc * (cam.z < .5 ? .7 : 1), tm = ts / 1000 + e.k * 1.7;
+  cx.save(); cx.translate(p.x, p.y);
+  if (e.m) {   // monstro: corpo gelatinoso com tentáculos e olhos
+    const r = (7 + e.lv * .7) * k;
+    cx.shadowColor = '#b24bff'; cx.shadowBlur = 14 * k; cx.strokeStyle = '#7d2fc0'; cx.lineWidth = 1.6 * k; cx.lineCap = 'round';
+    for (let i = 0; i < 6; i++) { const a0 = i / 6 * 6.283 + Math.sin(tm + i) * .25; cx.beginPath(); cx.moveTo(Math.cos(a0) * r * .6, Math.sin(a0) * r * .6); cx.quadraticCurveTo(Math.cos(a0 + Math.sin(tm * 2 + i) * .5) * r * 1.3, Math.sin(a0 + Math.cos(tm * 2 + i) * .5) * r * 1.3, Math.cos(a0) * r * 1.7, Math.sin(a0) * r * 1.7 + Math.sin(tm * 3 + i) * r * .3); cx.stroke(); }
+    const g = cx.createRadialGradient(0, -r * .2, r * .1, 0, 0, r); g.addColorStop(0, '#d98bff'); g.addColorStop(1, '#4a1a82'); cx.fillStyle = g; cx.beginPath(); cx.ellipse(0, 0, r, r * (.85 + Math.sin(tm * 2.4) * .06), 0, 0, 7); cx.fill();
+    cx.shadowBlur = 0; cx.fillStyle = '#e8ff6a'; [-.35, .35].forEach(o => { cx.beginPath(); cx.arc(o * r, -r * .15, r * .2, 0, 7); cx.fill(); cx.fillStyle = '#220'; cx.beginPath(); cx.arc(o * r, -r * .15, r * .08, 0, 7); cx.fill(); cx.fillStyle = '#e8ff6a'; });
+  } else {   // pirata: nave do jogo em vermelho, com brilho hostil
+    const id = 35 + (e.k * 5 + e.lv * 3) % 15, sz = 150 - (id - 1) * .8, kk = k * .42 * .42;
+    cx.rotate(alvo + Math.PI / 2); cx.shadowColor = '#ff3030'; cx.shadowBlur = 12 * k; cx.scale(kk, kk);
+    [nsrc(id, 'motor', 1), nsrc(id, 'casco'), nsrc(id, 'armas', 1)].forEach(src => { const im = nimg(src); if (im.complete && im.naturalWidth) cx.drawImage(im, -sz / 2, -sz / 2, sz, sz); });
+  }
+  cx.restore();
+  if (cam.z >= .5 || forca) { cx.save(); cx.font = '700 7px Chakra Petch, sans-serif'; cx.textAlign = 'center'; cx.fillStyle = e.m ? '#e6b3ff' : '#ff8a8a'; cx.shadowColor = '#000'; cx.shadowBlur = 3; cx.fillText((e.m ? '☣ ' : '☠ ') + 'nv.' + e.lv, p.x, p.y - (e.m ? 16 : 11) * p.sc); cx.restore(); }
+}
+function inimigos(ts) {
+  if (!iniOn() || !PL.length) return;
+  const now = NOW(), enc = S.trip?.enc || [], n = 3 + Math.min(S.gal, 4);
+  for (let k = 0; k < n; k++) {
+    const e = iniG(S.gal, k), f = enc.find(x => x.k === k), pos = iniTela(e, now); if (!pos) continue;
+    if (f && S.trip) { if (now >= f.tc + 3200) continue; if (now >= f.td) { desenhaLuta(e, f, now, ts); continue; } }
+    // anel de alcance (discreto) e o inimigo patrulhando
+    const rr = e.R * pos.k; cx.save(); cx.globalAlpha = .24 + .08 * Math.sin(ts / 500 + k); cx.strokeStyle = e.m ? '#b24bff' : '#ff4040'; cx.setLineDash([3, 4]); cx.lineWidth = 1; cx.beginPath(); cx.arc(pos.x, pos.y, rr, 0, 7); cx.stroke(); cx.restore();
+    const nx = iniTela(e, now + 400), ang = nx ? Math.atan2(nx.y - pos.y, nx.x - pos.x) : 0;
+    cx.save(); cx.globalAlpha = .9; desenhaInimigo(pos, e, ts, ang); cx.restore();
+  }
+}
+function desenhaLuta(e, f, now, ts) {
+  const sp = shipPos(ts); let p;
+  if (now < f.tc) { const a = iniTela(e, f.td), q = clamp((now - f.td) / (f.tc - f.td), 0, 1), s2 = q * q; p = { x:a.x + (sp.x - a.x) * s2, y:a.y + (sp.y - a.y) * s2, sc:a.sc }; }
+  else { const o = ts / 160; p = { x:sp.x + Math.cos(o) * 12 * sp.sc, y:sp.y - 10 * sp.sc + Math.sin(o) * 5 * sp.sc, sc:sp.sc }; }
+  const ang = Math.atan2(sp.y - p.y, sp.x - p.x);
+  if (now < f.tc) {   // perseguição: alerta piscando sobre a sua nave
+    cx.save(); cx.fillStyle = `rgba(255,70,70,${.6 + .4 * Math.sin(ts / 90)})`; cx.font = '700 12px Chakra Petch, sans-serif'; cx.textAlign = 'center'; cx.fillText('⚠ ' + f.nm + ' na cola!', sp.x, sp.y - 24 * sp.sc); cx.restore();
+  } else if (now < f.tc + 2400) {   // combate: tiros trocados e clarões
+    cx.save(); cx.globalCompositeOperation = 'lighter'; cx.lineCap = 'round';
+    if (Math.floor(ts / 110) % 2) { cx.strokeStyle = e.m ? 'rgba(200,100,255,.9)' : 'rgba(255,70,50,.9)'; cx.lineWidth = 1.6; cx.beginPath(); cx.moveTo(p.x, p.y); cx.lineTo(sp.x, sp.y); cx.stroke(); }
+    if (Math.floor(ts / 110 + 1) % 2 && f.w) { cx.strokeStyle = 'rgba(80,240,255,.95)'; cx.lineWidth = 1.8; cx.beginPath(); cx.moveTo(sp.x, sp.y); cx.lineTo(p.x, p.y); cx.stroke(); }
+    const fl = .25 + .25 * Math.sin(ts / 40); cx.fillStyle = f.w ? `rgba(120,255,255,${fl})` : `rgba(255,60,40,${fl})`; cx.beginPath(); cx.arc(sp.x, sp.y, 10 * sp.sc, 0, 7); cx.fill(); cx.restore();
+  } else if (f.w) {   // vitória: o inimigo explode
+    const q = clamp((now - f.tc - 2400) / 800, 0, 1); cx.save(); cx.globalCompositeOperation = 'lighter'; cx.fillStyle = `rgba(255,${180 - q * 120 | 0},60,${1 - q})`; cx.beginPath(); cx.arc(p.x, p.y, (4 + q * 20) * p.sc, 0, 7); cx.fill(); cx.restore();
+  }
+  if (now < f.tc + 2400 || !f.w) { cx.save(); cx.globalAlpha = now < f.tc + 2400 ? 1 : clamp(1 - (now - f.tc - 2400) / 800, 0, 1); desenhaInimigo(p, e, ts, ang, true); cx.restore(); }
+  if (now >= f.tc + 1200 && now < f.tc + 3200) {   // resultado flutuando sobre a nave
+    cx.save(); cx.font = '700 11px Chakra Petch, sans-serif'; cx.textAlign = 'center'; cx.fillStyle = f.w ? '#5dff9b' : '#ff6b6b'; cx.shadowColor = '#000'; cx.shadowBlur = 4;
+    cx.fillText(f.w ? `VITÓRIA! +${f.loot} Cr` : `DERROTA! casco -${f.dmg}%`, sp.x, sp.y - 26 * sp.sc - (now - f.tc - 1200) / 90); cx.restore();
+  }
+}
+
 function drawShip(ts) {
   const s = shipPos(ts);
   if (s.fly) { trail.push({ x:s.x, y:s.y }); if (trail.length > 36) trail.shift(); } else trail.length = 0;
@@ -586,6 +648,7 @@ function frame(ts) {
   trafego(ts);
   PL.slice().sort((a, b) => a._s.y - b._s.y).forEach(p => drawPlanet(p, ts));
   if (t) { const d = plan(t.to)._s, k = (ts / 25) % 30; cx.strokeStyle = `rgba(62,230,255,${1 - k / 30})`; cx.lineWidth = 1.2; cx.beginPath(); cx.ellipse(d.x, d.y + 14 * d.sc, k * d.sc, k * d.sc * .35, 0, 0, 7); cx.stroke(); }
+  inimigos(ts);
   drawShip(ts);
   if (cam.z < .5) { const sp = shipPos(ts), k = (ts / 40) % 24; cx.strokeStyle = `rgba(57,255,136,${1 - k / 24})`; cx.lineWidth = 1.4; cx.beginPath(); cx.arc(sp.x, sp.y, 4 + k, 0, 7); cx.stroke(); cx.fillStyle = '#39ff88'; cx.beginPath(); cx.arc(sp.x, sp.y, 2.2, 0, 7); cx.fill(); }
   const wk = (performance.now() - warpT) / 900; if (wk < 1) { g = cx.createRadialGradient(200, 150, 0, 200, 150, 300); g.addColorStop(0, '#fff'); g.addColorStop(1, '#3ee6ff'); cx.globalAlpha = 1 - wk; cx.fillStyle = g; cx.fillRect(0, 0, 400, 300); cx.globalAlpha = 1; }

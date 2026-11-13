@@ -38,6 +38,7 @@
 <div class="goal" id="goal" hidden><span id="goal-t"></span><div class="goal-b"><i id="goal-i"></i></div></div>
 <div class="evt" id="evt" hidden></div>
 <div class="matchbar" id="matchbar" hidden></div>
+<div class="hist" id="hist" hidden role="dialog" aria-modal="true" aria-labelledby="hist-t"><div class="hist-in"><img id="hist-cap" hidden src="assets/avatar/capitao.webp" alt="Capitão" width="96" height="96"><h2 id="hist-t"></h2><p id="hist-x"></p><div class="hist-d"><i></i><i></i><i></i><i></i></div><div class="hist-a"><button type="button" class="buy" id="hist-n">Continuar</button><button type="button" class="ghost" id="hist-skip">Pular história</button></div></div></div>
 <div class="tut" id="tut" hidden role="dialog" aria-live="polite"><img src="assets/avatar/capitao.webp" alt="Capitão" width="56" height="56"><div class="tut-c"><p id="tut-t"></p><div class="tut-a"><button type="button" class="buy" id="tut-ok" hidden></button><button type="button" class="ghost" id="tut-skip">Pular tutorial</button></div></div></div>
 
 <main class="grid">
@@ -84,6 +85,7 @@
     <div class="row" id="acct-extra" hidden><button id="acct-now" type="button">Atualizar</button><button id="acct-out" type="button">Sair</button><button class="danger" id="acct-del" type="button">Excluir conta</button></div>
     <label class="row">Fundo animado (desligue em aparelhos lentos) <input type="checkbox" id="set-fx"></label>
     <label class="row">Sons e vibração <input type="checkbox" id="set-sound"></label>
+    <div class="row">Rever a história de abertura <button type="button" id="hist-redo">Rever</button></div>
     <div class="row">Rever o tutorial do Capitão <button type="button" id="tut-redo">Rever</button></div>
     <div class="row">Apagar créditos, inventário e histórico <button class="danger" id="reset">Reiniciar</button></div>
     <div class="credits">
@@ -155,6 +157,7 @@
 <script src="partidas.js" defer></script>
 <script src="perfil.js" defer></script>
 <script src="home.js" defer></script>
+<script src="historia.js"></script>
 <script src="tutorial.js" defer></script>
 </body>
 </html>

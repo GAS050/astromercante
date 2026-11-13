@@ -4,7 +4,7 @@
   const KEY = () => 'astromercante_tut_' + (USER || 'x'), rd = () => { try { return localStorage.getItem(KEY()); } catch { return 'done'; } }, wr = v => { try { v == null ? localStorage.removeItem(KEY()) : localStorage.setItem(KEY(), String(v)); } catch {} };
   const el = $('#tut'), tx = $('#tut-t'), ok = $('#tut-ok');
   let i = -1, rec = null, c0 = 0, qty0 = 0, shown = '';
-  const ativo = () => CLOUD() && TOK && MODE !== 'partida' && !document.body.classList.contains('loading') && !document.body.classList.contains('gated') && READY && typeof PF !== 'undefined' && PF && PF.completo;
+  const ativo = () => CLOUD() && TOK && MODE !== 'partida' && !document.body.classList.contains('loading') && !document.body.classList.contains('gated') && READY && !window.HIST_ON && typeof PF !== 'undefined' && PF && PF.completo;
   const novata = () => S.rank === 0 && S.gal === 0 && !S.trip && used() === 0 && S.credits >= 9900 && S.credits <= 10500;
   let lastMark = '';
   const mark = sel => { document.querySelectorAll('.tut-hl').forEach(n => n.classList.remove('tut-hl')); const n = sel && document.querySelector(sel); if (n) { n.classList.add('tut-hl'); if (sel !== lastMark) { lastMark = sel; n.scrollIntoView({ block: 'center', behavior: 'smooth' }); } } else if (!sel) lastMark = ''; };

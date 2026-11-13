@@ -393,3 +393,16 @@ body[data-view=home] #p-home{display:block}body[data-view=home] .goal{display:no
   #p-home{display:none}body[data-view=home] #p-home{display:block;grid-column:2;grid-row:1/span 2}
   body[data-view=home] #p-market{display:none}
 }
+
+.hist{position:fixed;inset:0;z-index:60;display:flex;align-items:center;justify-content:center;padding:20px;background:radial-gradient(ellipse at 50% 30%,#10264a 0,#050b18 70%);animation:histin .6s ease}
+.hist[hidden]{display:none}
+.hist::before{content:"";position:absolute;inset:0;background-image:radial-gradient(1.5px 1.5px at 20% 30%,#fff 50%,transparent),radial-gradient(1px 1px at 70% 20%,#cfe 50%,transparent),radial-gradient(1.5px 1.5px at 40% 75%,#fff 50%,transparent),radial-gradient(1px 1px at 85% 65%,#fff 50%,transparent),radial-gradient(1px 1px at 10% 85%,#bdf 50%,transparent);background-size:340px 340px;opacity:.7;animation:histdrift 60s linear infinite}
+.hist-in{position:relative;max-width:460px;width:100%;text-align:center}
+.hist-in h2{font-size:1.5rem;color:var(--amber);letter-spacing:.04em;margin-bottom:14px}
+.hist-in p{font-size:1.05rem;line-height:1.55;min-height:7.5em;color:#dbe8f6}.hist-in p b{color:var(--cyan)}
+.hist-in img{width:96px;height:96px;border-radius:50%;border:3px solid var(--cyan);object-fit:cover;margin-bottom:12px;box-shadow:0 0 24px rgba(60,220,255,.4)}
+.hist-d{display:flex;gap:8px;justify-content:center;margin:12px 0 18px}.hist-d i{width:8px;height:8px;border-radius:50%;background:#2a3f5c;transition:.3s}.hist-d i.on{background:var(--cyan);transform:scale(1.3)}
+.hist-a{display:flex;flex-direction:column;align-items:center;gap:8px}.hist-a .buy{padding:10px 28px;font-size:1rem}.hist-a .ghost{font-size:.85rem}
+body.histon{overflow:hidden}
+@keyframes histin{from{opacity:0}to{opacity:1}}@keyframes histdrift{to{background-position:340px 680px}}
+@media (prefers-reduced-motion:reduce){.hist,.hist::before{animation:none}}

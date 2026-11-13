@@ -16,7 +16,7 @@ RES.push(
 RES.push(...MINERALS);
 const $ = (s, r = document) => r.querySelector(s);
 const pl = (n, um, varios) => `${n} ${n === 1 ? um : varios || um + 's'}`;   // concordância: pl(1,'dia') → "1 dia"; pl(3,'salto') → "3 saltos"
-const avSrc = id => id === 'cap' ? 'assets/avatar/capitao.webp' : `assets/avatar/${/^(a[1-8]|b[1-6])$/.test(id) ? id : 'a1'}.svg`;
+const avSrc = id => id === 'cap' ? 'assets/avatar/capitao.webp' : `assets/avatar/${/^(a[1-8]|b[1-6])$/.test(id) ? id : 'a1'}.svg?v=2`;
 const avImg = id => id ? `<img class="av" src="${avSrc(id)}" alt="" width="20" height="20">` : '';
 const fmt = n => n.toLocaleString('pt-BR', { minimumFractionDigits:2, maximumFractionDigits:2 });
 const clamp = (v, a, b) => Math.min(b, Math.max(a, v));

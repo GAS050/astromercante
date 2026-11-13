@@ -8,7 +8,7 @@
   const salva = () => { try { localStorage.setItem(KEY, JSON.stringify(cfg)); } catch {} };
   const reduz = () => matchMedia('(prefers-reduced-motion: reduce)').matches || (typeof S !== 'undefined' && S.fx === false);
   let ac = null, mestre = null;
-  const ctx = () => { if (!ac) { ac = new (window.AudioContext || window.webkitAudioContext)(); mestre = ac.createGain(); mestre.connect(ac.destination); } if (ac.state === 'suspended') ac.resume(); mestre.gain.value = cfg.vs; return ac; };
+  const ctx = () => { if (!ac) { ac = new (window.AudioContext || window.webkitAudioContext)(); mestre = ac.createGain(); mestre.gain.value = .6; mestre.connect(ac.destination); } if (ac.state === 'suspended') ac.resume(); mestre.gain.value = cfg.vs; return ac; };
   const rnd = (a = .03) => 1 + (Math.random() * 2 - 1) * a;   // variação leve de tom para não cansar
   function tom(t0, f, d, { tipo = 'sine', v = .18, f2, atk = .005 } = {}) {
     const a = ac, o = a.createOscillator(), g = a.createGain(); o.type = tipo; o.frequency.setValueAtTime(f, t0); if (f2) o.frequency.exponentialRampToValueAtTime(f2, t0 + d);
@@ -39,7 +39,7 @@
   const cache = {};
   function arquivo(nome) {
     if (!cache[nome]) { const a = new Audio(ARQUIVOS[nome]); a.preload = 'auto'; cache[nome] = a; }
-    const a = cache[nome].cloneNode(); a.volume = cfg.vs; a.play().catch(() => {});
+    const a = cache[nome].cloneNode(); a.volume = Math.min(1, cfg.vs * .6); a.play().catch(() => {});
   }
   function toca(nome, atraso = 0) {
     if (typeof S === 'undefined' || !S.sound) return;
@@ -50,7 +50,7 @@
   /* música: em loop, baixinha, a faixa da abertura (história e tutorial) e a do jogo; pausa quando a aba some */
   const temMus = () => !!(MUSICAS.intro || MUSICAS.jogo);
   const faixas = {}; let atual = '', alvo = '';
-  const vol = () => (cfg.mus && S.sound !== false ? cfg.vm : 0);
+  const vol = () => (cfg.mus && S.sound !== false ? cfg.vm * .7 : 0);   // ganho geral mais baixo: o controle do jogador continua de 0 a 100%
   function faixa(k) { const src = MUSICAS[k] || MUSICAS.jogo || MUSICAS.intro; if (!src) return null; const id = src; if (!faixas[id]) { const a = new Audio(src); a.loop = true; a.volume = 0; a.preload = 'none'; a.onerror = () => { MUSICAS.intro = MUSICAS.jogo = null; }; faixas[id] = a; } return faixas[id]; }
   function musicaTick() {
     if (!temMus() || typeof S === 'undefined') return;

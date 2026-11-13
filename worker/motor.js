@@ -176,12 +176,15 @@ function lutar(S, e, td, tc) {
   else { o.dmg = Math.min(22, Math.round((8 + 5 * Math.min(q, 2)) * (1 + D * .06) * v(.85, 1.15))); o.f = clamp(.08 + .08 * q, .1, .45); }
   return o;
 }
+/** Partidas podem desligar o desgaste do casco (cfg.casco === false): sem dano, sem reparo. As lutas continuam valendo (saque e carga perdida). */
+export const semCasco = (S) => !!(S.partida && S.partida.casco === false);
 function chegada(S, d, msgs, enc) {
-  let dmg = desgasteViagem(S, d);
+  const sc = semCasco(S);
+  let dmg = sc ? 0 : desgasteViagem(S, d);
   for (const e of enc || []) {
-    dmg += e.dmg;
+    if (!sc) dmg += e.dmg;
     if (e.w === 1) { S.credits += e.loot; say(msgs, `${e.nm} (poder ${e.lv.toFixed(1)}) derrotados pelo seu poder de fogo ${S.wpLv.toFixed(1)}! Recompensa +${fmt(e.loot)} Cr.`, 'win'); }
-    else if (e.w === 2) say(msgs, `${e.nm} (poder ${e.lv.toFixed(1)}) recuaram: luta empatada, sem saque. Escapamos com avarias.`, 'ok');
+    else if (e.w === 2) say(msgs, `${e.nm} (poder ${e.lv.toFixed(1)}) recuaram: luta empatada, sem saque. Escapamos${sc ? ' sem danos' : ' com avarias'}.`, 'ok');
     else {
       let m = `${e.nm} (poder ${e.lv.toFixed(1)}) venceram: seu poder de fogo é ${S.wpLv.toFixed(1)}. `;
       const own = Object.keys(S.inv).filter((x) => S.inv[x].qty > 0);
@@ -189,6 +192,7 @@ function chegada(S, d, msgs, enc) {
       say(msgs, m.trim(), 'err');
     }
   }
+  if (sc) return;   // partida sem desgaste de casco: nada a descontar nem a reparar
   S.hull = enc?.length ? Math.max(Math.min(S.hull, 5), S.hull - dmg) : Math.max(0, S.hull - dmg);
   const rep = fixCost(S);
   if (enc?.length || dmg >= 8) say(msgs, `Casco -${dmg}% (agora ${S.hull}%).${rep ? ` Reparo: ${fmt(rep)} Cr.` : ''}`, S.hull < 50 ? 'err' : 'ok'); else note(msgs, `Casco -${dmg}% (agora ${S.hull}%).`);
@@ -196,6 +200,7 @@ function chegada(S, d, msgs, enc) {
 }
 
 function desgaste(S, d, msgs) {   // saltos entre galáxias: só desgaste do casco (piratas e monstros só existem onde você os vê, no mapa)
+  if (semCasco(S)) return;
   const dmg = desgasteViagem(S, d, 12);
   S.hull = Math.max(0, S.hull - dmg);
   const rep = fixCost(S);
@@ -286,6 +291,7 @@ const acoes = {
   melhorar(S, c, msgs, a) {
     const k = a.k;
     if (k === 'fix' || k === 'over') {
+      if (semCasco(S)) throw new Regra('Esta partida não tem desgaste de casco: não há o que reparar.');
       if (k === 'fix' && S.hull >= S.maxHull) throw new Regra('O casco já está no máximo.');
       if (k === 'over' && S.maxHull >= 100) throw new Regra('A nave já está como nova.');
       const custo = k === 'fix' ? fixCost(S) : overCost(S);
@@ -350,7 +356,7 @@ export function validarCfg(cfg, carr, modo) {
   const dific = DIFICULDADES.includes(cfg.dific) ? cfg.dific : 'normal';
   let taxa = 0;
   if (modo === 'torneio') { taxa = Math.floor(Number(cfg.taxa)); if (!TAXAS.includes(taxa)) throw new Regra('Taxa de entrada inválida.'); }
-  return { duracao, saldo, galaxias: gals, jogadores, bots: !!cfg.bots, dific, taxa, eventos: cfg.eventos !== false, piratas: cfg.piratas !== false };
+  return { duracao, saldo, galaxias: gals, jogadores, bots: !!cfg.bots, dific, taxa, eventos: cfg.eventos !== false, piratas: cfg.piratas !== false, casco: cfg.casco !== false };
 }
 
 /** Estado inicial de um jogador na partida: nave da carreira (porão, motor, armamento e patente), saldo igual para todos. */
@@ -359,7 +365,7 @@ export function novoPartida(carr, cfg, codigo, now, fim) {
   S.credits = cfg.saldo; S.rank = carr.rank; S.nave = carr.nave; S.frota = { [carr.nave]: { ...carr.frota[carr.nave], h: 100, mh: 100 } }; recalc(S);
   S.gal = g0; S.loc = GALAXIES[g0].planetas[0].id; S.vis = { [g0]: 1 };
   S.daily = { day: 'partida', p: { trades: 0, trips: 0, profit: 0 }, done: { trades: 1, trips: 1, profit: 1 } };
-  S.partida = { codigo, inicio: now, fim, galaxias: cfg.galaxias, eventos: cfg.eventos, piratas: cfg.piratas };
+  S.partida = { codigo, inicio: now, fim, galaxias: cfg.galaxias, eventos: cfg.eventos, piratas: cfg.piratas, casco: cfg.casco !== false };
   return S;
 }
 /** Patrimônio do jogador no instante do fim (créditos + carga avaliada com os preços daquele instante). */

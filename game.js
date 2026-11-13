@@ -289,9 +289,10 @@ function renderWorld() {
   renderInfo(); renderShipCard();
   $('#trip').textContent = S.trip ? `Em trânsito para ${plan(S.trip.to)?.nome || ''}…` : '';
   $('#p-market h2').textContent = 'Terminal de mercado · ' + (S.trip ? 'em trânsito' : (plan(S.loc)?.nome || ''));
-  $('#fleet').innerHTML = `<div class="hull ${S.hull < 30 ? 'low' : ''}"><span>Casco ${S.hull}% / máx. ${S.maxHull}%</span><i style="width:${S.hull}%"></i></div>
+  $('#fleet').innerHTML = (semCasco() ? `<p class="empty">Esta partida não tem desgaste de casco: viagens e lutas não danificam a nave, então não há reparo.</p>` : `<div class="hull ${S.hull < 30 ? 'low' : ''}"><span>Casco ${S.hull}% / máx. ${S.maxHull}%</span><i style="width:${S.hull}%"></i></div>
     <div class="up"><div><b>Reparar casco</b><small>Cada reparo desgasta 1% da integridade máxima</small></div><button class="buy" data-up="fix" ${S.hull >= S.maxHull ? 'disabled' : ''}>${fmt(fixCost())} Cr</button></div>
     <div class="up"><div><b>Revisão completa</b><small>Restaura a integridade máxima a 100%</small></div><button class="buy" data-up="over" ${S.maxHull >= 100 ? 'disabled' : ''}>${fmt(overCost())} Cr</button></div>
+`) + `
     ${CLOUD() ? upRowsNave() : `<p class="empty">Porão: ${used()}/${S.cap} · Motor nv.${S.engLv}</p>
     <div class="up"><div><b>Porão nv.${S.capLv}</b><small>+40 de capacidade</small></div><button class="buy" data-up="cap">${fmt(1000 * S.capLv)} Cr</button></div>
     <div class="up"><div><b>Motor nv.${S.engLv}</b><small>Viagens mais rápidas · alcance de ${S.engLv} salto(s) galáctico(s)</small></div><button class="buy" data-up="eng" ${S.engLv >= 5 ? 'disabled' : ''}>${S.engLv >= 5 ? 'MÁX' : fmt(1200 * S.engLv) + ' Cr'}</button></div>
@@ -551,6 +552,7 @@ function iniAt(e, t) {
   const pl = GALAXIES[e.g].planetas, tt = t / e.T + e.ph, n = Math.floor(tt), u = tt - n, q = i => pl[HH(e.g * 977 + e.k * 131 + i * 7919 + 13) % pl.length], x = Math.min(1, u / .8);
   return { a:q(n - 1), b:q(n), f:x * x * (3 - 2 * x) };
 }
+const semCasco = () => !!(S.partida && S.partida.casco === false);   // partida sem desgaste de casco (regra definida na criação)
 const poderJog = () => (S.wpLv || 1) * (.6 + .4 * (S.hull == null ? 100 : S.hull) / 100) * (1 + .02 * (S.rank || 0));
 const corNv = e => { const r = poderJog() / e.lv; return r >= 1.09 ? '#6dff9f' : r >= .8 ? '#ffd24a' : '#ff6b6b'; };   // verde: vence; amarelo: incerto/empate; vermelho: perde
 const PAUSA = 4800;   // igual ao servidor: tempo da luta, com a nave parada
@@ -643,7 +645,7 @@ function desenhaLuta(e, f, now, ts) {
   }
   if (lt >= 3000) {   // resultado flutuando sobre a nave
     const q = (lt - 3000) / 1800; cx.save(); cx.globalAlpha = clamp(1.6 - q * 1.2, 0, 1); cx.font = '700 11px Chakra Petch, sans-serif'; cx.textAlign = 'center'; cx.lineWidth = 3; cx.strokeStyle = 'rgba(0,0,0,.75)';
-    const tx = f.w === 1 ? `+${f.loot} Cr` : `casco -${f.dmg}%`, ty = sp.y - 26 * sp.sc - q * 18; cx.strokeText(tx, sp.x, ty); cx.fillStyle = f.w === 1 ? '#5dff9b' : f.w === 2 ? '#ffd24a' : '#ff6b6b'; cx.fillText(tx, sp.x, ty); cx.restore();
+    const tx = f.w === 1 ? `+${f.loot} Cr` : semCasco() ? (f.w === 2 ? 'empate' : 'carga perdida') : `casco -${f.dmg}%`, ty = sp.y - 26 * sp.sc - q * 18; cx.strokeText(tx, sp.x, ty); cx.fillStyle = f.w === 1 ? '#5dff9b' : f.w === 2 ? '#ffd24a' : '#ff6b6b'; cx.fillText(tx, sp.x, ty); cx.restore();
   }
 }
 
@@ -663,7 +665,7 @@ function alertas(now) {
   if (now >= f.td && now < f.tc) setAlerta(cl); else if (now >= f.tc && now < f.tc + 3000) setAlerta(cl + ' fast'); else if (now >= f.tc + 3000 && now < f.tc + PAUSA) setAlerta(f.w === 1 ? 'win' : 'lose'); else setAlerta('');
   diz(1, f.td, () => cap(`Comandante, ${f.nm} (poder ${f.lv.toFixed(1)}) na nossa cola! ${f.r >= 1.09 ? 'Podemos com eles.' : f.r >= .8 ? 'Vai ser equilibrado.' : 'Isso é perigoso!'}`, 'alert', 4500));
   diz(2, f.tc, () => cap(`Poder de fogo ${(+S.wpLv).toFixed(1)} contra ${f.lv.toFixed(1)}. ${f.r >= 1.09 ? 'Vantagem nossa!' : f.r >= .8 ? 'Luta apertada!' : 'Estamos em desvantagem!'}`, 'alert', 3000));
-  diz(3, f.tc + 3000, () => cap(f.w === 1 ? `${f.nm} eliminados! Saque: +${f.loot} Cr.` : f.w === 2 ? `Empate! ${f.nm} recuaram. Casco -${f.dmg}%.` : `Derrota! Casco -${f.dmg}% e carga perdida. Repare em Frotas.`, f.w === 1 ? 'win' : f.w === 2 ? 'alert' : 'lose', 5200));
+  diz(3, f.tc + 3000, () => cap(f.w === 1 ? `${f.nm} eliminados! Saque: +${f.loot} Cr.` : f.w === 2 ? `Empate! ${f.nm} recuaram.${semCasco() ? '' : ` Casco -${f.dmg}%.`}` : semCasco() ? 'Derrota! Parte da carga foi perdida.' : `Derrota! Casco -${f.dmg}% e carga perdida. Repare em Frotas.`, f.w === 1 ? 'win' : f.w === 2 ? 'alert' : 'lose', 5200));
   const w = $('.mapwrap');
   if (now < SHAKE) { shaking = true; w.style.transform = `translate(${(Math.random() - .5) * 4}px,${(Math.random() - .5) * 4}px)`; } else if (shaking) { shaking = false; w.style.transform = ''; }
 }

@@ -63,7 +63,7 @@ setInterval(() => { if (TOK && CLOUD() && MODE !== 'partida' && noAr() && !docum
 
 /* ---------- menu ---------- */
 const resumo = c => `${c.duracao} min · saldo ${fmt(c.saldo).replace(',00', '')} Cr · ${c.galaxias.map(i => GALAXIES[i].nome).join(', ')}`
-  + ` · ${c.jogadores} jogadores${c.bots ? ' (bots completam, ' + DIFIC[c.dific] + ')' : ''}${c.eventos ? '' : ' · sem eventos'}${c.piratas ? '' : ' · sem piratas'}`;
+  + ` · ${c.jogadores} jogadores${c.bots ? ' (bots completam, ' + DIFIC[c.dific] + ')' : ''}${c.eventos ? '' : ' · sem eventos'}${c.piratas ? '' : ' · sem piratas'}${c.casco === false ? ' · sem desgaste de casco' : ''}`;
 function renderPlay() {
   const el = $('#play'); if (!el) return;
   const digitado = $('#join-cod') ? $('#join-cod').value : null, tinhaFoco = document.activeElement && document.activeElement.id === 'join-cod';   // a atualização da tela não pode apagar o que a pessoa está digitando
@@ -96,6 +96,8 @@ function formHtml() {
   ${f.bots ? `<label class="prow">Dificuldade dos bots <select data-f="dific">${Object.entries(DIFIC).map(([k, v]) => `<option value="${k}" ${k === f.dific ? 'selected' : ''}>${v}</option>`).join('')}</select></label>` : ''}
   <label class="prow">Eventos de mercado <input type="checkbox" data-f="eventos" ${f.eventos ? 'checked' : ''}></label>
   <label class="prow">Piratas e monstros <input type="checkbox" data-f="piratas" ${f.piratas ? 'checked' : ''}></label>
+  <label class="prow">Desgaste e reparo de casco <input type="checkbox" data-f="casco" ${f.casco ? 'checked' : ''}></label>
+  ${f.casco ? '' : '<p class="empty">Sem desgaste: viagens e lutas não danificam o casco, então não há reparo. Piratas e monstros continuam valendo: vencer rende saque e perder custa parte da carga.</p>'}
   ${t ? `<label class="prow">Taxa de entrada <select data-f="taxa">${TAXAS.map(x => `<option value="${x}" ${x === f.taxa ? 'selected' : ''}>${fmt(x).replace(',00', '')} Cr</option>`).join('')}</select></label>
   <p class="empty">A taxa sai dos seus créditos da carreira. Com 3 ou mais pilotos, o bolo (soma das taxas) paga 60% / 30% / 10% ao 1º, 2º e 3º; com 2, o vencedor leva tudo. Sozinho contra bots, você recupera a taxa se terminar na metade de cima e ganha um bônus se vencer (nos bots Normal e Difícil).</p>` : ''}
   <p class="err" id="f-err"></p>
@@ -140,12 +142,12 @@ $('#play').addEventListener('click', async e => {
   if (b.dataset.p === 'entrar') { ficouCarreira = ''; return entrarModoPartida(); }
   if (b.dataset.p === 'novo-torneio' || b.dataset.p === 'novo-amigos') {
     const g0 = GALAXIES.findIndex((_, i) => galLiberada(i));
-    FORM = { modo:b.dataset.p === 'novo-torneio' ? 'torneio' : 'amigos', duracao:15, saldo:5000, galaxias:[Math.max(0, g0)], jogadores:b.dataset.p === 'novo-torneio' ? 4 : 2, bots:b.dataset.p === 'novo-torneio', dific:'normal', eventos:true, piratas:true, taxa:1000 };
+    FORM = { modo:b.dataset.p === 'novo-torneio' ? 'torneio' : 'amigos', duracao:15, saldo:5000, galaxias:[Math.max(0, g0)], jogadores:b.dataset.p === 'novo-torneio' ? 4 : 2, bots:b.dataset.p === 'novo-torneio', dific:'normal', eventos:true, piratas:true, casco:true, taxa:1000 };
     return renderPlay();
   }
   if (b.id === 'f-x') { FORM = null; return renderPlay(); }
   if (b.id === 'f-ok') {
-    const f = FORM, cfg = { duracao:f.duracao, saldo:f.saldo, galaxias:f.galaxias, jogadores:f.jogadores, bots:f.bots, dific:f.dific, eventos:f.eventos, piratas:f.piratas, taxa:f.taxa };
+    const f = FORM, cfg = { duracao:f.duracao, saldo:f.saldo, galaxias:f.galaxias, jogadores:f.jogadores, bots:f.bots, dific:f.dific, eventos:f.eventos, piratas:f.piratas, casco:f.casco, taxa:f.taxa };
     if (await pedir(b, '/partida/criar', { modo:f.modo, cfg }, '#f-err')) { FORM = null; refrescar(true); renderPlay(); } return;
   }
   if (b.id === 'l-go') return void (await pedir(b, '/partida/iniciar', {}, '#l-err'));

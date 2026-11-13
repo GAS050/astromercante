@@ -517,3 +517,13 @@ body[data-view=amigos] #p-amigos{display:block}
 .amv-busca{margin:0 0 8px;width:100%}
 .amv-sub{font-size:.8rem;color:var(--mt);margin:2px 0 8px}
 .am-ul .buy,.am-ul .ghost{padding:6px 10px;font-size:.8rem}.am-ul .tag{font-size:.78rem;color:var(--mt);padding:0 6px}.am-ul .tag.ok{color:var(--neon)}
+
+/* ---------- polimento: telas estreitas e alvos de toque ---------- */
+.grid>*{min-width:0}
+@media (max-width:360px){.amv-tabs button{padding:8px 6px;font-size:.78rem}.amv-eu .buy{flex:1}.am-ul li{flex-wrap:wrap}}
+#p-settings input[type=checkbox]{width:20px;height:20px}
+#p-settings .row{min-height:40px}
+#p-settings a,.au-foot a,.pf-sub a{display:inline-block;padding:8px 2px}
+@media (max-width:360px){.amv-tabs{overflow:visible}.amv-tabs button{padding:8px 2px;font-size:.72rem;min-width:0}}
+#set-mus-row{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}#set-mus-row label{display:flex;align-items:center;gap:8px}
+#set-mus-row[hidden]{display:none}

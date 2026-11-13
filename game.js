@@ -1008,6 +1008,7 @@ let lastInput = Date.now();   // sem toque há 5 min e nave parada: pausa a cons
 ['pointerdown', 'keydown', 'wheel'].forEach(ev => addEventListener(ev, () => { const idle = Date.now() - lastInput > 300000; lastInput = Date.now(); if (idle) refrescar(true); }, { passive:true }));
 addEventListener('focus', () => refrescar());
 setInterval(() => { if (Date.now() - lastInput < 300000 || S.trip) refrescar(); }, 60000);
+setInterval(() => { if (TOK && CLOUD() && document.body.classList.contains("loading")) refrescar(true); }, 6000);   // servidor fora do ar na abertura: tenta de novo sozinho
 setInterval(() => { if (MODE === 'partida') partidaPoll(); }, 20000);   // placar e relógio da partida
 function renderAccount() {
   const on = !!TOK, has = !!API();

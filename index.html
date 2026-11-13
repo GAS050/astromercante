@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#050b18">
+<title>ASTROMERCANTE: Mercado Interplanetário</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+<link rel="stylesheet" href="style.css">
+</head>
+<body data-view="market">
+<canvas id="intro" class="intro" aria-hidden="true"></canvas>
+<div class="space" aria-hidden="true">
+  <div class="sl sl-neb"></div>
+  <div class="sl sl-mid"></div>
+  <img class="spiral" src="assets/bg/galaxia_espiral.svg" alt="">
+  <div class="sl sl-near"></div>
+</div>
+
+<header class="hud">
+  <div class="brand"><i class="fa-solid fa-satellite"></i><span>Astromercante<small id="rank"></small></span></div>
+  <div class="stat"><small>Créditos</small><b id="hud-credits" class="mono neon">0,00</b></div>
+  <div class="stat"><small>Patrimônio</small><b id="hud-networth" class="mono">0,00</b></div>
+  <div class="stat"><small>Tempo de ciclo</small><b id="hud-cycle" class="mono">--</b></div>
+  <div class="feed" id="feed" data-state="loading"><i></i><span id="feed-text">Conectando</span></div>
+  <button class="acct" id="acct" type="button" hidden>Entrar</button>
+</header>
+<div class="evt" id="evt" hidden></div>
+<div class="matchbar" id="matchbar" hidden></div>
+
+<main class="grid">
+  <section class="card-panel view" id="p-map">
+    <h2>Carta estelar</h2>
+    <div class="mapwrap"><canvas id="map" class="map" aria-label="Carta estelar: arraste para explorar as galáxias"></canvas>
+      <div class="mapctl"><button id="mz-in" type="button" aria-label="Aproximar">+</button><button id="mz-out" type="button" aria-label="Afastar">−</button><button id="mz-home" type="button" aria-label="Centralizar na galáxia atual" title="Minha galáxia">◎</button><button id="mz-all" type="button" aria-label="Ver todas as galáxias" title="Ver tudo">⛶</button></div>
+      <p class="maptrip" id="trip"></p>
+      <div class="mapsheet" id="mapsheet" hidden><button class="sheetx" id="sheetx" type="button" aria-label="Fechar">×</button><div class="mapinfo" id="mapinfo"></div></div></div>
+
+  </section>
+
+  <section class="card-panel view" id="p-market">
+    <h2>Terminal de mercado</h2>
+    <p class="cargobar" id="cargobar"></p>
+    <div class="qty">
+      <span>Quantidade</span>
+      <button data-qty="1">1</button><button data-qty="10">10</button><button data-qty="100">100</button>
+      <input id="qty" type="number" min="1" value="1" inputmode="numeric" aria-label="Quantidade por ordem">
+    </div>
+    <div id="market"></div>
+    <div class="shipcard" id="shipcard" role="button" tabindex="0" title="Abrir Frotas"><canvas id="shipmini"></canvas><ul id="shipstat"></ul></div>
+    <p class="powered">Dados de mercado por <a href="https://www.coingecko.com" target="_blank" rel="noopener">CoinGecko</a> e <a href="https://docs.awesomeapi.com.br" target="_blank" rel="noopener">AwesomeAPI</a>. Os preços do jogo são fictícios e inspirados em variações reais; não são cotações nem recomendação de investimento.</p>
+  </section>
+
+  <section class="card-panel view" id="p-play">
+    <h2>Partidas</h2><div id="play"></div>
+  </section>
+
+  <section class="card-panel view" id="p-fleet">
+    <h2>Frotas</h2><canvas id="shipview" class="shipview" aria-label="Sua nave"></canvas>
+    <p class="empty" id="pvlabel"></p>
+    <div id="fleet"></div>
+    <div id="hangar" hidden></div>
+  </section>
+
+  <section class="card-panel view" id="p-settings">
+    <h2>Configurações</h2>
+    <div class="row" id="acct-row"><div><strong id="acct-nome">Sem conta</strong><span class="sub" id="acct-sync"></span></div><button class="buy" id="acct-btn" type="button">Entrar ou criar conta</button></div>
+    <div class="row" id="acct-extra" hidden><button id="acct-now" type="button">Atualizar</button><button id="acct-out" type="button">Sair</button><button class="danger" id="acct-del" type="button">Excluir conta</button></div>
+    <label class="row">Fundo animado (desligue em aparelhos lentos) <input type="checkbox" id="set-fx"></label>
+    <label class="row">Sons e vibração <input type="checkbox" id="set-sound"></label>
+    <div class="row">Apagar créditos, inventário e histórico <button class="danger" id="reset">Reiniciar</button></div>
+    <div class="credits">
+      <h3>Créditos</h3>
+      <p>Dados de mercado: <a href="https://www.coingecko.com" target="_blank" rel="noopener">CoinGecko API</a> (cripto e ouro tokenizado) e <a href="https://docs.awesomeapi.com.br" target="_blank" rel="noopener">AwesomeAPI</a> (câmbio USD/BRL).</p>
+      <p>Ícones: <a href="https://fontawesome.com" target="_blank" rel="noopener">Font Awesome Free</a> (CC BY 4.0). Fontes: Chakra Petch e IBM Plex Mono, via Google Fonts (SIL OFL).</p>
+      <p>ASTROMERCANTE é um jogo de simulação. Os preços dos recursos são fictícios e não representam investimento real.</p>
+    </div>
+  </section>
+
+  <aside class="card-panel view" id="p-notes">
+    <h2 id="mis-h">Missões do dia <small id="streak"></small></h2><ul class="mis" id="mis"></ul>
+    <h2 id="board-h">Ranking global</h2><ol class="board" id="board"></ol>
+    <h2>Notificações Neuralink</h2>
+    <ul id="notes"></ul>
+  </aside>
+</main>
+
+<nav class="nav">
+  <button data-view="play"><i class="fa-solid fa-trophy"></i>Partidas</button>
+  <button data-view="market" class="on"><i class="fa-solid fa-chart-line"></i>Negociação</button>
+  <button data-view="fleet"><i class="fa-solid fa-rocket"></i>Frotas</button>
+  <button data-view="settings"><i class="fa-solid fa-gear"></i>Config.</button>
+</nav>
+
+<div class="modal" id="auth" hidden><div class="card-panel">
+  <div class="au-brand">ASTROMERCANTE</div>
+  <h2 id="au-t">Entrar</h2>
+  <div class="tabs" id="au-tabs"><button id="tab-in" class="on" type="button">Entrar</button><button id="tab-up" type="button">Criar conta</button></div>
+  <form id="au-form" class="au-form">
+    <input id="au-nome" data-f="nome" placeholder="Nome de usuário ou e-mail" autocomplete="username" maxlength="120" autocapitalize="none" spellcheck="false">
+    <input id="au-email" data-f="email" type="email" placeholder="E-mail" autocomplete="email" maxlength="120" hidden>
+    <input id="au-code" data-f="code" placeholder="Código de 6 dígitos" inputmode="numeric" autocomplete="one-time-code" maxlength="6" hidden>
+    <input id="au-senha" data-f="senha" type="password" placeholder="Senha (mínimo 8 caracteres)" autocomplete="current-password" maxlength="72">
+    <input id="au-senha2" data-f="senha2" type="password" placeholder="Repita a senha" autocomplete="new-password" maxlength="72" hidden>
+    <div id="au-ts" hidden></div>
+    <p id="au-info" class="au-info" role="status"></p>
+    <p id="au-err" class="au-err" role="alert"></p>
+    <button class="buy" id="au-ok" type="submit">Entrar</button>
+    <div class="au-links"><button class="ghost" id="au-forgot" type="button">Esqueci minha senha</button><button class="ghost" id="au-resend" type="button" hidden>Reenviar código</button></div>
+    <div id="au-google" class="au-google" hidden></div>
+  </form>
+  <p class="au-hint">Sua conta guarda o progresso na nuvem para jogar em qualquer aparelho. Usamos seu e-mail só para confirmar a conta e recuperar a senha.</p>
+</div></div>
+<div class="modal" id="res" hidden><div class="card-panel" id="res-box"></div></div>
+<div class="modal" id="chart" hidden><div class="card-panel"><h2 id="chart-t"></h2><svg id="chart-svg" viewBox="0 0 300 120"></svg><button class="danger" id="chart-x">Fechar</button></div></div>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+<script src="config.js" defer></script>
+<script src="galaxias.js" defer></script>
+<script src="naves.js" defer></script>
+<script src="game.js" defer></script>
+<script src="partidas.js" defer></script>
+</body>
+</html>

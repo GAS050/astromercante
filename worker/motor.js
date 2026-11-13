@@ -1,0 +1,329 @@
+// Motor de regras do ASTROMERCANTE: roda SÓ no servidor. O aparelho do jogador apenas pede ações; aqui elas são validadas e executadas
+// com o relógio e os preços do servidor. As regras espelham as do jogo (game.js, modo sem servidor): mantenha as duas em sincronia.
+import { GALAXIES, MINERALS } from './dados.js';
+import { NAVES, NAVE_MAX, capDe, engDe, wpDe, upCusto } from './naves.js';
+
+export const STEP = 30000, FEED_EVERY = 300000, EVWIN = 180000, HOP = 560, FUSO = 3 * 3600e3;   // dia do jogo: horário de Brasília (UTC-3)
+const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
+export const cyc = (t) => Math.floor(t / STEP) * STEP;
+
+export const RES = [
+  { id: 'neutronio', nome: 'Cristais de Neutrônio', base: 120, vol: .006, src: 'btc' },
+  { id: 'titanio', nome: 'Minério de Titânio', base: 45, vol: .003, src: 'gold' },
+  { id: 'helio3', nome: 'Gás Hélio-3', base: 80, vol: .005, src: 'eth' },
+  { id: 'especiarias', nome: 'Especiarias de Júpiter', base: 25, vol: .004, src: 'fx' },
+  { id: 'plasma', nome: 'Plasma Sombrio', base: 300, vol: .007, src: 'eth', t: 1 },
+  { id: 'antimateria', nome: 'Antimatéria', base: 900, vol: .008, src: 'btc', t: 2 },
+  { id: 'cristal', nome: 'Cristal Temporal', base: 2400, vol: .009, src: 'gold', t: 3 },
+  ...MINERALS.map((m) => ({ id: m.id, nome: m.nome, base: m.base, vol: m.vol, src: m.src, t: m.t })),
+];
+const RES_ID = Object.fromEntries(RES.map((r) => [r.id, r]));
+const SHORT = { neutronio: 'Neutrônio', titanio: 'Titânio', helio3: 'Hélio-3', especiarias: 'Especiarias', plasma: 'Plasma', antimateria: 'Antimatéria', cristal: 'C. Temporal' };
+MINERALS.forEach((m) => { SHORT[m.id] = m.nome; });
+export const RANKS = [[0, 'Recruta'], [12000, 'Contrabandista'], [30000, 'Mercador estelar'], [100000, 'Barão orbital'], [300000, 'Comodoro'], [1000000, 'Almirante galáctico'], [3000000, 'Lenda das estrelas'], [10000000, 'Imperador dos dados'], [30000000, 'Soberano do vazio'], [100000000, 'Arquiteto do universo']];
+const EVENTS = [
+  { t: 'Tempestade solar eleva o Hélio-3', r: 'helio3', m: 1.3 },
+  { t: 'Colapso de mina: Titânio escasso', r: 'titanio', m: 1.35 },
+  { t: 'Piratas inundam o mercado de Especiarias', r: 'especiarias', m: .7 },
+  { t: 'Febre hacker: Neutrônio dispara', r: 'neutronio', m: 1.4 },
+  { t: 'Excesso de oferta derruba o Neutrônio', r: 'neutronio', m: .72 },
+  { t: 'Greve em Nyx: Neutrônio nas alturas', r: 'neutronio', m: 1.5, p: 'nyx' },
+  { t: 'Boom de demanda em Ícaro: Especiarias valem ouro', r: 'especiarias', m: 1.45, p: 'icaro' },
+];
+const MIS = [
+  { k: 'trades', t: 'Faça negociações', n: () => 6, r: 300 },
+  { k: 'trips', t: 'Viaje entre planetas', n: () => 2, r: 400 },
+  { k: 'profit', t: 'Lucre vendendo (Cr)', n: (S) => 300 * (1 + S.rank), r: 600 },
+];
+
+export class Regra extends Error { constructor(msg, status = 400) { super(msg); this.status = status; } }
+
+/* ---------- preços: função pura do relógio + feed (idêntica à do jogo) ---------- */
+const hash = (s) => { let h = 2166136261; for (const c of s) { h ^= c.charCodeAt(0); h = Math.imul(h, 16777619); } return h >>> 0; };
+const rnd = (n) => { let t = (n + 0x6D2B79F5) | 0; t = Math.imul(t ^ t >>> 15, 1 | t); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; };
+const vnoise = (id, x) => { const i = Math.floor(x), f = x - i, s = f * f * (3 - 2 * f), h = hash(id), a = rnd(h + i), b = rnd(h + i + 1); return (a + (b - a) * s) * 2 - 1; };
+const feedCh = (feed, src, t) => {
+  const c = feed.change?.[src]; if (!Number.isFinite(c)) return null; const a = feed.ant?.[src];
+  return Number.isFinite(a) && feed.feedAt ? a + (c - a) * clamp((t - feed.feedAt) / FEED_EVERY, 0, 1) : c;
+};
+function precoBase(r, t, feed) {
+  const s = t / 1000, n = vnoise(r.id + 'a', s / 900) * .55 + vnoise(r.id + 'b', s / 240) * .3 + vnoise(r.id + 'c', s / 60) * .15;
+  const ch = feedCh(feed, r.src, t), tg = Number.isFinite(ch) ? clamp(ch * 3, -30, 30) / 100 : 0;
+  return Math.max(1, r.base * (1 + tg) * (1 + n * Math.min(.35, r.vol * 18)));
+}
+export function evAt(now) {
+  const k = Math.floor(now / EVWIN);
+  for (const j of [k, k - 1]) if (rnd(hash('ev' + j)) < .18) {
+    const e = EVENTS[Math.floor(rnd(hash('evi' + j)) * EVENTS.length)], end = (j + 2) * EVWIN;
+    if (now < end) return { ...e, k: j, left: Math.ceil((end - now) / 60000) };
+  }
+  return null;
+}
+
+/* ---------- estado ---------- */
+export const novo = (now) => ({ v: 3, credits: 10000, inv: {}, stock: {}, loc: 'orionis', gal: 0, nave: 1, frota: { 1: { c: 1, m: 1, a: 1, h: 100, mh: 100 } }, cap: 40, capLv: 1, engLv: 1, wpLv: 1, hull: 100, maxHull: 100, rank: 0, trip: null, vis: { 0: 1 }, daily: null, streak: 0, lastDay: '', t0: now, ult: 0 });
+
+/** Aproveita um progresso antigo (salvo pelo aparelho) sem confiar nele: tudo é revalidado e limitado. */
+export function normalizar(o, now) {
+  const S = novo(now), num = (v, a, b, d) => (Number.isFinite(+v) ? clamp(+v, a, b) : d), int = (v, a, b, d) => Math.floor(num(v, a, b, d));
+  o = o && typeof o === 'object' ? o : {};
+  S.gal = GALAXIES[o.gal] ? int(o.gal, 0, GALAXIES.length - 1, 0) : 0;
+  S.loc = GALAXIES[S.gal].planetas.some((p) => p.id === o.loc) ? o.loc : GALAXIES[S.gal].planetas[0].id;
+  S.capLv = int(o.capLv, 1, 40, 1); S.cap = 40 * S.capLv; S.engLv = int(o.engLv, 1, 5, 1); S.wpLv = int(o.wpLv, 1, 40, 1);
+  S.maxHull = int(o.maxHull, 40, 100, 100); S.hull = int(o.hull, 0, S.maxHull, S.maxHull);
+  S.credits = num(o.credits, 0, 1e8, 10000);
+  let livre = S.cap;
+  for (const id in o.inv || {}) if (RES_ID[id]) { const q = Math.min(livre, int(o.inv[id]?.qty, 0, 1e6, 0)); if (q > 0) { S.inv[id] = { qty: q, avg: num(o.inv[id].avg, 0, 1e9, 0) }; livre -= q; } }
+  S.vis = { 0: 1 }; for (const i in o.vis || {}) if (GALAXIES[i] && i <= S.gal) S.vis[i] = 1; S.vis[S.gal] = 1;
+  S.streak = int(o.streak, 0, 10000, 0); S.lastDay = typeof o.lastDay === 'string' ? o.lastDay.slice(0, 10) : '';
+  if (o.daily && typeof o.daily.day === 'string') S.daily = { day: o.daily.day.slice(0, 10), p: { trades: int(o.daily.p?.trades, 0, 1e6, 0), trips: int(o.daily.p?.trips, 0, 1e6, 0), profit: num(o.daily.p?.profit, 0, 1e9, 0) }, done: { ...(o.daily.done?.trades ? { trades: 1 } : {}), ...(o.daily.done?.trips ? { trips: 1 } : {}), ...(o.daily.done?.profit ? { profit: 1 } : {}) } };
+  delete S.frota; migrar(S);   // níveis antigos viram a Nave 1
+  return S;
+}
+
+/* ---------- naves: cada conta tem uma frota; a nave equipada define porão, motor e armamento ---------- */
+/** Recalcula os valores efetivos (usados por todas as regras) a partir da nave equipada e dos níveis dela. */
+export function recalc(S) {
+  const n = NAVES[S.nave - 1], f = S.frota[S.nave];
+  S.cap = capDe(n, f.c); S.capLv = S.cap / 40; S.engLv = engDe(n, f.m); S.wpLv = wpDe(n, f.a);
+}
+/** Conta antiga (porão/motor/armas sem limite, sem naves): vira a Nave 1; níveis acima de 5 são devolvidos em créditos. */
+export function migrar(S) {
+  if (S.frota && NAVES[S.nave - 1]) { S.v = 3; recalc(S); return false; }
+  const lc = Math.floor(S.capLv) || 1, le = Math.floor(S.engLv) || 1, lw = Math.floor(S.wpLv) || 1;
+  const soma = (de, ate, f) => { let t = 0; for (let l = de; l < ate; l++) t += f * l; return t; };   // custo antigo de cada nível acima do 5º
+  S.credits += soma(5, lc, 1000) + soma(5, le, 1200) + soma(5, lw, 1500);
+  S.nave = 1; S.frota = { 1: { c: Math.min(5, lc), m: Math.min(5, le), a: Math.min(5, lw), h: S.hull, mh: S.maxHull } }; S.v = 3; recalc(S);
+  return true;
+}
+
+/* ---------- utilidades de regra ---------- */
+const planetas = (S) => GALAXIES[S.gal].planetas;
+const planeta = (S, id) => planetas(S).find((p) => p.id === id);
+const dist = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
+const used = (S) => Object.values(S.inv).reduce((s, h) => s + h.qty, 0);
+const dia = (now) => new Date(now - FUSO).toISOString().slice(0, 10);
+const say = (msgs, m, k = 'ok') => msgs.push({ m, k });
+const note = (msgs, m, k = '') => msgs.push({ m, k, n: 1 });
+const fmt = (n) => n.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+function stk(S, id, now) { const o = S.stock[S.loc]?.[id]; return o ? 100 - (100 - o.v) * Math.pow(.94, (now - o.t) / 30000) : 100; }
+const setStk = (S, id, v, now) => { (S.stock[S.loc] ??= {})[id] = { v: Math.max(1, v), t: now }; };
+export function preco(S, id, st, c) {
+  const r = RES_ID[id], ev = S.partida && !S.partida.eventos ? null : evAt(c.now);
+  return precoBase(r, cyc(c.now), c.feed) * (planeta(S, S.loc).m[id] || 1) * (1 + .12 * S.gal) * clamp((100 / Math.max(st, 5)) ** .4, .6, 2.5) * (ev && ev.r === id && (!ev.p || ev.p === S.loc) ? ev.m : 1);
+}
+const carga = (S, c) => Object.keys(S.inv).reduce((s, id) => s + S.inv[id].qty * preco(S, id, stk(S, id, c.now), c), 0);
+export const patrimonio = (S, c) => S.credits + carga(S, c);
+const fixCost = (S) => Math.round((S.maxHull - S.hull) * 12 * (1 + .25 * (S.capLv + S.engLv - 2)));
+const overCost = (S) => Math.round(2500 * (S.capLv + S.engLv - 1));
+const hops = (S, i) => Math.max(1, Math.round(Math.hypot(GALAXIES[i].wx - GALAXIES[S.gal].wx, GALAXIES[i].wy - GALAXIES[S.gal].wy) / HOP));
+const jumpCost = (S, i) => Math.round(150 * (1 + i) * hops(S, i) * (1 + .3 * (S.engLv - 1) + .25 * (S.capLv - 1)) * (1 + (100 - S.hull) / 150));
+const tripInfo = (S, to) => { const d = dist(planeta(S, S.loc), planeta(S, to)); return { d, cost: Math.round(d * .8 * (1 + .3 * (S.engLv - 1) + .25 * (S.capLv - 1)) * (1 + (100 - S.hull) / 150)), secs: Math.max(3, Math.round(d / (18 + S.engLv * 7) * (S.hull < 40 ? 1.3 : 1))) }; };
+
+function desgaste(S, d, msgs) {   // piratas, monstros e tempestades: o sorteio é do servidor
+  const D = S.gal;
+  let dmg = Math.round((2 + Math.random() * 4) * d / 120 * (1 + (S.engLv - 1) * .1) * (1 + D * .2)), msg = '', kind = 'err';
+  if ((!S.partida || S.partida.piratas) && Math.random() < Math.min(.6, .28 + .05 * D)) {
+    const foe = D >= 4 ? 'Leviatã estelar' : D >= 2 ? 'Enxame de drones' : 'Piratas', r = Math.random();
+    if (r < .3) { const h = [['Chuva de asteroides', 9, 16], ['Tempestade solar', 6, 11]][Math.random() * 2 | 0]; dmg += ((h[1] + Math.random() * (h[2] - h[1])) * (1 + D * .15)) | 0; msg = h[0] + '! '; }
+    else if (Math.random() < clamp(.4 + .13 * S.wpLv - .06 * D, .1, .9)) { const b = Math.round((300 + Math.random() * 500) * (1 + D)); S.credits += b; dmg += 2; kind = 'win'; msg = `${foe} repelidos! Recompensa +${fmt(b)} Cr. `; }
+    else {
+      dmg += ((6 + Math.random() * 8) * (1 + D * .5)) | 0; msg = `${foe} atacaram! `;
+      const own = Object.keys(S.inv).filter((x) => S.inv[x].qty > 0);
+      if (own.length) { const x = own[Math.random() * own.length | 0], q = Math.ceil(S.inv[x].qty * (.25 + D * .05)); S.inv[x].qty -= q; if (!S.inv[x].qty) S.inv[x].avg = 0; msg += `Perdeu ${q} × ${RES_ID[x].nome}. `; }
+    }
+  }
+  S.hull = Math.max(0, S.hull - dmg);
+  if (msg || dmg >= 8) say(msgs, `${msg}Casco -${dmg}% (agora ${S.hull}%).`, kind); else note(msgs, `Casco -${dmg}% (agora ${S.hull}%).`);
+  if (S.hull < 30) note(msgs, '⚠ Casco crítico: repare a nave na aba Frotas.', 'alert');
+}
+
+/* ---------- efeitos do tempo (chegada, dia novo): aplicados pelo servidor, nunca pelo aparelho ---------- */
+export const precisaResolver = (S, now) => !!(S.trip && now >= S.trip.end) || (!S.partida && (!S.daily || S.daily.day !== dia(now)));
+export function resolver(S, c, msgs) {
+  let mudou = false;
+  const d = dia(c.now);
+  if (!S.partida && (!S.daily || S.daily.day !== d)) {
+    const y = dia(c.now - 864e5);
+    S.streak = S.lastDay === y ? S.streak + 1 : 1; S.lastDay = d; S.daily = { day: d, p: { trades: 0, trips: 0, profit: 0 }, done: {} };
+    const b = 100 * Math.min(S.streak, 7); S.credits += b; say(msgs, `Bônus diário: ${fmt(b)} Cr (sequência de ${S.streak} dia/s). Volte amanhã para mais!`, 'win'); mudou = true;
+  }
+  if (S.trip && c.now >= S.trip.end) {
+    const dd = dist(planeta(S, S.trip.from), planeta(S, S.trip.to)); S.loc = S.trip.to; S.trip = null; S.daily.p.trips++; desgaste(S, dd, msgs);
+    const m = planeta(S, S.loc).m, deals = Object.keys(m).filter((k) => m[k] < 1).map((k) => SHORT[k]);
+    say(msgs, `Chegada em ${planeta(S, S.loc).nome}.` + (deals.length ? ` Compre barato: ${deals.join(', ')}.` : ''), 'ok'); mudou = true;
+  }
+  return mudou;
+}
+export function fechar(S, c, msgs) {   // missões e patente, sempre calculadas depois de uma ação
+  MIS.forEach((m) => { if (!S.daily.done[m.k] && S.daily.p[m.k] >= m.n(S)) { S.daily.done[m.k] = 1; S.credits += m.r; say(msgs, `Missão cumprida: ${m.t}! +${fmt(m.r)} Cr`, 'win'); } });
+  if (S.partida) return;   // na partida a patente é a da carreira e não muda
+  const w = patrimonio(S, c); let k = 0; RANKS.forEach((r, i) => { if (w >= r[0]) k = i; });
+  if (k > S.rank) {
+    S.rank = k;
+    const nu = GALAXIES.flatMap((g) => g.planetas).filter((p) => p.t === k).map((p) => p.nome).slice(0, 4).concat(RES.filter((r) => r.t === k).map((r) => r.nome));
+    say(msgs, `Nova patente: ${RANKS[k][1]}! Desbloqueado: ${nu.join(', ') || '—'}.`, 'win');
+  }
+}
+
+/* ---------- ações ---------- */
+const acoes = {
+  negociar(S, c, msgs, a) {
+    const r = RES_ID[a.id], lado = a.lado, n = Math.floor(Number(a.n));
+    if (!r) throw new Regra('Recurso desconhecido.');
+    if (lado !== 'buy' && lado !== 'sell') throw new Regra('Ordem inválida.');
+    if (!(n >= 1 && n <= 100000)) throw new Regra('Quantidade inválida.');
+    if ((r.t || 0) > S.rank) throw new Regra('Recurso bloqueado: suba de patente.');
+    if (S.trip) throw new Regra('Nave em trânsito.');
+    const s0 = stk(S, a.id, c.now), esperado = Number(a.esperado), vitrine = preco(S, a.id, s0, c);
+    if (esperado > 0 && Math.abs(vitrine / esperado - 1) > .08) throw new Regra('O preço mudou. Confira o mercado e tente de novo.');
+    const p = preco(S, a.id, lado === 'buy' ? s0 - n / 2 : s0 + n / 2, c) * (lado === 'buy' ? 1 : .95), total = n * p, h = (S.inv[a.id] ??= { qty: 0, avg: 0 });
+    if (lado === 'buy') {
+      if (n > s0 - 1) throw new Regra(`Este planeta só tem ${Math.floor(s0 - 1)} un. em oferta. Procure outro mercado.`);
+      if (total > S.credits) throw new Regra(`Créditos insuficientes: faltam ${fmt(total - S.credits)}.`);
+      if (used(S) + n > S.cap) throw new Regra(`Porão cheio (${used(S)}/${S.cap}). Venda ou faça upgrade.`);
+      h.avg = (h.avg * h.qty + total) / (h.qty + n); h.qty += n; S.credits -= total; setStk(S, a.id, s0 - n, c.now);
+      say(msgs, `Comprou ${n} × ${r.nome} por ${fmt(total)}.`);
+    } else {
+      if (n > h.qty) throw new Regra(`Você tem apenas ${h.qty} × ${r.nome}.`);
+      S.daily.p.profit += Math.max(0, n * (p - h.avg)); h.qty -= n; S.credits += total; setStk(S, a.id, s0 + n, c.now); if (!h.qty) h.avg = 0;
+      say(msgs, `Vendeu ${n} × ${r.nome} por ${fmt(total)}.`);
+    }
+    S.daily.p.trades++;
+  },
+  viajar(S, c, msgs, a) {
+    const to = planeta(S, a.to);
+    if (S.trip) throw new Regra('Nave em trânsito.');
+    if (!to) throw new Regra('Destino desconhecido.');
+    if (to.id === S.loc) throw new Regra('Você já está aqui.');
+    if (to.t > S.rank) throw new Regra('Setor bloqueado: suba de patente.');
+    if (S.hull < 15) throw new Regra('Casco crítico: repare a nave na aba Frotas.');
+    const t = tripInfo(S, to.id);
+    if (t.cost > S.credits) throw new Regra(`Combustível custa ${fmt(t.cost)} Cr. Créditos insuficientes.`);
+    S.credits -= t.cost; S.trip = { from: S.loc, to: to.id, start: c.now, end: c.now + t.secs * 1000 };
+    say(msgs, `Rumo a ${to.nome}: ${t.secs}s, combustível ${fmt(t.cost)} Cr.`, '');
+  },
+  saltar(S, c, msgs, a) {
+    const i = Math.floor(Number(a.i)), g = GALAXIES[i];
+    if (S.trip) throw new Regra('Nave em trânsito.');
+    if (!g || i === S.gal) throw new Regra('Galáxia inválida.');
+    if (S.partida && !S.partida.galaxias.includes(i)) throw new Regra('Esta galáxia não faz parte da partida.');
+    if (S.rank < g.t) throw new Regra(`A galáxia ${g.nome} exige a patente ${RANKS[g.t][1]}.`);
+    if (S.engLv < g.eng) throw new Regra(`A galáxia ${g.nome} exige motor nv.${g.eng}.`);
+    if (S.hull < 25) throw new Regra('Casco crítico: repare antes de saltar.');
+    const custo = jumpCost(S, i), hop = hops(S, i);
+    if (custo > S.credits) throw new Regra(`O salto custa ${fmt(custo)} Cr. Créditos insuficientes.`);
+    S.credits -= custo; S.gal = i; S.loc = g.planetas[0].id; S.daily.p.trips++;
+    const primeira = !S.vis[i]; S.vis[i] = 1; say(msgs, `Salto concluído: Galáxia ${g.nome}${primeira ? ' (nova!)' : ''}.`);
+    if (primeira && !S.partida) { const b = 200 * i; S.credits += b; say(msgs, `Bônus de exploração: +${fmt(b)} Cr!`, 'win'); }
+    desgaste(S, 120 * hop + i * 40, msgs);
+  },
+  melhorar(S, c, msgs, a) {
+    const k = a.k;
+    if (k === 'fix' || k === 'over') {
+      if (k === 'fix' && S.hull >= S.maxHull) throw new Regra('O casco já está no máximo.');
+      if (k === 'over' && S.maxHull >= 100) throw new Regra('A nave já está como nova.');
+      const custo = k === 'fix' ? fixCost(S) : overCost(S);
+      if (custo > S.credits) throw new Regra(`Faltam ${fmt(custo - S.credits)} créditos.`);
+      S.credits -= custo; if (k === 'fix') { S.maxHull = Math.max(40, S.maxHull - 1); S.hull = S.maxHull; } else { S.maxHull = 100; S.hull = 100; }
+      say(msgs, k === 'fix' ? 'Casco reparado.' : 'Revisão completa: nave como nova.'); return;
+    }
+    if (k !== 'cap' && k !== 'eng' && k !== 'wp') throw new Regra('Melhoria desconhecida.');
+    const f = S.frota[S.nave], campo = { cap: 'c', eng: 'm', wp: 'a' }[k], L = f[campo];
+    if (L >= NAVE_MAX) throw new Regra('Este item já está no nível máximo.');
+    const custo = upCusto(NAVES[S.nave - 1], k, L);
+    if (custo > S.credits) throw new Regra(`Faltam ${fmt(custo - S.credits)} créditos.`);
+    S.credits -= custo; f[campo] = L + 1; recalc(S);
+    say(msgs, 'Upgrade instalado!');
+  },
+  comprarNave(S, c, msgs, a) {
+    const i = Math.floor(Number(a.i)), n = NAVES[i - 1];
+    if (S.partida) throw new Regra('Não dá para trocar de nave durante uma partida.');
+    if (!n) throw new Regra('Nave desconhecida.');
+    if (S.frota[i]) throw new Regra('Você já tem esta nave.');
+    if (S.rank < n.rank) throw new Regra(`A nave ${n.nome} exige a patente ${RANKS[n.rank][1]}.`);
+    if (n.preco > S.credits) throw new Regra(`A nave custa ${fmt(n.preco)} Cr. Faltam ${fmt(n.preco - S.credits)}.`);
+    S.credits -= n.preco; S.frota[i] = { c: 1, m: 1, a: 1, h: 100, mh: 100 };
+    say(msgs, `Nave ${n.nome} adquirida! Equipe-a na aba Frotas.`, 'win');
+  },
+  equipar(S, c, msgs, a) {
+    const i = Math.floor(Number(a.i)), n = NAVES[i - 1];
+    if (S.partida) throw new Regra('Não dá para trocar de nave durante uma partida.');
+    if (S.trip) throw new Regra('Nave em trânsito.');
+    if (!n || !S.frota[i]) throw new Regra('Você não tem esta nave.');
+    if (i === S.nave) throw new Regra('Esta nave já está equipada.');
+    const f = S.frota[i], cap = capDe(n, f.c);
+    if (used(S) > cap) throw new Regra(`Sua carga (${used(S)}) não cabe na ${n.nome} (porão ${cap}). Venda parte dela antes.`);
+    Object.assign(S.frota[S.nave], { h: S.hull, mh: S.maxHull });   // cada nave guarda o próprio casco
+    S.nave = i; S.hull = f.h; S.maxHull = f.mh; recalc(S);
+    say(msgs, `Nave ${n.nome} equipada.`);
+  },
+};
+export function executar(S, c, msgs, nome, args) {
+  const f = acoes[nome]; if (!f) throw new Regra('Ação desconhecida.', 404);
+  if (S.partida && c.now >= S.partida.fim) throw new Regra('A partida acabou.', 410);
+  if (c.now - (S.ult || 0) < 80) throw new Regra('Devagar, comandante.', 429);   // limite de ritmo por conta
+  f(S, c, msgs, args || {}); S.ult = c.now;
+}
+
+
+/* ================= PARTIDAS (torneio e convite entre amigos) ================= */
+export const DURACOES = [10, 15, 20, 30, 45, 60], TAXAS = [500, 1000, 2500, 5000, 10000], DIFICULDADES = ['facil', 'normal', 'dificil'];
+export const desbloqueada = (carr, i) => !!GALAXIES[i] && carr.rank >= GALAXIES[i].t && carr.engLv >= GALAXIES[i].eng;
+const inteiro = (v, a, b, msg) => { const n = Math.floor(Number(v)); if (!(n >= a && n <= b)) throw new Regra(msg); return n; };
+
+/** Valida as opções escolhidas pelo criador. Só galáxias que ELE desbloqueou podem entrar na partida. */
+export function validarCfg(cfg, carr, modo) {
+  cfg = cfg && typeof cfg === 'object' ? cfg : {};
+  if (modo !== 'torneio' && modo !== 'amigos') throw new Regra('Modo de partida inválido.');
+  const duracao = Number(cfg.duracao); if (!DURACOES.includes(duracao)) throw new Regra('Duração inválida.');
+  const saldo = inteiro(cfg.saldo, 2000, 10000, 'O saldo inicial vai de 2.000 a 10.000.');
+  const gals = [...new Set((Array.isArray(cfg.galaxias) ? cfg.galaxias : []).map(Number))].sort((a, b) => a - b);
+  if (!gals.length || gals.length > GALAXIES.length) throw new Regra('Escolha ao menos uma galáxia.');
+  for (const g of gals) { if (!Number.isInteger(g) || !GALAXIES[g]) throw new Regra('Galáxia inválida.'); if (!desbloqueada(carr, g)) throw new Regra(`Você ainda não desbloqueou a galáxia ${GALAXIES[g].nome}.`); }
+  const jogadores = inteiro(cfg.jogadores, 2, 8, 'A partida comporta de 2 a 8 jogadores.');
+  const dific = DIFICULDADES.includes(cfg.dific) ? cfg.dific : 'normal';
+  let taxa = 0;
+  if (modo === 'torneio') { taxa = Math.floor(Number(cfg.taxa)); if (!TAXAS.includes(taxa)) throw new Regra('Taxa de entrada inválida.'); }
+  return { duracao, saldo, galaxias: gals, jogadores, bots: !!cfg.bots, dific, taxa, eventos: cfg.eventos !== false, piratas: cfg.piratas !== false };
+}
+
+/** Estado inicial de um jogador na partida: nave da carreira (porão, motor, armamento e patente), saldo igual para todos. */
+export function novoPartida(carr, cfg, codigo, now, fim) {
+  const S = novo(now), g0 = cfg.galaxias[0];
+  S.credits = cfg.saldo; S.rank = carr.rank; S.nave = carr.nave; S.frota = { [carr.nave]: { ...carr.frota[carr.nave], h: 100, mh: 100 } }; recalc(S);
+  S.gal = g0; S.loc = GALAXIES[g0].planetas[0].id; S.vis = { [g0]: 1 };
+  S.daily = { day: 'partida', p: { trades: 0, trips: 0, profit: 0 }, done: { trades: 1, trips: 1, profit: 1 } };
+  S.partida = { codigo, inicio: now, fim, galaxias: cfg.galaxias, eventos: cfg.eventos, piratas: cfg.piratas };
+  return S;
+}
+/** Patrimônio do jogador no instante do fim (créditos + carga avaliada com os preços daquele instante). */
+export const valorFinal = (S, feed) => patrimonio(S, { now: S.partida.fim, feed });
+
+/* ---------- bots: curva de patrimônio determinística (não precisam de estado nem de ações) ---------- */
+export const NOMES_BOT = ['Vega Prime', 'Capitão Zen', 'Nova-7', 'Dr. Quasar', 'Lyra-Bot', 'Orion-X', 'Kappa Rex', 'Sirius Jr.'];
+export const botNome = (codigo, i) => NOMES_BOT[(hash(codigo) + i) % NOMES_BOT.length] + (i >= NOMES_BOT.length ? ' ' + i : '');
+const GBOT = { facil: 0.35, normal: 0.7, dificil: 1.1 };   // fração do ritmo de referência de um jogador esperto (calibrado por simulação)
+export const ritmoReferencia = (cfg) => cfg.saldo * 0.02 * cfg.duracao;   // ganho de um bot 'difícil' médio ≈ 2% do saldo por minuto (valor ajustável: ainda não calibrado com jogadores reais)
+export function botPatrimonio(cfg, codigo, i, t, inicio, fim) {
+  const tau = clamp((t - inicio) / (fim - inicio), 0, 1), h = hash(codigo + ':bot' + i), hab = .8 + (h % 1000) / 2500;   // habilidade 0,8 a 1,2
+  const ganho = ritmoReferencia(cfg) * GBOT[cfg.dific] * hab * Math.pow(tau, .9);
+  const ruido = (vnoise(codigo + 'b' + i, tau * 9) * .05 + vnoise(codigo + 'c' + i, tau * 31) * .02) * cfg.saldo * Math.min(1, tau * 4);
+  return Math.max(cfg.saldo * .5, cfg.saldo + ganho + ruido);
+}
+
+/** Premiação do torneio. humanos: [{usuario, geral}] ordenados por colocação; total: participantes (humanos + bots).
+ *  Bolo = soma das taxas dos humanos: 2 humanos → vencedor leva tudo; 3 ou mais → 60/30/10.
+ *  Sozinho contra bots: recupera a taxa se terminar na metade de cima; se for 1º, ganha bônus conforme a dificuldade. */
+export function premiacao(humanos, total, cfg) {
+  const taxa = cfg.taxa, premios = new Map();
+  if (!taxa || !humanos.length) return premios;
+  const bolo = humanos.length * taxa;
+  if (humanos.length === 1) {
+    const h = humanos[0];
+    if (h.geral <= Math.ceil(total / 2)) premios.set(h.usuario, taxa + (h.geral === 1 ? Math.round(taxa * ({ facil: 0, normal: .25, dificil: .5 }[cfg.dific] || 0)) : 0));
+  } else if (humanos.length === 2) premios.set(humanos[0].usuario, bolo);
+  else [0.6, 0.3, 0.1].forEach((f, i) => { if (humanos[i]) premios.set(humanos[i].usuario, Math.round(bolo * f)); });
+  return premios;
+}

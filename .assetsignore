@@ -1,0 +1,7 @@
+wrangler.jsonc
+.assetsignore
+PUBLICAR.md
+worker
+tools
+node_modules
+.wrangler

@@ -1,0 +1,132 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256" xmlns:c2pa="http://c2pa.org/manifest">
+<title>Nave 15 - armas_n5</title>
+<defs><radialGradient id="wg5"><stop offset="0" stop-color="#fbbf24" stop-opacity=".95"/><stop offset=".45" stop-color="#fbbf24" stop-opacity=".35"/><stop offset="1" stop-color="#fbbf24" stop-opacity="0"/></radialGradient></defs>
+<g transform="translate(128 136) scale(0.529) translate(-128 -136)"><rect x="180.5" y="80.5" width="4.6" height="14.0" rx="1" fill="#d3dbe3" stroke="#0b1220" stroke-width=".5"/>
+<polygon points="180.5,80.5 185.1,80.5 182.8,70.5" fill="#fbbf24" stroke="#0b1220" stroke-width=".5" stroke-linejoin="round"/>
+<rect x="186.7" y="80.5" width="4.6" height="14.0" rx="1" fill="#d3dbe3" stroke="#0b1220" stroke-width=".5"/>
+<polygon points="186.7,80.5 191.3,80.5 189.0,70.5" fill="#fbbf24" stroke="#0b1220" stroke-width=".5" stroke-linejoin="round"/>
+<rect x="192.9" y="80.5" width="4.6" height="14.0" rx="1" fill="#d3dbe3" stroke="#0b1220" stroke-width=".5"/>
+<polygon points="192.9,80.5 197.5,80.5 195.2,70.5" fill="#fbbf24" stroke="#0b1220" stroke-width=".5" stroke-linejoin="round"/>
+<rect x="199.1" y="80.5" width="4.6" height="14.0" rx="1" fill="#d3dbe3" stroke="#0b1220" stroke-width=".5"/>
+<polygon points="199.1,80.5 203.7,80.5 201.4,70.5" fill="#fbbf24" stroke="#0b1220" stroke-width=".5" stroke-linejoin="round"/>
+<polygon points="178.9,92.5 174.4,102.5 178.9,102.5" fill="#1f2833" />
+<polygon points="205.3,92.5 209.8,102.5 205.3,102.5" fill="#1f2833" />
+<rect x="178.9" y="88.5" width="26.4" height="30.0" rx="2.5" fill="#4a5663" stroke="#0b1220" stroke-width=".9"/>
+<rect x="180.1" y="89.7" width="12.0" height="27.6" rx="1.5" fill="#6b7886" />
+<rect x="178.9" y="105.0" width="26.4" height="3.4" rx="0" fill="#fbbf24" />
+<rect x="179.9" y="105.0" width="1.2" height="3.4" rx="0" fill="#1f2833" />
+<rect x="186.1" y="105.0" width="1.2" height="3.4" rx="0" fill="#1f2833" />
+<rect x="192.3" y="105.0" width="1.2" height="3.4" rx="0" fill="#1f2833" />
+<rect x="198.5" y="105.0" width="1.2" height="3.4" rx="0" fill="#1f2833" />
+<rect x="204.7" y="105.0" width="1.2" height="3.4" rx="0" fill="#1f2833" />
+<rect x="180.9" y="111.5" width="22.4" height="3.0" rx="1.2" fill="#1f2833" />
+<circle cx="159.1" cy="93.3" r="16.0" fill="url(#wg5)" />
+<polygon points="151.1,90.3 152.2,76.3 156.5,86.3" fill="#8996a5" stroke="#0b1220" stroke-width=".8"/>
+<polygon points="167.1,90.3 165.9,76.3 161.7,86.3" fill="#8996a5" stroke="#0b1220" stroke-width=".8"/>
+<polygon points="159.1,80.3 167.1,88.3 167.1,102.3 159.1,107.3 151.1,102.3 151.1,88.3" fill="#2a3441" stroke="#fbbf24" stroke-width="1.6" stroke-linejoin="round"/>
+<ellipse cx="159.1" cy="94.3" rx="8" ry="2.3" fill="none" stroke="#fbbf24" stroke-width="1.4"/>
+<ellipse cx="159.1" cy="100.3" rx="8" ry="2.3" fill="none" stroke="#fbbf24" stroke-width="1.4"/>
+<circle cx="159.1" cy="89.3" r="4.0" fill="#fbbf24" stroke="#fff" stroke-width=".8"/>
+<circle cx="159.1" cy="89.3" r="1.7" fill="#fff" />
+<rect x="163.2" y="72.8" width="2.2" height="31.0" rx="0" fill="#8996a5" />
+<rect x="165.4" y="72.8" width="2.2" height="31.0" rx="0" fill="#4a5663" />
+<rect x="163.2" y="72.8" width="4.4" height="31.0" rx="0" fill="none" stroke="#0b1220" stroke-width=".8"/>
+<rect x="162.4" y="82.1" width="6.0" height="2.4" rx="1" fill="#1f2833" />
+<rect x="162.4" y="92.0" width="6.0" height="2.4" rx="1" fill="#1f2833" />
+<rect x="164.6" y="75.8" width="1.6" height="25.0" rx="0" fill="#fbbf24" />
+<rect x="162.0" y="67.8" width="6.8" height="5.5" rx="1.2" fill="#1f2833" stroke="#fbbf24" stroke-width=".8"/>
+<rect x="163.1" y="69.6" width="1.5" height="2.2" rx="0" fill="#fbbf24" />
+<rect x="166.2" y="69.6" width="1.5" height="2.2" rx="0" fill="#fbbf24" />
+<circle cx="165.4" cy="66.8" r="9.0" fill="url(#wg5)" />
+<circle cx="165.4" cy="66.8" r="3.4" fill="#fbbf24" stroke="#fff" stroke-width="1"/>
+<rect x="175.6" y="72.8" width="2.2" height="31.0" rx="0" fill="#8996a5" />
+<rect x="177.8" y="72.8" width="2.2" height="31.0" rx="0" fill="#4a5663" />
+<rect x="175.6" y="72.8" width="4.4" height="31.0" rx="0" fill="none" stroke="#0b1220" stroke-width=".8"/>
+<rect x="174.8" y="82.1" width="6.0" height="2.4" rx="1" fill="#1f2833" />
+<rect x="174.8" y="92.0" width="6.0" height="2.4" rx="1" fill="#1f2833" />
+<rect x="176.9" y="75.8" width="1.6" height="25.0" rx="0" fill="#fbbf24" />
+<rect x="174.3" y="67.8" width="6.8" height="5.5" rx="1.2" fill="#1f2833" stroke="#fbbf24" stroke-width=".8"/>
+<rect x="175.4" y="69.6" width="1.5" height="2.2" rx="0" fill="#fbbf24" />
+<rect x="178.6" y="69.6" width="1.5" height="2.2" rx="0" fill="#fbbf24" />
+<circle cx="177.8" cy="66.8" r="9.0" fill="url(#wg5)" />
+<circle cx="177.8" cy="66.8" r="3.4" fill="#fbbf24" stroke="#fff" stroke-width="1"/>
+<rect x="159.7" y="90.8" width="23.8" height="13.0" rx="3.5" fill="#8996a5" stroke="#0b1220" stroke-width=".8"/>
+<rect x="161.2" y="92.3" width="20.8" height="2.6" rx="1" fill="#c3cdd8" />
+<rect x="159.7" y="97.9" width="23.8" height="2.8" rx="0" fill="#fbbf24" />
+<circle cx="171.6" cy="96.6" r="3.0" fill="#1f2833" stroke="#fbbf24" stroke-width="1.2"/>
+<circle cx="162.5" cy="101.2" r="1.0" fill="#1f2833" />
+<circle cx="180.7" cy="101.2" r="1.0" fill="#1f2833" />
+<rect x="52.3" y="80.5" width="4.6" height="14.0" rx="1" fill="#d3dbe3" stroke="#0b1220" stroke-width=".5"/>
+<polygon points="52.3,80.5 56.9,80.5 54.6,70.5" fill="#fbbf24" stroke="#0b1220" stroke-width=".5" stroke-linejoin="round"/>
+<rect x="58.5" y="80.5" width="4.6" height="14.0" rx="1" fill="#d3dbe3" stroke="#0b1220" stroke-width=".5"/>
+<polygon points="58.5,80.5 63.1,80.5 60.8,70.5" fill="#fbbf24" stroke="#0b1220" stroke-width=".5" stroke-linejoin="round"/>
+<rect x="64.7" y="80.5" width="4.6" height="14.0" rx="1" fill="#d3dbe3" stroke="#0b1220" stroke-width=".5"/>
+<polygon points="64.7,80.5 69.3,80.5 67.0,70.5" fill="#fbbf24" stroke="#0b1220" stroke-width=".5" stroke-linejoin="round"/>
+<rect x="70.9" y="80.5" width="4.6" height="14.0" rx="1" fill="#d3dbe3" stroke="#0b1220" stroke-width=".5"/>
+<polygon points="70.9,80.5 75.5,80.5 73.2,70.5" fill="#fbbf24" stroke="#0b1220" stroke-width=".5" stroke-linejoin="round"/>
+<polygon points="50.7,92.5 46.2,102.5 50.7,102.5" fill="#1f2833" />
+<polygon points="77.1,92.5 81.6,102.5 77.1,102.5" fill="#1f2833" />
+<rect x="50.7" y="88.5" width="26.4" height="30.0" rx="2.5" fill="#4a5663" stroke="#0b1220" stroke-width=".9"/>
+<rect x="51.9" y="89.7" width="12.0" height="27.6" rx="1.5" fill="#6b7886" />
+<rect x="50.7" y="105.0" width="26.4" height="3.4" rx="0" fill="#fbbf24" />
+<rect x="51.7" y="105.0" width="1.2" height="3.4" rx="0" fill="#1f2833" />
+<rect x="57.9" y="105.0" width="1.2" height="3.4" rx="0" fill="#1f2833" />
+<rect x="64.1" y="105.0" width="1.2" height="3.4" rx="0" fill="#1f2833" />
+<rect x="70.3" y="105.0" width="1.2" height="3.4" rx="0" fill="#1f2833" />
+<rect x="76.5" y="105.0" width="1.2" height="3.4" rx="0" fill="#1f2833" />
+<rect x="52.7" y="111.5" width="22.4" height="3.0" rx="1.2" fill="#1f2833" />
+<circle cx="97.0" cy="93.3" r="16.0" fill="url(#wg5)" />
+<polygon points="89.0,90.3 90.2,76.3 94.4,86.3" fill="#8996a5" stroke="#0b1220" stroke-width=".8"/>
+<polygon points="105.0,90.3 103.8,76.3 99.5,86.3" fill="#8996a5" stroke="#0b1220" stroke-width=".8"/>
+<polygon points="97.0,80.3 105.0,88.3 105.0,102.3 97.0,107.3 89.0,102.3 89.0,88.3" fill="#2a3441" stroke="#fbbf24" stroke-width="1.6" stroke-linejoin="round"/>
+<ellipse cx="97.0" cy="94.3" rx="8" ry="2.3" fill="none" stroke="#fbbf24" stroke-width="1.4"/>
+<ellipse cx="97.0" cy="100.3" rx="8" ry="2.3" fill="none" stroke="#fbbf24" stroke-width="1.4"/>
+<circle cx="97.0" cy="89.3" r="4.0" fill="#fbbf24" stroke="#fff" stroke-width=".8"/>
+<circle cx="97.0" cy="89.3" r="1.7" fill="#fff" />
+<rect x="76.0" y="72.8" width="2.2" height="31.0" rx="0" fill="#8996a5" />
+<rect x="78.2" y="72.8" width="2.2" height="31.0" rx="0" fill="#4a5663" />
+<rect x="76.0" y="72.8" width="4.4" height="31.0" rx="0" fill="none" stroke="#0b1220" stroke-width=".8"/>
+<rect x="75.3" y="82.1" width="6.0" height="2.4" rx="1" fill="#1f2833" />
+<rect x="75.3" y="92.0" width="6.0" height="2.4" rx="1" fill="#1f2833" />
+<rect x="77.5" y="75.8" width="1.6" height="25.0" rx="0" fill="#fbbf24" />
+<rect x="74.8" y="67.8" width="6.8" height="5.5" rx="1.2" fill="#1f2833" stroke="#fbbf24" stroke-width=".8"/>
+<rect x="75.9" y="69.6" width="1.5" height="2.2" rx="0" fill="#fbbf24" />
+<rect x="79.1" y="69.6" width="1.5" height="2.2" rx="0" fill="#fbbf24" />
+<circle cx="78.2" cy="66.8" r="9.0" fill="url(#wg5)" />
+<circle cx="78.2" cy="66.8" r="3.4" fill="#fbbf24" stroke="#fff" stroke-width="1"/>
+<rect x="88.4" y="72.8" width="2.2" height="31.0" rx="0" fill="#8996a5" />
+<rect x="90.6" y="72.8" width="2.2" height="31.0" rx="0" fill="#4a5663" />
+<rect x="88.4" y="72.8" width="4.4" height="31.0" rx="0" fill="none" stroke="#0b1220" stroke-width=".8"/>
+<rect x="87.6" y="82.1" width="6.0" height="2.4" rx="1" fill="#1f2833" />
+<rect x="87.6" y="92.0" width="6.0" height="2.4" rx="1" fill="#1f2833" />
+<rect x="89.8" y="75.8" width="1.6" height="25.0" rx="0" fill="#fbbf24" />
+<rect x="87.2" y="67.8" width="6.8" height="5.5" rx="1.2" fill="#1f2833" stroke="#fbbf24" stroke-width=".8"/>
+<rect x="88.3" y="69.6" width="1.5" height="2.2" rx="0" fill="#fbbf24" />
+<rect x="91.4" y="69.6" width="1.5" height="2.2" rx="0" fill="#fbbf24" />
+<circle cx="90.6" cy="66.8" r="9.0" fill="url(#wg5)" />
+<circle cx="90.6" cy="66.8" r="3.4" fill="#fbbf24" stroke="#fff" stroke-width="1"/>
+<rect x="72.5" y="90.8" width="23.8" height="13.0" rx="3.5" fill="#8996a5" stroke="#0b1220" stroke-width=".8"/>
+<rect x="74.0" y="92.3" width="20.8" height="2.6" rx="1" fill="#c3cdd8" />
+<rect x="72.5" y="97.9" width="23.8" height="2.8" rx="0" fill="#fbbf24" />
+<circle cx="84.4" cy="96.6" r="3.0" fill="#1f2833" stroke="#fbbf24" stroke-width="1.2"/>
+<circle cx="75.3" cy="101.2" r="1.0" fill="#1f2833" />
+<circle cx="93.5" cy="101.2" r="1.0" fill="#1f2833" />
+<rect x="124.2" y="16.0" width="3.8" height="13.0" rx="0" fill="#8996a5" />
+<rect x="128.0" y="16.0" width="3.8" height="13.0" rx="0" fill="#4a5663" />
+<rect x="124.2" y="16.0" width="7.5" height="13.0" rx="0" fill="none" stroke="#0b1220" stroke-width=".8"/>
+<rect x="122.9" y="19.9" width="10.2" height="2.4" rx="1" fill="#1f2833" />
+<rect x="122.9" y="24.1" width="10.2" height="2.4" rx="1" fill="#1f2833" />
+<rect x="127.2" y="19.0" width="1.6" height="7.0" rx="0" fill="#fbbf24" />
+<rect x="122.2" y="11.0" width="11.6" height="5.5" rx="1.2" fill="#1f2833" stroke="#fbbf24" stroke-width=".8"/>
+<rect x="123.3" y="12.8" width="1.5" height="2.2" rx="0" fill="#fbbf24" />
+<rect x="131.2" y="12.8" width="1.5" height="2.2" rx="0" fill="#fbbf24" />
+<circle cx="128.0" cy="10.0" r="9.0" fill="url(#wg5)" />
+<circle cx="128.0" cy="10.0" r="3.4" fill="#fbbf24" stroke="#fff" stroke-width="1"/>
+<rect x="119.4" y="29.0" width="17.2" height="12.0" rx="3" fill="#8996a5" stroke="#0b1220" stroke-width=".8"/>
+<rect x="120.9" y="30.5" width="14.2" height="2.5" rx="1" fill="#c3cdd8" />
+<rect x="119.4" y="35.6" width="17.2" height="2.6" rx="0" fill="#fbbf24" />
+<circle cx="122.0" cy="38.4" r="1.0" fill="#1f2833" />
+<circle cx="134.0" cy="38.4" r="1.0" fill="#1f2833" />
+<polyline points="141.9,94.7 198.9,96.7" fill="none" stroke="#fbbf24" stroke-width="1.5" stroke-linecap="round" opacity=".8"/>
+<polyline points="114.1,94.7 57.1,96.7" fill="none" stroke="#fbbf24" stroke-width="1.5" stroke-linecap="round" opacity=".8"/></g>
+<metadata><c2pa:manifest>AAAWgmp1bWIAAAAeanVtZGMycGEAEQAQgAAAqgA4m3EDYzJwYQAAABZcanVtYgAAAEdqdW1kYzJtYQARABCAAACqADibcQN1cm46YzJwYTo4N2RjMWRiOC01OTA3LTRjZTktYWEyMy0yODNlMjViNGUxYTQAAAADl2p1bWIAAAApanVtZGMyYXMAEQAQgAAAqgA4m3EDYzJwYS5hc3NlcnRpb25zAAAAALxqdW1iAAAARGp1bWRjYm9yABEAEIAAAKoAOJtxE2MycGEuaW5ncmVkaWVudC52MwAAAAAYYzJzaKkaCyZA4ad1vbx2cmpgEqgAAABwY2JvcqNpZGM6Zm9ybWF0bWltYWdlL3N2Zyt4bWxqaW5zdGFuY2VJRHgseG1wOmlpZDozZTMwY2RhZS01YmJmLTQ2MjAtOGFlOS1lMzU0ZDIxYzc1ZmJscmVsYXRpb25zaGlwaHBhcmVudE9mAAAB4mp1bWIAAABBanVtZGNib3IAEQAQgAAAqgA4m3ETYzJwYS5hY3Rpb25zLnYyAAAAABhjMnNoU+iaunVlWhxaCZ+dGAdUIwAAAZljYm9yomdhY3Rpb25zgqJmYWN0aW9ua2MycGEub3BlbmVkanBhcmFtZXRlcnOha2luZ3JlZGllbnRzgaJjdXJseC1zZWxmI2p1bWJmPWMycGEuYXNzZXJ0aW9ucy9jMnBhLmluZ3JlZGllbnQudjNkaGFzaFggwDbExLoTWAULQ3cmD8mxmRSlUwZ+DRKOJ2aytTjq8mmkZmFjdGlvbngdY29tLmFudGhyb3BpYy5jbGF1ZGUucHJvdmlkZWRqcGFyYW1ldGVyc6F4H2NvbS5hbnRocm9waWMub3JpZ2luLWNvbmZpZGVuY2VndW5rbm93bmtkZXNjcmlwdGlvbnhmQ2xhdWRlIHByb3ZpZGVkIHRoaXMgZmlsZSBhdCB0aGUgcmVxdWVzdCBvZiBhIHVzZXIgYW5kIG1heSBoYXZlIGNyZWF0ZWQgb3IgbW9kaWZpZWQgdGhlIGZpbGUgY29udGVudHMubXNvZnR3YXJlQWdlbnShZG5hbWVmQ2xhdWRlcmFsbEFjdGlvbnNJbmNsdWRlZPUAAADIanVtYgAAAEBqdW1kY2JvcgARABCAAACqADibcRNjMnBhLmhhc2guZGF0YQAAAAAYYzJzaNMbm8Gn6ZDwGEVhjIH5gn4AAACAY2JvcqVjYWxnZnNoYTI1NmNwYWRMAAAAAAAAAAAAAAAAZGhhc2hYIPayp6D7w5FIyDDOHhI/2l6CBBc3riHv1Z7JjPAnFjGjZG5hbWVuanVtYmYgbWFuaWZlc3RqZXhjbHVzaW9uc4GiZXN0YXJ0GS0zZmxlbmd0aBkeBAAAAj5qdW1iAAAAJ2p1bWRjMmNsABEAEIAAAKoAOJtxA2MycGEuY2xhaW0udjIAAAACD2Nib3KlY2FsZ2ZzaGEyNTZpc2lnbmF0dXJleE1zZWxmI2p1bWJmPS9jMnBhL3VybjpjMnBhOjg3ZGMxZGI4LTU5MDctNGNlOS1hYTIzLTI4M2UyNWI0ZTFhNC9jMnBhLnNpZ25hdHVyZWppbnN0YW5jZUlEeCx4bXA6aWlkOmMyMGU1OWU5LTFkMTItNDkyNy05ZWE2LTI0Y2ExZjhlNmYxZXJjcmVhdGVkX2Fzc2VydGlvbnODomN1cmx4LXNlbGYjanVtYmY9YzJwYS5hc3NlcnRpb25zL2MycGEuaW5ncmVkaWVudC52M2RoYXNoWCDANsTEuhNYBQtDdyYPybGZFKVTBn4NEo4nZrK1OOryaaJjdXJseCpzZWxmI2p1bWJmPWMycGEuYXNzZXJ0aW9ucy9jMnBhLmFjdGlvbnMudjJkaGFzaFggNy24GzgJy+DIOVsEXpWvsMhlQiG6Zf++4yinhT+6V0KiY3VybHgpc2VsZiNqdW1iZj1jMnBhLmFzc2VydGlvbnMvYzJwYS5oYXNoLmRhdGFkaGFzaFgg297ZH2/tZCDNS8WpEtARQkgY8/73/zEUNlYixda9Yk50Y2xhaW1fZ2VuZXJhdG9yX2luZm+jZG5hbWVvQW50aHJvcGljIEZpbGVzZ3ZlcnNpb25lMS4wLjBrc3BlY1ZlcnNpb25lMi40LjAAABA4anVtYgAAAChqdW1kYzJjcwARABCAAACqADibcQNjMnBhLnNpZ25hdHVyZQAAABAIY2JvctKEWQISogEmGCFZAgowggIGMIIBjaADAgECAhRA5aAK7sI50L64g/oGQgU9Z1UTADAKBggqhkjOPQQDAzBJMRcwFQYDVQQKEw5BbnRocm9waWMsIFBCQzEuMCwGA1UEAxMlQW50aHJvcGljIENvbnRlbnQgQ3JlZGVudGlhbHMgUm9vdCBDQTAeFw0yNjA4MDcxODQzNTZaFw0yODA4MDYxOTQzNTZaMEQxFzAVBgNVBAoTDkFudGhyb3BpYywgUEJDMSkwJwYDVQQDEyBBbnRocm9waWMgQ2xhdWRlIENvbnRlbnQgU2lnbmluZzBZMBMGByqGSM49AgEGCCqGSM49AwEHA0IABJh6CmvLUBgFFNU0vUKlOVtE6djd17L5SuwX0LemFisBM3dkd/3cyjxFA3Qo5S46fX0/ihY0VZ7mfb9KF703t5OjWDBWMA4GA1UdDwEB/wQEAwIHgDAVBgNVHSUEDjAMBgorBgEEAYPoXgIBMAwGA1UdEwEB/wQCMAAwHwYDVR0jBBgwFoAUzlHiBIFOZFsj+OPEz5o+nMHXXMIwCgYIKoZIzj0EAwMDZwAwZAIwMXMdFJ4BetLLVY7ORuE9noqbbAZOZn/aArXyTwFAZfKrPzxF2vPoJNf1+UCdg1XGAjBwX1zd9WGqYkqmL5SFqw1QySjr1zJfpJM9+1rdDwSPLMOPOjKuiXjoU/pUUeG9RwmhY3BhZFkNngAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAPZYQAg5rOtclezy0sYZf20a4z7fX26CtGZKYACCHOZNuLP/JpMQS627IoZyrQy09nxD0x6Fz1gtdLauC8q0W69Qp84=</c2pa:manifest></metadata></svg>

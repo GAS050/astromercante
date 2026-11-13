@@ -1,0 +1,21 @@
+name = "astromercante-precos"
+main = "index.js"
+compatibility_date = "2024-11-01"
+
+[triggers]
+crons = ["*/5 * * * *"]          # atualiza a cada 5 min (~8.640 chamadas/mês à CoinGecko)
+
+[[kv_namespaces]]
+binding = "PRECOS"
+id = "COLE_AQUI_O_ID_DO_KV"       # gerado por: npx wrangler kv namespace create PRECOS
+
+[[d1_databases]]
+binding = "DB"
+database_name = "astromercante"
+database_id = "COLE_AQUI_O_ID_DO_D1"   # gerado por: npx wrangler d1 create astromercante
+
+[vars]
+EMAIL_REMETENTE = "nao-responda@SEU-DOMINIO.com"   # remetente validado na Brevo
+GOOGLE_CLIENT_ID = ""                          # opcional: ID do cliente OAuth do Google
+PBKDF2_ITER = "50000"             # sobe para 100000 se usar o plano pago da Workers (mais seguro)
+ALLOWED_ORIGIN = "*"              # depois de publicar o jogo, troque pelo endereço dele (ex.: https://astromercante.pages.dev)

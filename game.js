@@ -269,10 +269,12 @@ function upRowsNave() {   // melhorias da nave equipada (níveis 1 a 5)
   if (!S.frota || !S.frota[S.nave]) return '';
   const n = NAVES[S.nave - 1], f = S.frota[S.nave], val = { cap:L => capDe(n, L), eng:L => engDe(n, L).toFixed(1), wp:L => wpDe(n, L).toFixed(1) }, dica = { cap:'Capacidade', eng:'Classe do motor (viagens mais rápidas)', wp:'Poder de fogo contra piratas' };
   const outra = pvShip && pvShip !== S.nave;   // olhando a prévia de outra nave: os upgrades abaixo continuam sendo da nave equipada
-  return `<div class="${outra ? 'dim' : ''}"><h3 class="nave-t">${n.nome} <small>Nave ${S.nave} de ${NAVES.length}</small></h3><p class="empty">Porão ${used()}/${S.cap} · Motor ${S.engLv.toFixed(1)} · Armas ${S.wpLv.toFixed(1)}</p>` + ['cap', 'eng', 'wp'].map(k => {
-    const L = f[PVK[k]], max = L >= 5;
-    return `<div class="up"><div><b>${ROTULO[k]} nv.${L}/5</b><small>${dica[k]}: ${val[k](L)}${max ? '' : ' → ' + val[k](L + 1)}</small></div><button class="buy" data-up="${k}" ${max ? 'disabled' : ''}>${max ? 'MÁX' : fmt(upCusto(n, k, L)) + ' Cr'}</button></div>`;
-  }).join('') + '</div>';
+  const LJ = typeof LJ_ST !== 'undefined' ? LJ_ST : [];
+  return `<div class="${outra ? 'dim' : ''}"><h3 class="nave-t">${n.nome} <small>Nave ${S.nave} de ${NAVES.length}</small></h3><p class="empty">Porão ${used()}/${S.cap} · Motor ${S.engLv.toFixed(1)} · Armas ${S.wpLv.toFixed(1)}</p><ul class="lj-st up-st">` + ['cap', 'eng', 'wp'].map((k, ix) => {
+    const L = f[PVK[k]], max = L >= 5, t = LJ[ix], px = v => Math.max(6, Math.round(Math.sqrt(v / t.max) * 100)), v = t.val(n, f), vn = max ? v : t.val(n, { ...f, [PVK[k]]: L + 1 });
+    return `<li><i class="fa-solid ${t.ic}"></i><div><span>${t.rot} <em class="up-nv">nv. ${L}/5</em> <b>${t.fmt(v)}</b>${max ? '' : ` <em class="ljm">▲ ${t.fmt(vn)}</em>`}</span><div class="lj-bar up-bar"><i class="nx" style="width:${px(vn)}%"></i><i style="width:${px(v)}%"></i></div><small>${t.txt} · no nível 5: <b>${t.fmt(t.mx(n))}</b></small>`
+      + `<button class="buy" data-up="${k}" ${max ? 'disabled' : ''}>${max ? 'Nível máximo' : `Melhorar para o nv. ${L + 1} · ${fmt(upCusto(n, k, L)).replace(',00', '')} Cr`}</button></div></li>`;
+  }).join('') + '</ul></div>';
 }
 let hangarSig = '', hangarTab = 'minhas';
 const peq = x => x >= 1e6 ? (x / 1e6).toFixed(x % 1e6 ? 1 : 0).replace('.', ',') + ' mi' : x >= 1e3 ? (x / 1e3).toFixed(x % 1e3 ? 1 : 0).replace('.', ',') + ' mil' : String(x);

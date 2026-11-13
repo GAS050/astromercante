@@ -101,8 +101,8 @@
     if (Math.abs(d) < 1 || document.hidden) return;
     const alvoEl = $('#hud-credits'); if (!alvoEl) return; alvoEl.classList.remove('fx-pulse'); void alvoEl.offsetWidth; alvoEl.classList.add('fx-pulse');
     if (reduz()) return; const r = alvoEl.getBoundingClientRect(), el = document.createElement('div');
-    el.className = 'fx-float ' + (d > 0 ? 'mais' : 'menos'); el.textContent = (d > 0 ? '+' : '−') + Math.abs(d).toLocaleString('pt-BR', { maximumFractionDigits: 0 }) + ' Cr'; el.style.left = Math.max(8, r.left) + 'px'; el.style.top = (r.bottom + 2) + 'px';
-    document.body.appendChild(el); setTimeout(() => el.remove(), 1500);
+    el.className = 'fx-float ' + (d > 0 ? 'mais' : 'menos'); el.textContent = (d > 0 ? '+' : '−') + Math.abs(d).toLocaleString('pt-BR', { maximumFractionDigits: 0 }) + ' Cr'; el.style.top = (r.bottom + 2) + 'px'; el.style.left = '8px';
+    document.body.appendChild(el); el.style.left = Math.max(8, Math.min(r.left, innerWidth - el.offsetWidth - 8)) + 'px';   // nunca sai da tela nem quebra de linha setTimeout(() => el.remove(), 1500);
   }, 250);
 
   /* tela de subida de patente */

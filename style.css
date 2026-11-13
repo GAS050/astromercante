@@ -615,3 +615,14 @@ body[data-view=loja] #p-loja{display:flex}
 .lj-buy .buy{padding:10px 8px}
 .pj-st b{font-size:clamp(.8rem,3.6vw,1rem)}
 .hm-h{gap:4px 10px;flex-wrap:wrap}
+
+/* Frotas: mesmas barras da Loja e do perfil, com o botão de melhoria logo abaixo de cada uma */
+.up-st{gap:0}.up-st li{padding:12px 0;border-top:1px solid var(--line)}.up-st li:first-child{border-top:0}
+.up-st .up-nv{color:var(--mt);font-size:.72rem}.up-bar{position:relative;height:8px}.up-bar i{position:absolute;left:0;top:0;bottom:0;height:100%}.up-bar .nx{background:rgba(57,255,136,.28)}
+.up-st .buy{display:block;width:100%;margin-top:8px;padding:9px 10px;font-size:.88rem;font-weight:600;background:rgba(57,255,136,.1);border-radius:8px;white-space:nowrap}.up-st .buy:disabled{opacity:.5;cursor:default;border-color:var(--line);color:var(--mt);background:none}
+.fx-float{white-space:nowrap}
+/* banner de conquista mais compacto, principalmente no celular */
+.conq{width:min(92vw,380px);gap:11px;padding:9px 14px 9px 10px;border-radius:14px}.conq-t3{padding:10px 14px 10px 10px}
+.cq-medal{width:50px;height:50px;font-size:1.35rem;border-width:2px}.cq-medal em{min-width:20px;height:20px;font-size:.62rem;line-height:20px;right:-5px;bottom:-3px}
+.cq-rays{inset:-26px}.cq-txt small{font-size:.58rem;letter-spacing:.18em}.cq-txt b{font-size:1.02rem}.conq-t3 .cq-txt b{font-size:1.08rem}
+.cq-txt span{font-size:.74rem;line-height:1.25;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}

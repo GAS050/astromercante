@@ -177,8 +177,11 @@ function lutar(S, e, td, tc) {
   return o;
 }
 /** Partidas podem desligar o desgaste do casco (cfg.casco === false): sem dano, sem reparo. As lutas continuam valendo (saque e carga perdida). */
-/** Desgaste sofrido na partida, valorizado ao preço do reparo (conta o dano e não o reparo pago, para não dar para fugir dele): alimenta o bônus do 1º colocado. */
-function contaDano(S, h0) { if (S.partida && S.hull < h0) S.partida.dano = (S.partida.dano || 0) + (h0 - S.hull) * porPct(S); }
+/** Desgaste sofrido na partida em pontos de casco por viagem (conta o dano e não o reparo pago, então não dá para fugir dele): mede o perigo da sala e alimenta o bônus do 1º colocado.
+ *  É independente do saldo, da taxa e da duração: o bônus não muda conforme o valor apostado. */
+function contaDano(S, h0) { if (!S.partida) return; S.partida.viag = (S.partida.viag || 0) + 1; if (S.hull < h0) S.partida.dano = (S.partida.dano || 0) + (h0 - S.hull); }
+/** Intensidade (0 a 1) do desgaste da sala: pontos de casco perdidos por viagem, comparados ao esperado na galáxia mais alta da sala. */
+export const intensidade = (jogs, cfg) => { const v = jogs.reduce((a, j) => a + (j?.viag || 0), 0); if (!v) return 0; const ref = 9 + 1.6 * Math.max(...cfg.galaxias); return clamp(jogs.reduce((a, j) => a + (j?.dano || 0), 0) / v / ref, 0, 1); };
 export const semCasco = (S) => !!(S.partida && S.partida.casco === false);
 function chegada(S, d, msgs, enc) {
   const sc = semCasco(S);

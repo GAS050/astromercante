@@ -2,7 +2,7 @@
 // Os jogadores só leem o cache, então o número de chamadas às APIs não depende de quantos jogam.
 const CG = 'https://api.coingecko.com/api/v3/simple/price?ids=bitcoin,pax-gold,ethereum&vs_currencies=usd&include_24hr_change=true';
 const FX = 'https://economia.awesomeapi.com.br/json/last/USD-BRL';
-import { Regra, novo, normalizar, migrar, resolver, precisaResolver, fechar, executar, patrimonio, RANKS, validarCfg, novoPartida, valorFinal, botPatrimonio, botNome, premiacao, desbloqueada } from './motor.js';
+import { Regra, novo, normalizar, migrar, resolver, precisaResolver, fechar, executar, patrimonio, RANKS, validarCfg, novoPartida, valorFinal, botPatrimonio, botNome, premiacao, desbloqueada, intensidade } from './motor.js';
 import { GALAXIES } from './dados.js';
 const STALE_MS = 30 * 60 * 1000;
 
@@ -210,7 +210,7 @@ async function finalizar(env, p) {
   for (let i = 0; i < p.bots; i++) tabela.push({ id: 0, n: botNome(p.codigo, i), bot: 1, w: botPatrimonio(cfg, p.codigo, i, p.fim, p.inicio, p.fim) });
   tabela.sort((a, b) => b.w - a.w || a.bot - b.bot || a.id - b.id);
   tabela.forEach((t, i) => { t.pos = i + 1; t.w = Math.round(t.w * 100) / 100; });
-  const dn = js.filter((j) => j.estado).map((j) => JSON.parse(j.estado).partida?.dano || 0), x = dn.length ? Math.min(1, dn.reduce((a, b) => a + b, 0) / dn.length / (cfg.saldo * .25)) : 0;   // desgaste médio da sala (0 a 1): 25% do saldo em reparos = máximo
+  const x = intensidade(js.filter((j) => j.estado).map((j) => JSON.parse(j.estado).partida), cfg);   // perigo da sala (0 a 1): casco perdido por viagem, igual para qualquer saldo ou taxa
   const premios = premiacao(tabela.filter((t) => !t.bot).map((t) => ({ usuario: t.id, geral: t.pos })), tabela.length, cfg, x);
   tabela.forEach((t) => { if (!t.bot) t.premio = premios.get(t.id) || 0; });
   const ok = await env.DB.prepare("UPDATE partidas SET estado = 'fim', resultado = ? WHERE codigo = ? AND estado = 'andamento'").bind(JSON.stringify(tabela), p.codigo).run();

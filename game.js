@@ -509,6 +509,16 @@ function drawPlanet(p, ts) {
   if (!dense || here || on || lock) cx.fillText(lock ? '🔒 ' + RANKS[p.t][1] : here ? '● você está aqui' : `${best && m[best] < 1 ? '▼' + SHORT[best] + ' ' : ''}⛽${trip(p.id).cost}`, s.x, ty + 10); cx.globalAlpha = 1;
 }
 
+/* sprites pré-desenhados (naves pequenas do mapa): evita redesenhar/rasterizar SVG grande a cada quadro, o que travava o celular */
+const SPR = {};
+function sprite(id, m, armas) {
+  const key = id + '_' + m + '_' + (armas ? 1 : 0); if (SPR[key]) return SPR[key];
+  const ims = [nsrc(id, 'motor', m), nsrc(id, 'casco')].concat(armas ? [nsrc(id, 'armas', 1)] : []).map(nimg);
+  if (!ims.every(im => im.complete && im.naturalWidth)) return null;
+  const c = document.createElement('canvas'); c.width = c.height = 100; const g = c.getContext('2d'), z = (150 - (id - 1) * .8) * (100 / 150);
+  ims.forEach(im => g.drawImage(im, 50 - z / 2, 50 - z / 2, z, z)); return SPR[key] = c;
+}
+
 /* ---------- tráfego ambiente: naves do jogo (decorativas) cruzando as rotas, menores e discretas para não confundir com a sua ---------- */
 const NPCS = Array.from({ length:8 }, (_, i) => ({ id:1 + Math.floor(Math.random() * 50), m:1 + Math.floor(Math.random() * 3), lane:Math.floor(Math.random() * 999), per:9000 + Math.random() * 9000, fase:Math.random() + i * .13, inv:i % 2 }));
 function trafego(ts) {
@@ -519,9 +529,7 @@ function trafego(ts) {
     const x = p1.x + (p2.x - p1.x) * d, y = p1.y + (p2.y - p1.y) * d, ang = Math.atan2(p2.y - p1.y, p2.x - p1.x) + (n.inv ? Math.PI : 0), sc = (p1.sc + p2.sc) / 2;
     const fade = Math.min(1, d * 6, (1 - d) * 6); cx.globalAlpha = .55 * fade;
     cx.strokeStyle = 'rgba(127,233,255,.35)'; cx.lineWidth = Math.max(.6, sc * .8); cx.beginPath(); cx.moveTo(x, y); cx.lineTo(x - Math.cos(ang) * 14 * sc, y - Math.sin(ang) * 14 * sc); cx.stroke();
-    cx.save(); cx.translate(x, y); cx.rotate(ang + Math.PI / 2); const k = sc * .42 * .4, size = 150 - (n.id - 1) * .8; cx.scale(k, k);
-    [nsrc(n.id, 'motor', n.m), nsrc(n.id, 'casco')].forEach(src => { const im = nimg(src); if (im.complete && im.naturalWidth) cx.drawImage(im, -size / 2, -size / 2, size, size); });
-    cx.restore();
+    const im = sprite(n.id, n.m, false); if (im) { cx.save(); cx.translate(x, y); cx.rotate(ang + Math.PI / 2); const k = sc * .42 * .4 * 1.5; cx.scale(k, k); cx.drawImage(im, -50, -50); cx.restore(); }
   });
   cx.restore();
 }
@@ -541,17 +549,17 @@ function desenhaInimigo(p, e, ts, alvo, forca) {   // p: posição na tela; alvo
   cx.save(); cx.translate(p.x, p.y);
   if (e.m) {   // monstro: corpo gelatinoso com tentáculos e olhos
     const r = (7 + e.lv * .7) * k;
-    cx.shadowColor = '#b24bff'; cx.shadowBlur = 14 * k; cx.strokeStyle = '#7d2fc0'; cx.lineWidth = 1.6 * k; cx.lineCap = 'round';
+    cx.fillStyle = 'rgba(178,75,255,.2)'; cx.beginPath(); cx.arc(0, 0, r * 1.5, 0, 7); cx.fill(); cx.strokeStyle = '#7d2fc0'; cx.lineWidth = 1.6 * k; cx.lineCap = 'round';
     for (let i = 0; i < 6; i++) { const a0 = i / 6 * 6.283 + Math.sin(tm + i) * .25; cx.beginPath(); cx.moveTo(Math.cos(a0) * r * .6, Math.sin(a0) * r * .6); cx.quadraticCurveTo(Math.cos(a0 + Math.sin(tm * 2 + i) * .5) * r * 1.3, Math.sin(a0 + Math.cos(tm * 2 + i) * .5) * r * 1.3, Math.cos(a0) * r * 1.7, Math.sin(a0) * r * 1.7 + Math.sin(tm * 3 + i) * r * .3); cx.stroke(); }
     const g = cx.createRadialGradient(0, -r * .2, r * .1, 0, 0, r); g.addColorStop(0, '#d98bff'); g.addColorStop(1, '#4a1a82'); cx.fillStyle = g; cx.beginPath(); cx.ellipse(0, 0, r, r * (.85 + Math.sin(tm * 2.4) * .06), 0, 0, 7); cx.fill();
-    cx.shadowBlur = 0; cx.fillStyle = '#e8ff6a'; [-.35, .35].forEach(o => { cx.beginPath(); cx.arc(o * r, -r * .15, r * .2, 0, 7); cx.fill(); cx.fillStyle = '#220'; cx.beginPath(); cx.arc(o * r, -r * .15, r * .08, 0, 7); cx.fill(); cx.fillStyle = '#e8ff6a'; });
+    cx.fillStyle = '#e8ff6a'; [-.35, .35].forEach(o => { cx.beginPath(); cx.arc(o * r, -r * .15, r * .2, 0, 7); cx.fill(); cx.fillStyle = '#220'; cx.beginPath(); cx.arc(o * r, -r * .15, r * .08, 0, 7); cx.fill(); cx.fillStyle = '#e8ff6a'; });
   } else {   // pirata: nave do jogo em vermelho, com brilho hostil
-    const id = 35 + (e.k * 5 + e.lv * 3) % 15, sz = 150 - (id - 1) * .8, kk = k * .42 * .42;
-    cx.rotate(alvo + Math.PI / 2); cx.shadowColor = '#ff3030'; cx.shadowBlur = 12 * k; cx.scale(kk, kk);
-    [nsrc(id, 'motor', 1), nsrc(id, 'casco'), nsrc(id, 'armas', 1)].forEach(src => { const im = nimg(src); if (im.complete && im.naturalWidth) cx.drawImage(im, -sz / 2, -sz / 2, sz, sz); });
+    const id = 35 + (e.k * 5 + e.lv * 3) % 15, im = sprite(id, 1, true), kk = k * .42 * .42 * 1.5, r = 9 * k;
+    cx.fillStyle = 'rgba(255,50,50,.22)'; cx.beginPath(); cx.arc(0, 0, r, 0, 7); cx.fill();   // halo hostil barato (sem shadowBlur)
+    if (im) { cx.rotate(alvo + Math.PI / 2); cx.scale(kk, kk); cx.drawImage(im, -50, -50); }
   }
   cx.restore();
-  if (cam.z >= .5 || forca) { cx.save(); cx.font = '700 7px Chakra Petch, sans-serif'; cx.textAlign = 'center'; cx.fillStyle = e.m ? '#e6b3ff' : '#ff8a8a'; cx.shadowColor = '#000'; cx.shadowBlur = 3; cx.fillText((e.m ? '☣ ' : '☠ ') + 'nv.' + e.lv, p.x, p.y - (e.m ? 16 : 11) * p.sc); cx.restore(); }
+  if (cam.z >= .5 || forca) { cx.save(); cx.font = '700 7px Chakra Petch, sans-serif'; cx.textAlign = 'center'; const tx = (e.m ? '☣ ' : '☠ ') + 'nv.' + e.lv, ty = p.y - (e.m ? 16 : 11) * p.sc; cx.lineWidth = 2; cx.strokeStyle = 'rgba(0,0,0,.7)'; cx.strokeText(tx, p.x, ty); cx.fillStyle = e.m ? '#e6b3ff' : '#ff8a8a'; cx.fillText(tx, p.x, ty); cx.restore(); }
 }
 function inimigos(ts) {
   if (!iniOn() || !PL.length) return;
@@ -560,7 +568,7 @@ function inimigos(ts) {
     const e = iniG(S.gal, k), f = enc.find(x => x.k === k), pos = iniTela(e, now); if (!pos) continue;
     if (f && S.trip) { if (now >= f.tc + 3200) continue; if (now >= f.td) { desenhaLuta(e, f, now, ts); continue; } }
     // anel de alcance (discreto) e o inimigo patrulhando
-    const rr = e.R * pos.k; cx.save(); cx.globalAlpha = .24 + .08 * Math.sin(ts / 500 + k); cx.strokeStyle = e.m ? '#b24bff' : '#ff4040'; cx.setLineDash([3, 4]); cx.lineWidth = 1; cx.beginPath(); cx.arc(pos.x, pos.y, rr, 0, 7); cx.stroke(); cx.restore();
+    const rr = e.R * pos.k; cx.save(); cx.globalAlpha = .24 + .08 * Math.sin(ts / 500 + k); cx.strokeStyle = e.m ? '#b24bff' : '#ff4040'; cx.lineWidth = 1; cx.beginPath(); cx.arc(pos.x, pos.y, rr, 0, 7); cx.stroke(); cx.restore();
     const nx = iniTela(e, now + 400), ang = nx ? Math.atan2(nx.y - pos.y, nx.x - pos.x) : 0;
     cx.save(); cx.globalAlpha = .9; desenhaInimigo(pos, e, ts, ang); cx.restore();
   }
@@ -582,8 +590,8 @@ function desenhaLuta(e, f, now, ts) {
   }
   if (now < f.tc + 2400 || !f.w) { cx.save(); cx.globalAlpha = now < f.tc + 2400 ? 1 : clamp(1 - (now - f.tc - 2400) / 800, 0, 1); desenhaInimigo(p, e, ts, ang, true); cx.restore(); }
   if (now >= f.tc + 1200 && now < f.tc + 3200) {   // resultado flutuando sobre a nave
-    cx.save(); cx.font = '700 11px Chakra Petch, sans-serif'; cx.textAlign = 'center'; cx.fillStyle = f.w ? '#5dff9b' : '#ff6b6b'; cx.shadowColor = '#000'; cx.shadowBlur = 4;
-    cx.fillText(f.w ? `VITÓRIA! +${f.loot} Cr` : `DERROTA! casco -${f.dmg}%`, sp.x, sp.y - 26 * sp.sc - (now - f.tc - 1200) / 90); cx.restore();
+    cx.save(); cx.font = '700 11px Chakra Petch, sans-serif'; cx.textAlign = 'center'; cx.fillStyle = f.w ? '#5dff9b' : '#ff6b6b'; cx.lineWidth = 3; cx.strokeStyle = 'rgba(0,0,0,.75)';
+    cx.strokeText(f.w ? `VITÓRIA! +${f.loot} Cr` : `DERROTA! casco -${f.dmg}%`, sp.x, sp.y - 26 * sp.sc - (now - f.tc - 1200) / 90); cx.fillText(f.w ? `VITÓRIA! +${f.loot} Cr` : `DERROTA! casco -${f.dmg}%`, sp.x, sp.y - 26 * sp.sc - (now - f.tc - 1200) / 90); cx.restore();
   }
 }
 

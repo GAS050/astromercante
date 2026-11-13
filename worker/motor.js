@@ -171,21 +171,11 @@ function chegada(S, d, msgs, enc) {
   if (S.hull < 30) note(msgs, '⚠ Casco crítico: repare a nave na aba Frotas.', 'alert');
 }
 
-function desgaste(S, d, msgs) {   // piratas, monstros e tempestades: o sorteio é do servidor
-  const D = S.gal;
-  let dmg = Math.round((2 + Math.random() * 4) * d / 120 * (1 + (S.engLv - 1) * .1) * (1 + D * .2)), msg = '', kind = 'err';
-  if ((!S.partida || S.partida.piratas) && Math.random() < Math.min(.6, .28 + .05 * D)) {
-    const foe = D >= 4 ? 'Leviatã estelar' : D >= 2 ? 'Enxame de drones' : 'Piratas', r = Math.random();
-    if (r < .3) { const h = [['Chuva de asteroides', 9, 16], ['Tempestade solar', 6, 11]][Math.random() * 2 | 0]; dmg += ((h[1] + Math.random() * (h[2] - h[1])) * (1 + D * .15)) | 0; msg = h[0] + '! '; }
-    else if (Math.random() < clamp(.4 + .13 * S.wpLv - .06 * D, .1, .9)) { const b = Math.round((300 + Math.random() * 500) * (1 + D)); S.credits += b; dmg += 2; kind = 'win'; msg = `${foe} repelidos! Recompensa +${fmt(b)} Cr. `; }
-    else {
-      dmg += ((6 + Math.random() * 8) * (1 + D * .5)) | 0; msg = `${foe} atacaram! `;
-      const own = Object.keys(S.inv).filter((x) => S.inv[x].qty > 0);
-      if (own.length) { const x = own[Math.random() * own.length | 0], q = Math.ceil(S.inv[x].qty * (.25 + D * .05)); S.inv[x].qty -= q; if (!S.inv[x].qty) S.inv[x].avg = 0; msg += `Perdeu ${q} × ${RES_ID[x].nome}. `; }
-    }
-  }
+function desgaste(S, d, msgs) {   // saltos entre galáxias: só desgaste do casco (piratas e monstros só existem onde você os vê, no mapa)
+  const D = S.gal, dmg = Math.round((2 + Math.random() * 4) * d / 120 * (1 + (S.engLv - 1) * .1) * (1 + D * .2));
   S.hull = Math.max(0, S.hull - dmg);
-  if (msg || dmg >= 8) say(msgs, `${msg}Casco -${dmg}% (agora ${S.hull}%).`, kind); else note(msgs, `Casco -${dmg}% (agora ${S.hull}%).`);
+  const rep = fixCost(S);
+  if (dmg >= 8) say(msgs, `Casco -${dmg}% (agora ${S.hull}%).${rep ? ` Reparo: ${fmt(rep)} Cr.` : ''}`, 'err'); else note(msgs, `Casco -${dmg}% (agora ${S.hull}%).`);
   if (S.hull < 30) note(msgs, '⚠ Casco crítico: repare a nave na aba Frotas.', 'alert');
 }
 

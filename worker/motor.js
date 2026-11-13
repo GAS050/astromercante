@@ -125,20 +125,22 @@ const tripInfo = (S, to) => { const d = dist(planeta(S, S.loc), planeta(S, to));
 const HH = (n) => { n = (n ^ 61) ^ (n >>> 16); n = Math.imul(n, 0x45d9f3b); n ^= n >>> 4; n = Math.imul(n, 0x45d9f3b); n ^= n >>> 15; return n >>> 0; };
 export const nIni = (g) => 3 + Math.min(g, 4);
 export function ini(g, k) {
-  const pl = GALAXIES[g].planetas, h = HH(g * 977 + k * 131 + 7), h2 = HH(h + 1), ia = h % pl.length; let ib = h2 % pl.length;
-  if (ib === ia) ib = (ia + 1 + ((h2 >> 8) % (pl.length - 1))) % pl.length;
-  const m = g >= 2 && k % 3 === 2, lv = Math.min(9, 1 + Math.floor((g + (k % 3)) * .8) + (m ? 1 : 0));
-  return { k, a: pl[ia], b: pl[ib], T: 55000 + (h >> 4) % 45000, ph: ((h2 >> 6) % 1000) / 1000, m, lv, R: m ? 38 : 26, nm: m ? (lv >= 5 ? 'Leviatã estelar' : 'Monstro do vazio') : (lv >= 4 ? 'Frota pirata' : 'Piratas') };
+  const h = HH(g * 977 + k * 131 + 7), h2 = HH(h + 1), m = g >= 2 && k % 3 === 2, lv = Math.min(9, 1 + Math.floor((g + (k % 3)) * .8) + (m ? 1 : 0));
+  return { g, k, T: 30000 + (h >> 4) % 25000, ph: ((h2 >> 6) % 1000) / 1000, m, lv, R: m ? 38 : 26, nm: m ? (lv >= 5 ? 'Leviatã estelar' : 'Monstro do vazio') : (lv >= 4 ? 'Frota pirata' : 'Piratas') };
 }
-export const iniF = (e, t) => { const u = (t / e.T + e.ph) % 1, s = u < .5 ? u * 2 : 2 - u * 2; return s * s * (3 - 2 * s); };
+/** Rota em etapas: a cada etapa o inimigo sorteia (de forma fixa por relógio) o próximo planeta, então o caminho nunca se repete de forma previsível. */
+export function iniAt(e, t) {
+  const pl = GALAXIES[e.g].planetas, tt = t / e.T + e.ph, n = Math.floor(tt), u = tt - n, q = (i) => pl[HH(e.g * 977 + e.k * 131 + i * 7919 + 13) % pl.length], x = Math.min(1, u / .8);
+  return { a: q(n - 1), b: q(n), f: x * x * (3 - 2 * x) };
+}
 function encontros(S, t0, t1) {
   if (S.partida && !S.partida.piratas) return [];
   const A = planeta(S, S.trip.from), B = planeta(S, S.trip.to), out = [];
   for (let k = 0; k < nIni(S.gal); k++) {
     const e = ini(S.gal, k);
     for (let t = t0; t <= t1 - 800; t += 400) {
-      const u = (t - t0) / (t1 - t0), q = u * u * (3 - 2 * u), sx = A.x + (B.x - A.x) * q, sy = A.y + (B.y - A.y) * q, f = iniF(e, t);
-      const d = Math.hypot(e.a.x + (e.b.x - e.a.x) * f - sx, e.a.y + (e.b.y - e.a.y) * f - sy);
+      const u = (t - t0) / (t1 - t0), q = u * u * (3 - 2 * u), sx = A.x + (B.x - A.x) * q, sy = A.y + (B.y - A.y) * q, w = iniAt(e, t);
+      const d = Math.hypot(w.a.x + (w.b.x - w.a.x) * w.f - sx, w.a.y + (w.b.y - w.a.y) * w.f - sy);
       if (d <= e.R) { const tc = Math.round(t + clamp(d / 45 * 1000, 1200, 5000)); if (tc <= t1 - 500) out.push(lutar(S, e, t, tc)); break; }
     }
   }

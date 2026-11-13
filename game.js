@@ -520,15 +520,20 @@ function sprite(id, m, armas) {
 }
 
 /* ---------- tráfego ambiente: naves do jogo (decorativas) cruzando as rotas, menores e discretas para não confundir com a sua ---------- */
-const NPCS = Array.from({ length:8 }, (_, i) => ({ id:1 + Math.floor(Math.random() * 50), m:1 + Math.floor(Math.random() * 3), lane:Math.floor(Math.random() * 999), per:9000 + Math.random() * 9000, fase:Math.random() + i * .13, inv:i % 2 }));
+const NPCS = Array.from({ length:8 }, (_, i) => ({ id:1 + Math.floor(Math.random() * 50), m:1 + Math.floor(Math.random() * 3), a:null, b:null, t0:0, dur:0, wait:Math.random() * 6000 }));
 function trafego(ts) {
-  if (!lanes.length || cam.z < .5 || !S.fx) return;
-  cx.save(); cx.globalAlpha = .55;
+  if (!PL.length || cam.z < .5 || !S.fx) return;
+  cx.save();
   NPCS.forEach(n => {
-    const [a, b] = lanes[n.lane % lanes.length], u = (ts / n.per + n.fase) % 1, d = n.inv ? 1 - u : u, p1 = a._s, p2 = b._s;
-    const x = p1.x + (p2.x - p1.x) * d, y = p1.y + (p2.y - p1.y) * d, ang = Math.atan2(p2.y - p1.y, p2.x - p1.x) + (n.inv ? Math.PI : 0), sc = (p1.sc + p2.sc) / 2;
-    const fade = Math.min(1, d * 6, (1 - d) * 6); cx.globalAlpha = .55 * fade;
-    cx.strokeStyle = 'rgba(127,233,255,.35)'; cx.lineWidth = Math.max(.6, sc * .8); cx.beginPath(); cx.moveTo(x, y); cx.lineTo(x - Math.cos(ang) * 14 * sc, y - Math.sin(ang) * 14 * sc); cx.stroke();
+    let p1 = n.a && plan(n.a), p2 = n.b && plan(n.b);
+    if (!p1 || !p2 || ts > n.t0 + n.dur) {   // sorteia a próxima etapa: qualquer planeta para qualquer outro, sempre diferente
+      if (ts < n.t0 + n.dur + n.wait && p1 && p2) return;
+      const o = PL[Math.random() * PL.length | 0]; let d = PL[Math.random() * PL.length | 0]; if (d === o) d = PL[(PL.indexOf(o) + 1) % PL.length];
+      n.a = o.id; n.b = d.id; n.t0 = ts; n.dur = 6000 + Math.random() * 9000; n.wait = Math.random() * 5000; p1 = o; p2 = d;
+    }
+    const q = (ts - n.t0) / n.dur, d = q * q * (3 - 2 * q), a = p1._s, b = p2._s; if (!a || !b) return;
+    const x = a.x + (b.x - a.x) * d, y = a.y + (b.y - a.y) * d, ang = Math.atan2(b.y - a.y, b.x - a.x), sc = (a.sc + b.sc) / 2, fade = Math.min(1, q * 8, (1 - q) * 8);
+    cx.globalAlpha = .55 * fade; cx.strokeStyle = 'rgba(127,233,255,.35)'; cx.lineWidth = Math.max(.6, sc * .8); cx.beginPath(); cx.moveTo(x, y); cx.lineTo(x - Math.cos(ang) * 14 * sc, y - Math.sin(ang) * 14 * sc); cx.stroke();
     const im = sprite(n.id, n.m, false); if (im) { cx.save(); cx.translate(x, y); cx.rotate(ang + Math.PI / 2); const k = sc * .42 * .4 * 1.5; cx.scale(k, k); cx.drawImage(im, -50, -50); cx.restore(); }
   });
   cx.restore();
@@ -536,14 +541,20 @@ function trafego(ts) {
 /* ---------- piratas e monstros: o servidor decide as lutas (S.trip.enc); aqui só se desenha. Mesma fórmula de patrulha do servidor. ---------- */
 const HH = n => { n = (n ^ 61) ^ (n >>> 16); n = Math.imul(n, 0x45d9f3b); n ^= n >>> 4; n = Math.imul(n, 0x45d9f3b); n ^= n >>> 15; return n >>> 0; };
 function iniG(g, k) {
-  const pl = GALAXIES[g].planetas, h = HH(g * 977 + k * 131 + 7), h2 = HH(h + 1), ia = h % pl.length; let ib = h2 % pl.length;
-  if (ib === ia) ib = (ia + 1 + ((h2 >> 8) % (pl.length - 1))) % pl.length;
-  const m = g >= 2 && k % 3 === 2, lv = Math.min(9, 1 + Math.floor((g + (k % 3)) * .8) + (m ? 1 : 0));
-  return { k, a:pl[ia].id, b:pl[ib].id, T:55000 + (h >> 4) % 45000, ph:((h2 >> 6) % 1000) / 1000, m, lv, R:m ? 38 : 26 };
+  const h = HH(g * 977 + k * 131 + 7), h2 = HH(h + 1), m = g >= 2 && k % 3 === 2, lv = Math.min(9, 1 + Math.floor((g + (k % 3)) * .8) + (m ? 1 : 0));
+  return { g, k, T:30000 + (h >> 4) % 25000, ph:((h2 >> 6) % 1000) / 1000, m, lv, R:m ? 38 : 26 };
 }
-const iniFr = (e, t) => { const u = (t / e.T + e.ph) % 1, s = u < .5 ? u * 2 : 2 - u * 2; return s * s * (3 - 2 * s); };
+function iniAt(e, t) {
+  const pl = GALAXIES[e.g].planetas, tt = t / e.T + e.ph, n = Math.floor(tt), u = tt - n, q = i => pl[HH(e.g * 977 + e.k * 131 + i * 7919 + 13) % pl.length], x = Math.min(1, u / .8);
+  return { a:q(n - 1), b:q(n), f:x * x * (3 - 2 * x) };
+}
 const iniOn = () => CLOUD() && !(S.partida && !S.partida.piratas);
-function iniTela(e, t) { const a = plan(e.a), b = plan(e.b); if (!a || !b || !a._s || !b._s) return null; const f = iniFr(e, t); return { x:a._s.x + (b._s.x - a._s.x) * f, y:a._s.y + (b._s.y - a._s.y) * f, sc:a._s.sc + (b._s.sc - a._s.sc) * f, k:Math.hypot(a._s.x - b._s.x, a._s.y - b._s.y) / Math.max(1, Math.hypot(plan(e.a).x - plan(e.b).x, plan(e.a).y - plan(e.b).y)) }; }
+function iniTela(e, t) {
+  const w = iniAt(e, t), a = plan(w.a.id), b = plan(w.b.id); if (!a || !b || !a._s || !b._s) return null;
+  const dw = Math.hypot(a.x - b.x, a.y - b.y), ds = Math.hypot(a._s.x - b._s.x, a._s.y - b._s.y), ref = plan(S.loc)?._s;
+  let k = dw > 1 ? ds / dw : (ref ? ref.sc * 1.5 : 1.5); if (!(k > 0)) k = 1.5;
+  return { x:a._s.x + (b._s.x - a._s.x) * w.f, y:a._s.y + (b._s.y - a._s.y) * w.f, sc:a._s.sc + (b._s.sc - a._s.sc) * w.f, k };
+}
 function desenhaInimigo(p, e, ts, alvo, forca) {   // p: posição na tela; alvo: ângulo para onde olha
   const k = p.sc * (cam.z < .5 ? .7 : 1), tm = ts / 1000 + e.k * 1.7;
   cx.save(); cx.translate(p.x, p.y);

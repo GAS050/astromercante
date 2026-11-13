@@ -140,6 +140,12 @@ async function amigosConvidar(env, id, corpo) {
   await env.DB.prepare('INSERT OR REPLACE INTO convites (para, codigo, de, criado) VALUES (?, ?, ?, ?)').bind(para, p.codigo, id, Date.now()).run();
   return { ok: true };
 }
+async function erroRegistrar(env, id, corpo, ua) {   // erros de JavaScript dos jogadores: para ler, rode no D1: SELECT * FROM erros_cliente ORDER BY id DESC LIMIT 50;
+  const t = (v, n) => String(v || '').slice(0, n), n = (await env.DB.prepare('SELECT COUNT(*) AS n FROM erros_cliente WHERE usuario = ? AND quando > ?').bind(id, Date.now() - 3600e3).first()).n;
+  if (n >= 15) return { ok: true };
+  await env.DB.prepare('INSERT INTO erros_cliente (quando, usuario, msg, onde, tela, ua) VALUES (?, ?, ?, ?, ?, ?)').bind(Date.now(), id, t(corpo.m, 300), t(corpo.u, 200), t(corpo.v, 20), t(ua, 160)).run();
+  return { ok: true };
+}
 async function convitesDispensar(env, id, corpo) {
   await env.DB.prepare('DELETE FROM convites WHERE para = ? AND codigo = ?').bind(id, String(corpo.codigo || '').toUpperCase()).run();
   return await amigosVer(env, id);
@@ -152,7 +158,12 @@ async function amigosPedir(env, id, corpo) {
   const ok = alvo && (await env.DB.prepare('SELECT 1 AS x FROM perfis WHERE usuario = ? AND apelido IS NOT NULL AND faixa IS NOT NULL').bind(alvo).first());
   if (!ok) throw new Erro(404, 'Piloto não encontrado.');
   if (alvo === id) throw new Erro(400, 'Você não pode adicionar a si mesmo.');
-  const [a, b] = id < alvo ? [id, alvo] : [alvo, id], ex = await env.DB.prepare('SELECT estado, quem FROM amigos WHERE a = ? AND b = ?').bind(a, b).first(), agora = Date.now();
+  const [a, b] = id < alvo ? [id, alvo] : [alvo, id], agora = Date.now();
+  let ex = await env.DB.prepare('SELECT estado, quem, criado FROM amigos WHERE a = ? AND b = ?').bind(a, b).first();
+  if (ex && ex.estado === 'recusado') {   // pedido recusado: quem pediu espera 7 dias antes de insistir; quem recusou pode pedir quando quiser
+    if (ex.quem === id && agora - ex.criado < 7 * 864e5) throw new Erro(429, 'Este piloto não aceitou seu pedido. Você poderá tentar de novo em alguns dias.');
+    await env.DB.prepare('DELETE FROM amigos WHERE a = ? AND b = ?').bind(a, b).run(); ex = null;
+  }
   if (ex) {
     if (ex.estado === 'aceito') throw new Erro(409, 'Vocês já são amigos.');
     if (ex.quem === id) throw new Erro(409, 'O pedido já foi enviado. Aguarde a resposta.');
@@ -172,7 +183,7 @@ async function amigosResponder(env, id, corpo) {
   if (corpo.aceitar) {
     if ((await amigosDe(env, id)).length >= 100) throw new Erro(400, 'Limite de 100 amigos atingido.');
     await env.DB.prepare("UPDATE amigos SET estado = 'aceito' WHERE a = ? AND b = ?").bind(a, b).run();
-  } else await env.DB.prepare('DELETE FROM amigos WHERE a = ? AND b = ?').bind(a, b).run();
+  } else await env.DB.prepare("UPDATE amigos SET estado = 'recusado', criado = ? WHERE a = ? AND b = ?").bind(Date.now(), a, b).run();
   return await amigosVer(env, id);
 }
 async function amigosRemover(env, id, corpo) {
@@ -334,6 +345,7 @@ async function pagarPremios(env, cod) {   // cada prêmio é "reivindicado" uma 
 }
 async function partidasManutencao(env) {   // roda no Cron: fecha partidas vencidas e cancela salas esquecidas
   const now = Date.now();
+  try { await env.DB.prepare('DELETE FROM erros_cliente WHERE quando < ?').bind(now - 30 * 864e5).run(); await env.DB.prepare('DELETE FROM convites WHERE criado < ?').bind(now - 864e5).run(); } catch { /* as tabelas ainda não existem */ }
   for (const p of (await env.DB.prepare("SELECT * FROM partidas WHERE estado = 'andamento' AND fim < ?").bind(now).all()).results || []) await finalizar(env, p);
   for (const p of (await env.DB.prepare("SELECT * FROM partidas WHERE estado = 'espera' AND criada < ?").bind(now - ESPERA_MAX).all()).results || []) await reembolsarTodos(env, p, 'cancelada');
   for (const p of (await env.DB.prepare("SELECT codigo FROM partidas WHERE estado = 'fim' AND fim > ?").bind(now - 3600e3).all()).results || []) await pagarPremios(env, p.codigo);
@@ -464,6 +476,7 @@ async function perfisInit(env) {
   try { await env.DB.prepare("ALTER TABLE perfis ADD COLUMN moldura TEXT NOT NULL DEFAULT ''").run(); } catch { /* a coluna já existe */ }
   await env.DB.prepare("CREATE TABLE IF NOT EXISTS chamados (id INTEGER PRIMARY KEY AUTOINCREMENT, usuario INTEGER NOT NULL, email TEXT, categoria TEXT, mensagem TEXT NOT NULL, estado TEXT NOT NULL DEFAULT 'aberto', criado INTEGER NOT NULL)").run();
   await env.DB.prepare('CREATE TABLE IF NOT EXISTS amigos (a INTEGER NOT NULL, b INTEGER NOT NULL, estado TEXT NOT NULL, quem INTEGER NOT NULL, criado INTEGER NOT NULL, PRIMARY KEY (a, b))').run();
+  await env.DB.prepare('CREATE TABLE IF NOT EXISTS erros_cliente (id INTEGER PRIMARY KEY AUTOINCREMENT, quando INTEGER NOT NULL, usuario INTEGER, msg TEXT, onde TEXT, tela TEXT, ua TEXT)').run();
   await env.DB.prepare('CREATE TABLE IF NOT EXISTS convites (para INTEGER NOT NULL, codigo TEXT NOT NULL, de INTEGER NOT NULL, criado INTEGER NOT NULL, PRIMARY KEY (para, codigo))').run();
   await env.DB.prepare('CREATE TABLE IF NOT EXISTS rank_base (periodo TEXT NOT NULL, usuario INTEGER NOT NULL, base REAL NOT NULL, PRIMARY KEY (periodo, usuario))').run();
   perfisOk = true;
@@ -649,6 +662,7 @@ async function rota(req, env, url) {
   if (p === '/ranking' && m === 'GET') { const t = url.searchParams.get('p'); if (t === 'semana' || t === 'mes') return await rankingPeriodo(env, eu.id, t); if (t === 'amigos') return await rankingAmigos(env, eu.id, url.searchParams.get('q')); return await ranking(env, eu.id); }
   if (p === '/amigos' && m === 'GET') return await amigosVer(env, eu.id);
   if (p === '/amigos/quem' && m === 'GET') { const i = Number(url.searchParams.get('id')), q = (await quemInfo(env, [i]))[i]; if (!q) throw new Erro(404, 'Piloto não encontrado.'); return { id: q.id, n: q.n, a: q.a }; }
+  if (p === '/log' && m === 'POST') return await erroRegistrar(env, eu.id, corpo, req.headers.get('User-Agent'));
   if (p === '/jogadores' && m === 'GET') return await jogadoresVer(env, eu.id, url.searchParams.get('q'));
   if (p === '/amigos/convidar' && m === 'POST') return await amigosConvidar(env, eu.id, corpo);
   if (p === '/amigos/dispensar' && m === 'POST') return await convitesDispensar(env, eu.id, corpo);

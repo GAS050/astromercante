@@ -5,10 +5,10 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#050b18">
 <title>ASTROMERCANTE: Mercado Interplanetário</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+<link rel="preload" href="assets/fonts/ChakraPetch-Regular.woff" as="font" type="font/woff" crossorigin>
+<link rel="preload" href="assets/fa/webfonts/fa-solid-900.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="assets/fonts/fonts.css">
+<link rel="stylesheet" href="assets/fa/css/all.min.css">
 <link rel="stylesheet" href="style.css">
 <script>
 /* Antes de qualquer script do jogo: sem sessão salva, o painel nasce escondido e o login aparece direto (sem piscar a tela de negociação);
@@ -23,7 +23,7 @@
 <div class="space" aria-hidden="true">
   <div class="sl sl-neb"></div>
   <div class="sl sl-mid"></div>
-  <img class="spiral" src="assets/bg/galaxia_espiral.svg" alt="">
+  <img class="spiral" src="assets/bg/galaxia_espiral.webp" alt="" width="768" height="768" decoding="async">
   <div class="sl sl-near"></div>
 </div>
 
@@ -182,6 +182,7 @@
 <div class="modal" id="res" hidden><div class="card-panel" id="res-box"></div></div>
 <div class="modal" id="chart" hidden><div class="card-panel"><h2 id="chart-t"></h2><svg id="chart-svg" viewBox="0 0 300 120"></svg><button class="danger" id="chart-x">Fechar</button></div></div>
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
+<script src="erros.js" defer></script>
 <script src="config.js" defer></script>
 <script src="galaxias.js" defer></script>
 <script src="naves.js" defer></script>

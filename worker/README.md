@@ -89,3 +89,8 @@ Rotas: `GET /partida`, `POST /partida/criar | entrar | iniciar | sair | acao`. T
 - Cada nave tem níveis 1 a 5 em porão, motor e armas. Comprar nave exige a patente da nave (5 naves por patente) e créditos; trocar de nave não é possível em trânsito, em partida, nem se a carga não couber.
 - Contas antigas (porão/motor/armas sem limite) viram a Nave 1; níveis acima de 5 são devolvidos em créditos.
 - Ações novas: `comprarNave` ({i}) e `equipar` ({i}) em `POST /jogo/acao`.
+
+## Erros dos jogadores
+O jogo envia ao servidor os erros de JavaScript que acontecem nos aparelhos dos jogadores (no máximo 5 por visita). Para ler, no painel do D1 (Console) rode:
+`SELECT datetime(quando/1000,'unixepoch','-3 hours') AS hora, usuario, tela, msg, onde, ua FROM erros_cliente ORDER BY id DESC LIMIT 50;`
+Os registros com mais de 30 dias são apagados automaticamente.

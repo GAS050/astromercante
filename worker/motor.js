@@ -108,6 +108,8 @@ const note = (msgs, m, k = '') => msgs.push({ m, k, n: 1 });
 const fmt = (n) => n.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
 function stk(S, id, now) { const o = S.stock[S.loc]?.[id]; return o ? 100 - (100 - o.v) * Math.pow(.94, (now - o.t) / 30000) : 100; }
+/** Liquidez do mercado: cada unidade negociada mexe LIQ do estoque (preço e estoque usam a mesma conta, então comprar e vender no mesmo lugar nunca dá lucro). */
+export const LIQ = .6, TAXA_VENDA = .97, COMBUSTIVEL = .5;
 const setStk = (S, id, v, now) => { (S.stock[S.loc] ??= {})[id] = { v: Math.max(1, v), t: now }; };
 export function preco(S, id, st, c) {
   const r = RES_ID[id], ev = S.partida && !S.partida.eventos ? null : evAt(c.now);
@@ -122,7 +124,7 @@ const overCost = (S) => Math.round((100 - S.maxHull) * porPct(S) * 10);   // rev
 function desgasteViagem(S, d, teto) { const x = (.8 + Math.random()) * d / 100 * (1 + (S.engLv - 1) * .04) * (S.hull < 40 ? 1.3 : 1), b = Math.floor(x); return Math.min(teto || 99, b + (Math.random() < x - b ? 1 : 0)); }
 const hops = (S, i) => Math.max(1, Math.round(Math.hypot(GALAXIES[i].wx - GALAXIES[S.gal].wx, GALAXIES[i].wy - GALAXIES[S.gal].wy) / HOP));
 const jumpCost = (S, i) => Math.round(150 * (1 + i) * hops(S, i) * (1 + .3 * (S.engLv - 1) + .25 * (S.capLv - 1)) * (1 + (100 - S.hull) / 150));
-const tripInfo = (S, to) => { const d = dist(planeta(S, S.loc), planeta(S, to)); return { d, cost: Math.round(d * .8 * (1 + .3 * (S.engLv - 1) + .25 * (S.capLv - 1)) * (1 + (100 - S.hull) / 150)), secs: Math.max(3, Math.round(d / (18 + S.engLv * 7) * (S.hull < 40 ? 1.3 : 1))) }; };
+const tripInfo = (S, to) => { const d = dist(planeta(S, S.loc), planeta(S, to)); return { d, cost: Math.round(d * .8 * COMBUSTIVEL * (1 + .3 * (S.engLv - 1) + .25 * (S.capLv - 1)) * (1 + (100 - S.hull) / 150)), secs: Math.max(3, Math.round(d / (18 + S.engLv * 7) * (S.hull < 40 ? 1.3 : 1))) }; };
 
 /* ---------- inimigos do mapa (piratas e monstros): patrulham por relógio, iguais para todos; o aparelho só desenha o que o servidor decide ---------- */
 const HH = (n) => { n = (n ^ 61) ^ (n >>> 16); n = Math.imul(n, 0x45d9f3b); n ^= n >>> 4; n = Math.imul(n, 0x45d9f3b); n ^= n >>> 15; return n >>> 0; };
@@ -238,16 +240,16 @@ const acoes = {
     if (S.trip) throw new Regra('Nave em trânsito.');
     const s0 = stk(S, a.id, c.now), esperado = Number(a.esperado), vitrine = preco(S, a.id, s0, c);
     if (esperado > 0 && Math.abs(vitrine / esperado - 1) > .08) throw new Regra('O preço mudou. Confira o mercado e tente de novo.');
-    const p = preco(S, a.id, lado === 'buy' ? s0 - n / 2 : s0 + n / 2, c) * (lado === 'buy' ? 1 : .95), total = n * p, h = (S.inv[a.id] ??= { qty: 0, avg: 0 });
+    const p = preco(S, a.id, lado === 'buy' ? s0 - n * LIQ / 2 : s0 + n * LIQ / 2, c) * (lado === 'buy' ? 1 : TAXA_VENDA), total = n * p, h = (S.inv[a.id] ??= { qty: 0, avg: 0 });
     if (lado === 'buy') {
-      if (n > s0 - 1) throw new Regra(`Este planeta só tem ${Math.floor(s0 - 1)} un. em oferta. Procure outro mercado.`);
+      if (n > (s0 - 1) / LIQ) throw new Regra(`Este planeta só tem ${Math.floor((s0 - 1) / LIQ)} un. em oferta. Procure outro mercado.`);
       if (total > S.credits) throw new Regra(`Créditos insuficientes: faltam ${fmt(total - S.credits)}.`);
       if (used(S) + n > S.cap) throw new Regra(`Porão cheio (${used(S)}/${S.cap}). Venda ou faça upgrade.`);
-      h.avg = (h.avg * h.qty + total) / (h.qty + n); h.qty += n; S.credits -= total; setStk(S, a.id, s0 - n, c.now);
+      h.avg = (h.avg * h.qty + total) / (h.qty + n); h.qty += n; S.credits -= total; setStk(S, a.id, s0 - n * LIQ, c.now);
       say(msgs, `Comprou ${n} × ${r.nome} por ${fmt(total)}.`);
     } else {
       if (n > h.qty) throw new Regra(`Você tem apenas ${h.qty} × ${r.nome}.`);
-      S.daily.p.profit += Math.max(0, n * (p - h.avg)); h.qty -= n; S.credits += total; setStk(S, a.id, s0 + n, c.now); if (!h.qty) h.avg = 0;
+      S.daily.p.profit += Math.max(0, n * (p - h.avg)); h.qty -= n; S.credits += total; setStk(S, a.id, s0 + n * LIQ, c.now); if (!h.qty) h.avg = 0;
       say(msgs, `Vendeu ${n} × ${r.nome} por ${fmt(total)}.`);
     }
     S.daily.p.trades++;

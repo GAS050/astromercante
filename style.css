@@ -6,7 +6,8 @@ body{font-family:'Chakra Petch',system-ui,sans-serif;background:var(--bg);color:
 .mono{font-family:'IBM Plex Mono',monospace}
 .neon{color:var(--neon)}
 button,input,select{font:inherit;color:inherit}
-button{cursor:pointer}
+button{cursor:pointer;background:transparent}
+input[type=radio],input[type=checkbox],input[type=range]{accent-color:var(--neon)}
 :focus-visible{outline:2px solid var(--cyan);outline-offset:2px}
 
 .hud{display:flex;flex-wrap:wrap;align-items:center;gap:6px 22px;padding:10px 16px;background:var(--pan);border-bottom:1px solid var(--line);backdrop-filter:blur(8px)}
@@ -477,3 +478,9 @@ body.histon{overflow:hidden}
 @media (prefers-reduced-motion:reduce){.rankup,.ru-box,.fx-float,#hud-credits.fx-pulse{animation:none}}
 
 .mus-btn{width:40px;height:40px;border-radius:8px;border:1px solid var(--line);background:rgba(5,14,26,.7);color:var(--cyan)}.mus-btn.off{color:var(--mt)}
+
+/* botões de ação: sempre com o visual do jogo (nunca o cinza padrão do navegador) */
+.buy{background:rgba(57,255,136,.1);border-radius:8px;font-weight:600}.buy:disabled{opacity:.45;cursor:not-allowed}
+.ghost{background:none;border:0;color:var(--mt);text-decoration:underline}
+.pf-in:disabled{opacity:.75;color:var(--tx);cursor:default}
+#perfil .buy,#perfil .ghost{width:100%;padding:10px;margin-top:8px}

@@ -80,7 +80,7 @@
 
   <section class="card-panel view" id="p-settings">
     <h2>Configurações</h2>
-    <div class="row" id="pf-row" hidden><div><strong>Perfil do piloto</strong><span class="sub">Apelido, avatar e faixa etária</span></div><button type="button" id="pf-edit">Editar</button></div>
+    <div class="row" id="pf-row" hidden><div><strong>Perfil do piloto</strong><span class="sub">Escolha seu avatar</span></div><button type="button" id="pf-edit">Editar</button></div>
     <div class="row" id="acct-row"><div><strong id="acct-nome">Sem conta</strong><span class="sub" id="acct-sync"></span></div><button class="buy" id="acct-btn" type="button">Entrar ou criar conta</button></div>
     <div class="row" id="acct-extra" hidden><button id="acct-now" type="button">Atualizar</button><button id="acct-out" type="button">Sair</button><button class="danger" id="acct-del" type="button">Excluir conta</button></div>
     <label class="row">Fundo animado (desligue em aparelhos lentos) <input type="checkbox" id="set-fx"></label>
@@ -92,6 +92,7 @@
       <h3>Créditos</h3>
       <p>Dados de mercado: <a href="https://www.coingecko.com" target="_blank" rel="noopener">CoinGecko API</a> (cripto e ouro tokenizado) e <a href="https://docs.awesomeapi.com.br" target="_blank" rel="noopener">AwesomeAPI</a> (câmbio USD/BRL).</p>
       <p>Ícones: <a href="https://fontawesome.com" target="_blank" rel="noopener">Font Awesome Free</a> (CC BY 4.0). Fontes: Chakra Petch e IBM Plex Mono, via Google Fonts (SIL OFL).</p>
+      <p>Músicas geradas com Gemini (Google).</p>
       <p>ASTROMERCANTE é um jogo de simulação. Os preços dos recursos são fictícios e não representam investimento real.</p>
     </div>
   </section>
@@ -150,14 +151,14 @@
 <div class="modal" id="perfil" hidden><div class="card-panel">
   <div class="au-brand">SEU PILOTO</div>
   <h2 id="pf-t">Crie seu perfil</h2>
-  <p class="pf-sub">Este é o nome e a imagem que os outros pilotos veem no ranking e nos torneios.</p>
+  <p class="pf-sub" id="pf-intro">Este é o nome e a imagem que os outros pilotos veem no ranking e nos torneios.</p>
   <input id="pf-ap" class="pf-in" maxlength="16" placeholder="Apelido (3 a 16 caracteres)" autocomplete="off" spellcheck="false">
   <div class="pf-av" id="pf-av" role="radiogroup" aria-label="Avatar"></div>
   <fieldset class="pf-fx" id="pf-fx"><legend>Faixa etária</legend>
     <label><input type="radio" name="pf-fx" value="13-17"> 13 a 17 anos</label>
     <label><input type="radio" name="pf-fx" value="18+"> 18 anos ou mais</label>
     <label><input type="radio" name="pf-fx" value="<13"> Menos de 13 anos</label></fieldset>
-  <p class="pf-sub">O Astromercante é para maiores de 13 anos. Guardamos só o e-mail e o que você escolhe aqui: nunca seu nome real, telefone ou endereço.</p>
+  <p class="pf-sub" id="pf-leg">O Astromercante é para maiores de 13 anos. Guardamos só o e-mail e o que você escolhe aqui: nunca seu nome real, telefone ou endereço.</p>
   <p class="au-err" id="pf-err" role="alert"></p>
   <button class="buy" id="pf-ok" type="button">Começar</button>
   <button class="ghost" id="pf-x" type="button" hidden>Fechar</button>

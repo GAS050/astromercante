@@ -8,16 +8,17 @@ renderAccount = function () {   // mostra avatar + apelido no botão da conta
 };
 function abrirPerfil(obrigatorio) {
   pfObrig = !!obrigatorio; pfSel = PF.avatar || 'a1';
-  $('#pf-t').textContent = obrigatorio ? 'Crie seu perfil' : 'Editar perfil'; $('#pf-ok').textContent = obrigatorio ? 'Começar' : 'Salvar'; $('#pf-x').hidden = obrigatorio;
-  $('#pf-ap').value = PF.completo ? PF.apelido : ''; $('#pf-ap').placeholder = 'Apelido (sugestão: ' + (PF.sugestao || 'Piloto') + ')';
-  $('#pf-ap').disabled = PF.completo && PF.troca_em > 0; $('#pf-err').textContent = PF.completo && PF.troca_em > 0 ? `O apelido pode ser trocado de novo em ${Math.ceil(PF.troca_em / 864e5)} dia(s).` : '';
+  $('#pf-t').textContent = obrigatorio ? 'Crie seu perfil' : 'Seu avatar'; $('#pf-ok').textContent = obrigatorio ? 'Começar' : 'Salvar'; $('#pf-x').hidden = obrigatorio;
+  const ja = !!PF.completo;   // depois de criado, o apelido e a faixa etária não mudam por aqui
+  $('#pf-ap').value = ja ? PF.apelido : ''; $('#pf-ap').placeholder = 'Apelido (sugestão: ' + (PF.sugestao || 'Piloto') + ')'; $('#pf-ap').disabled = ja; $('#pf-err').textContent = '';
+  $('#pf-fx').hidden = ja; $('#pf-leg').hidden = ja; $('#pf-intro').textContent = ja ? 'Escolha o avatar que os outros pilotos veem no ranking e nos torneios. Mais avatares e molduras estão na Loja.' : 'Este é o nome e a imagem que os outros pilotos veem no ranking e nos torneios.';
   $('#pf-av').innerHTML = (PF.avatares || ['a1']).map(a => `<button type="button" data-a="${a}" class="${a === pfSel ? 'on' : ''}" aria-label="Avatar ${a}"><img src="${avSrc(a)}" alt=""></button>`).join('');
   document.querySelectorAll('#pf-fx input').forEach(i => { i.checked = i.value === PF.faixa; i.disabled = !!PF.faixa; });
   $('#perfil').hidden = false;
 }
 async function salvarPerfil() {
   const err = m => { $('#pf-err').textContent = m; }, ap = $('#pf-ap').value.trim(), fx = (document.querySelector('#pf-fx input:checked') || {}).value;
-  if (!fx) return err('Escolha sua faixa etária.'); if (fx === '<13') return err('O Astromercante é para maiores de 13 anos. Volte quando tiver 13 anos ou mais!');
+  if (PF.completo) { /* já definida */ } else if (!fx) return err('Escolha sua faixa etária.'); else if (fx === '<13') return err('O Astromercante é para maiores de 13 anos. Volte quando tiver 13 anos ou mais!');
   if (!PF.completo && !ap) return err('Escolha um apelido.');
   $('#pf-ok').disabled = true; err('');
   try {

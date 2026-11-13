@@ -380,12 +380,12 @@ async function perfilSalvar(env, id, corpo) {
   if (corpo.apelido !== undefined) {
     const novo = String(corpo.apelido).trim().replace(/\s+/g, ' ');
     if (novo !== ap) {
-      if (ap && now - em < SETE_DIAS) throw new Erro(429, 'Você já trocou de apelido há pouco. Dá para trocar de novo depois de 7 dias.');
+      if (ap) throw new Erro(403, 'O apelido não pode ser alterado.');   // depois de criado, só o suporte altera (direto no banco)
       if (novo.length < 3 || novo.length > 16 || !/^[\p{L}\p{N}_ .-]+$/u.test(novo)) throw new Erro(400, 'Apelido: 3 a 16 letras, números, espaço, ponto, _ ou -.');
       const l = limpaNome(novo); if (PROIBIDAS.some((w) => l.includes(w))) throw new Erro(400, 'Esse apelido não é permitido. Escolha outro.');
       const outro = await env.DB.prepare('SELECT 1 AS x FROM perfis WHERE apelido = ? AND usuario <> ?').bind(novo, id).first() || await env.DB.prepare('SELECT 1 AS x FROM usuarios WHERE nome = ? AND id <> ?').bind(novo, id).first();
       if (outro) throw new Erro(409, 'Esse apelido já está em uso.');
-      em = ap ? now : 0; ap = novo;   // a primeira escolha é livre; só as trocas seguintes esperam 7 dias
+      em = 0; ap = novo;   // só a primeira escolha é livre
     }
   }
   if (!ap) throw new Erro(400, 'Escolha um apelido.');

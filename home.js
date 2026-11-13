@@ -14,7 +14,6 @@
   const proxUp = () => { try { const n = NAVES[S.nave - 1], f = S.frota && S.frota[S.nave]; if (!n || !f) return null; const c = [['cap', f.c], ['eng', f.m], ['wp', f.a]].filter(x => x[1] < 5).map(x => upCusto(n, x[0], x[1])); return c.length ? Math.min(...c) : null; } catch { return null; } };
   function render() {
     if (document.body.dataset.view !== 'home' || !TOK || !CLOUD() || !READY || typeof PF === 'undefined' || !PF) return;
-    if (MODE !== 'partida') carregarRanking();
     const emPartida = MODE === 'partida', n = NAVES[(S.nave || 1) - 1] || { nome: 'Nave' }, w = patTotal();
     const nx = !emPartida && S.rank + 1 < RANKS.length ? RANKS[S.rank + 1] : null, a = RANKS[S.rank][0], pct = nx ? clamp((w - a) / (nx[0] - a) * 100, 0, 100) : 100;
     let h = `<div class="hm-hero"><img class="hm-av mo-${PF.moldura || ''}" src="${avSrc(PF.avatar)}" alt="" width="72" height="72"><div class="hm-id"><b>${esc(PF.apelido)}</b><span>${emPartida ? 'Em partida' : RANKS[S.rank][1]}</span></div><div class="hm-pat"><small>${emPartida ? 'Patrimônio na partida' : 'Patrimônio'}</small><b class="mono">${fmt(emPartida ? S.credits + cargo() : w).replace(',00', '')} Cr</b></div></div>`;
@@ -29,7 +28,7 @@
     }
     const up = proxUp(), pode = up != null && S.credits >= up && !emPartida;
     h += `<div class="hm-tiles"><button type="button" data-hm="play"><i class="fa-solid fa-trophy"></i><b>Torneios</b><small>Desafie outros pilotos</small></button><button type="button" data-hm="fleet"><i class="fa-solid fa-rocket"></i><b>Frotas</b><small>${pode ? '<span class="hm-dot"></span>Melhoria disponível' : 'Nave e melhorias'}</small></button><button type="button" data-hm="loja"><i class="fa-solid fa-bag-shopping"></i><b>Loja</b><small>Naves e visuais</small></button></div>`;
-    if (!emPartida && RANK && RANK.top) { const me = RANK.eu; h += `<div class="hm-card"><div class="hm-h"><b>Ranking global</b><small>${RANK.total} pilotos</small></div><ol class="board">` + RANK.top.slice(0, 5).map((r, i) => `<li class="${me && r.n === me.n ? 'me' : ''}"><span><i class="pos">${i + 1}</i> ${avImg(r.a)}${esc(r.n)}</span><b class="mono">${fmt(me && r.n === me.n ? patTotal() : r.w).replace(',00', '')}</b></li>`).join('') + '</ol>' + (me && me.pos > 5 ? `<p class="hm-pos">Você está em <b>${me.pos}º</b></p>` : '') + '</div>'; }
+    if (!emPartida && typeof rkCard === 'function') h += rkCard();
     h += `<div class="hm-tip"><img src="assets/avatar/capitao.webp" alt="" width="44" height="44"><p><b>Dica do Capitão</b>${DICAS[Math.floor(Date.now() / 864e5) % DICAS.length]}</p></div>`;
     const novo = h; if (novo !== el._h) { el.innerHTML = novo; el._h = novo; }
   }

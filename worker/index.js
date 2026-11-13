@@ -75,6 +75,88 @@ const publico = ({ ult, ...S }) => S;
 /* ---------- ranking global: patrimônio gravado pelo servidor em cada ação (o aparelho não consegue alterá-lo) ---------- */
 let rankCache = { t: 0, top: [], total: 0 };
 const apelido = (nome, google, ap) => ap || (google ? 'Piloto' + (String(nome).match(/\d{3,5}$/)?.[0] || '') : nome);   // contas Google antigas tinham parte do e-mail no nome: não expõe
+/* ---------- rankings por período (semana e mês, horário de Brasília) e amigos ---------- */
+const TZ_OFF = 3 * 3600e3;   // Brasil (sem horário de verão)
+function periodos(agora = Date.now()) {
+  const l = new Date(agora - TZ_OFF), y = l.getUTCFullYear(), mo = l.getUTCMonth(), d = l.getUTCDate(), dow = (l.getUTCDay() + 6) % 7;
+  const dia = Date.UTC(y, mo, d) + TZ_OFF, si = dia - dow * 864e5, mi = Date.UTC(y, mo, 1) + TZ_OFF;
+  return { semana: { id: 'S' + new Date(si - TZ_OFF).toISOString().slice(0, 10), ini: si, fim: si + 7 * 864e5 }, mes: { id: 'M' + y + '-' + String(mo + 1).padStart(2, '0'), ini: mi, fim: Date.UTC(y, mo + 1, 1) + TZ_OFF } };
+}
+const baseVista = new Map();
+/** Guarda o patrimônio do jogador no começo de cada período: é o valor gravado antes da 1ª ação do período (o ganho é patrimônio atual menos esse valor). */
+async function garantirBase(env, id) {
+  const P = periodos(), chave = P.semana.id + P.mes.id; if (baseVista.get(id) === chave) return;
+  for (const p of [P.semana, P.mes]) await env.DB.prepare('INSERT OR IGNORE INTO rank_base (periodo, usuario, base) SELECT ?, usuario, patrimonio FROM saves WHERE usuario = ?').bind(p.id, id).run();
+  if (baseVista.size > 5000) baseVista.clear(); baseVista.set(id, chave);
+}
+const GANHO = 'CASE WHEN b.base IS NOT NULL THEN s.patrimonio - b.base WHEN u.criado >= ? THEN s.patrimonio - 10000 ELSE 0 END';   // 1º ? = início do período
+const rkPer = { semana: { t: 0 }, mes: { t: 0 } };
+async function rankingPeriodo(env, id, tipo) {
+  const per = periodos()[tipo], ini = per.ini;
+  const FROM = 'FROM saves s JOIN usuarios u ON u.id = s.usuario LEFT JOIN perfis p ON p.usuario = u.id LEFT JOIN rank_base b ON b.usuario = u.id AND b.periodo = ?';
+  const c = rkPer[tipo];
+  if (c.per !== per.id || Date.now() - c.t > 30000) {
+    const r = await env.DB.prepare(`SELECT u.nome AS nome, u.google AS google, p.apelido AS ap, p.avatar AS av, ${GANHO} AS w ${FROM} WHERE ${GANHO} > 0 ORDER BY w DESC, u.id ASC LIMIT 10`).bind(ini, per.id, ini).all();
+    const n = await env.DB.prepare(`SELECT COUNT(*) AS n ${FROM} WHERE ${GANHO} > 0`).bind(per.id, ini).first();
+    rkPer[tipo] = { t: Date.now(), per: per.id, top: r.results.map((x) => ({ n: apelido(x.nome, x.google, x.ap), a: x.av || 'a1', w: Math.round(x.w * 100) / 100 })), total: n.n };
+  }
+  const eu = await env.DB.prepare(`SELECT u.nome AS nome, u.google AS google, p.apelido AS ap, p.avatar AS av, ${GANHO} AS w ${FROM} WHERE s.usuario = ?`).bind(ini, per.id, id).first();
+  let pos = null; if (eu && eu.w > 0) pos = (await env.DB.prepare(`SELECT COUNT(*) AS n ${FROM} WHERE ${GANHO} > ?`).bind(per.id, ini, eu.w).first()).n + 1;
+  const k = rkPer[tipo];
+  return { tipo, top: k.top, total: k.total, fim: per.fim, eu: eu ? { pos, w: Math.round(eu.w * 100) / 100, n: apelido(eu.nome, eu.google, eu.ap), a: eu.av || 'a1' } : null };
+}
+const amigosDe = async (env, id) => ((await env.DB.prepare("SELECT a, b FROM amigos WHERE estado = 'aceito' AND (a = ? OR b = ?)").bind(id, id).all()).results || []).map((r) => (r.a === id ? r.b : r.a));
+async function rankingAmigos(env, id, q) {
+  const ids = [id, ...(await amigosDe(env, id))], per = q === 'semana' || q === 'mes' ? periodos()[q] : null, ph = ids.map(() => '?').join(',');
+  const val = per ? GANHO : 's.patrimonio';
+  const r = await env.DB.prepare(`SELECT u.id AS id, u.nome AS nome, u.google AS google, p.apelido AS ap, p.avatar AS av, ${val} AS w FROM usuarios u LEFT JOIN saves s ON s.usuario = u.id LEFT JOIN perfis p ON p.usuario = u.id LEFT JOIN rank_base b ON b.usuario = u.id AND b.periodo = ? WHERE u.id IN (${ph})`).bind(...(per ? [per.ini, per.id] : [null]), ...ids).all();
+  const lista = (r.results || []).map((x) => ({ n: apelido(x.nome, x.google, x.ap), a: x.av || 'a1', w: Math.round((x.w || 0) * 100) / 100, eu: x.id === id ? 1 : 0 })).sort((x, y) => y.w - x.w);
+  return { tipo: 'amigos', q: per ? q : 'total', lista, fim: per ? per.fim : 0, amigos: ids.length - 1 };
+}
+const quemInfo = async (env, ids) => {
+  if (!ids.length) return {};
+  const r = await env.DB.prepare(`SELECT u.id AS id, u.nome AS nome, u.google AS google, p.apelido AS ap, p.avatar AS av, p.moldura AS mo, s.patrimonio AS w FROM usuarios u LEFT JOIN perfis p ON p.usuario = u.id LEFT JOIN saves s ON s.usuario = u.id WHERE u.id IN (${ids.map(() => '?').join(',')})`).bind(...ids).all();
+  return Object.fromEntries((r.results || []).map((x) => [x.id, { id: x.id, n: apelido(x.nome, x.google, x.ap), a: x.av || 'a1', m: x.mo || '', w: Math.round((x.w || 0) * 100) / 100 }]));
+};
+async function amigosVer(env, id) {
+  const rows = (await env.DB.prepare('SELECT a, b, estado, quem FROM amigos WHERE a = ? OR b = ?').bind(id, id).all()).results || [], outro = (r) => (r.a === id ? r.b : r.a), info = await quemInfo(env, rows.map(outro));
+  const pega = (f) => rows.filter(f).map((r) => info[outro(r)]).filter(Boolean);
+  return { meuId: id, amigos: pega((r) => r.estado === 'aceito').sort((x, y) => y.w - x.w), recebidos: pega((r) => r.estado === 'pendente' && r.quem !== id), enviados: pega((r) => r.estado === 'pendente' && r.quem === id) };
+}
+async function amigosPedir(env, id, corpo) {
+  let alvo = 0; const raw = String(corpo.apelido || '').trim();
+  if (corpo.id !== undefined && corpo.id !== '') alvo = Number(String(corpo.id).replace(/\D/g, ''));
+  else if (raw.startsWith('#')) alvo = Number(raw.slice(1).replace(/\D/g, ''));
+  else if (raw) { alvo = (await env.DB.prepare('SELECT usuario FROM perfis WHERE apelido = ? AND faixa IS NOT NULL').bind(raw).first())?.usuario || 0; if (!alvo && /^\d+$/.test(raw)) alvo = Number(raw); }
+  const ok = alvo && (await env.DB.prepare('SELECT 1 AS x FROM perfis WHERE usuario = ? AND apelido IS NOT NULL AND faixa IS NOT NULL').bind(alvo).first());
+  if (!ok) throw new Erro(404, 'Piloto não encontrado.');
+  if (alvo === id) throw new Erro(400, 'Você não pode adicionar a si mesmo.');
+  const [a, b] = id < alvo ? [id, alvo] : [alvo, id], ex = await env.DB.prepare('SELECT estado, quem FROM amigos WHERE a = ? AND b = ?').bind(a, b).first(), agora = Date.now();
+  if (ex) {
+    if (ex.estado === 'aceito') throw new Erro(409, 'Vocês já são amigos.');
+    if (ex.quem === id) throw new Erro(409, 'O pedido já foi enviado. Aguarde a resposta.');
+    await env.DB.prepare("UPDATE amigos SET estado = 'aceito' WHERE a = ? AND b = ?").bind(a, b).run();   // ele já tinha pedido: viram amigos
+    return await amigosVer(env, id);
+  }
+  const dia = await env.DB.prepare('SELECT COUNT(*) AS n FROM amigos WHERE quem = ? AND criado > ?').bind(id, agora - 864e5).first(), pend = await env.DB.prepare("SELECT COUNT(*) AS n FROM amigos WHERE quem = ? AND estado = 'pendente'").bind(id).first(), tot = (await amigosDe(env, id)).length;
+  if (dia.n >= 20) throw new Erro(429, 'Muitos pedidos hoje. Tente de novo amanhã.');
+  if (pend.n >= 30) throw new Erro(429, 'Você já tem muitos pedidos pendentes.');
+  if (tot >= 100) throw new Erro(400, 'Limite de 100 amigos atingido.');
+  await env.DB.prepare("INSERT INTO amigos (a, b, estado, quem, criado) VALUES (?, ?, 'pendente', ?, ?)").bind(a, b, id, agora).run();
+  return await amigosVer(env, id);
+}
+async function amigosResponder(env, id, corpo) {
+  const o = Number(corpo.id), [a, b] = id < o ? [id, o] : [o, id], r = await env.DB.prepare("SELECT quem FROM amigos WHERE a = ? AND b = ? AND estado = 'pendente'").bind(a, b).first();
+  if (!r || r.quem === id) throw new Erro(404, 'Pedido não encontrado.');
+  if (corpo.aceitar) {
+    if ((await amigosDe(env, id)).length >= 100) throw new Erro(400, 'Limite de 100 amigos atingido.');
+    await env.DB.prepare("UPDATE amigos SET estado = 'aceito' WHERE a = ? AND b = ?").bind(a, b).run();
+  } else await env.DB.prepare('DELETE FROM amigos WHERE a = ? AND b = ?').bind(a, b).run();
+  return await amigosVer(env, id);
+}
+async function amigosRemover(env, id, corpo) {
+  const o = Number(corpo.id), [a, b] = id < o ? [id, o] : [o, id]; await env.DB.prepare('DELETE FROM amigos WHERE a = ? AND b = ?').bind(a, b).run(); return await amigosVer(env, id);
+}
 async function ranking(env, id) {
   if (Date.now() - rankCache.t > 30000) {
     const r = await env.DB.prepare('SELECT u.nome AS nome, u.google AS google, p.apelido AS ap, p.avatar AS av, s.patrimonio AS w FROM saves s JOIN usuarios u ON u.id = s.usuario LEFT JOIN perfis p ON p.usuario = u.id ORDER BY s.patrimonio DESC, s.usuario ASC LIMIT 10').all();
@@ -94,6 +176,7 @@ async function carregarJogo(env, id, now) {
   return { row, S };
 }
 async function jogo(env, id, nome, args) {
+  await garantirBase(env, id);
   for (let i = 0; i < 5; i++) {
     const now = Date.now(), c = { now, feed: await feedAtual(env) }, { row, S } = await carregarJogo(env, id, now), msgs = [];
     let base = row ? row.atualizado : 0, mudou = !row || (row && JSON.parse(row.estado).v !== 3);
@@ -167,8 +250,9 @@ async function humano(env, req, token) {   // Cloudflare Turnstile (anti-robô);
 async function apagarUsuario(env, id) {
   const u = await env.DB.prepare('SELECT email FROM usuarios WHERE id = ?').bind(id).first();
   await perfisInit(env);
-  for (const t of ['saves', 'sessoes', 'partida_jog', 'perfis', 'loja_itens', 'chamados']) await env.DB.prepare(`DELETE FROM ${t} WHERE usuario = ?`).bind(id).run();
+  for (const t of ['saves', 'sessoes', 'partida_jog', 'perfis', 'loja_itens', 'chamados', 'rank_base']) await env.DB.prepare(`DELETE FROM ${t} WHERE usuario = ?`).bind(id).run();
   if (u && u.email) await env.DB.prepare('DELETE FROM codigos WHERE email = ?').bind(u.email).run();
+  await env.DB.prepare('DELETE FROM amigos WHERE a = ? OR b = ?').bind(id, id).run();
   await env.DB.prepare('DELETE FROM usuarios WHERE id = ?').bind(id).run();
 }
 async function limparPendentes(env) {   // cadastros nunca confirmados somem em 24 h
@@ -183,6 +267,7 @@ const ALFA = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789', ESPERA_MAX = 2 * 3600e3;
 const codigoNovo = () => Array.from(crypto.getRandomValues(new Uint8Array(6)), (b) => ALFA[b % ALFA.length]).join('');
 /** Soma/subtrai créditos da CARREIRA com a mesma trava otimista das ações (taxa de entrada, reembolso, prêmio). */
 async function ajustarCreditos(env, id, delta, falta = 'Créditos insuficientes na carreira para pagar a taxa de entrada.') {
+  await garantirBase(env, id);
   for (let i = 0; i < 6; i++) {
     const now = Date.now(), c = { now, feed: await feedAtual(env) }, { row, S } = await carregarJogo(env, id, now), msgs = [];
     resolver(S, c, msgs); fechar(S, c, msgs);
@@ -356,6 +441,8 @@ async function perfisInit(env) {
   await env.DB.prepare('CREATE TABLE IF NOT EXISTS loja_itens (usuario INTEGER NOT NULL, item TEXT NOT NULL, quando INTEGER NOT NULL DEFAULT 0, PRIMARY KEY (usuario, item))').run();
   try { await env.DB.prepare("ALTER TABLE perfis ADD COLUMN moldura TEXT NOT NULL DEFAULT ''").run(); } catch { /* a coluna já existe */ }
   await env.DB.prepare("CREATE TABLE IF NOT EXISTS chamados (id INTEGER PRIMARY KEY AUTOINCREMENT, usuario INTEGER NOT NULL, email TEXT, categoria TEXT, mensagem TEXT NOT NULL, estado TEXT NOT NULL DEFAULT 'aberto', criado INTEGER NOT NULL)").run();
+  await env.DB.prepare('CREATE TABLE IF NOT EXISTS amigos (a INTEGER NOT NULL, b INTEGER NOT NULL, estado TEXT NOT NULL, quem INTEGER NOT NULL, criado INTEGER NOT NULL, PRIMARY KEY (a, b))').run();
+  await env.DB.prepare('CREATE TABLE IF NOT EXISTS rank_base (periodo TEXT NOT NULL, usuario INTEGER NOT NULL, base REAL NOT NULL, PRIMARY KEY (periodo, usuario))').run();
   perfisOk = true;
 }
 const AVATARES_GRATIS = ['a1', 'a2', 'a3', 'a4', 'a5', 'a6', 'a7', 'a8'];   // o 'cap' (Capitão) é de conquista: entra com a loja
@@ -365,7 +452,7 @@ const SETE_DIAS = 7 * 864e5;
 const donos = async (env, id) => ((await env.DB.prepare('SELECT item FROM loja_itens WHERE usuario = ?').bind(id).all()).results || []).map((x) => x.item);
 async function perfilVer(env, id) {
   const r = await env.DB.prepare('SELECT p.apelido AS ap, p.avatar AS av, p.moldura AS mo, p.faixa AS faixa, p.apelido_em AS em, u.nome AS nome FROM usuarios u LEFT JOIN perfis p ON p.usuario = u.id WHERE u.id = ?').bind(id).first(), meus = await donos(env, id);
-  return { completo: !!(r && r.ap && r.faixa), apelido: r?.ap || r?.nome || '', sugestao: r?.nome || '', avatar: r?.av || 'a1', moldura: r?.mo || '', molduras: meus.filter((i) => CATALOGO[i]?.tipo === 'moldura'), faixa: r?.faixa || null, avatares: [...AVATARES_GRATIS, ...meus.filter((i) => CATALOGO[i]?.tipo === 'avatar')], troca_em: r?.em ? Math.max(0, r.em + SETE_DIAS - Date.now()) : 0 };
+  return { id, completo: !!(r && r.ap && r.faixa), apelido: r?.ap || r?.nome || '', sugestao: r?.nome || '', avatar: r?.av || 'a1', moldura: r?.mo || '', molduras: meus.filter((i) => CATALOGO[i]?.tipo === 'moldura'), faixa: r?.faixa || null, avatares: [...AVATARES_GRATIS, ...meus.filter((i) => CATALOGO[i]?.tipo === 'avatar')], troca_em: r?.em ? Math.max(0, r.em + SETE_DIAS - Date.now()) : 0 };
 }
 async function perfilSalvar(env, id, corpo) {
   const atual = await env.DB.prepare('SELECT apelido, avatar, moldura, faixa, apelido_em FROM perfis WHERE usuario = ?').bind(id).first(), now = Date.now();
@@ -423,6 +510,7 @@ async function lojaComprar(env, id, item) {
   if (!novo.meta || !novo.meta.changes) throw new Erro(409, 'Você já tem este item.');
   try { await ajustarCreditos(env, id, -v.preco, `Você precisa de ${v.preco.toLocaleString('pt-BR')} Cr em caixa para comprar ${v.nome}.`); }
   catch (e) { await env.DB.prepare('DELETE FROM loja_itens WHERE usuario = ? AND item = ?').bind(id, item).run(); throw e; }
+  await env.DB.prepare('UPDATE rank_base SET base = base - ? WHERE usuario = ? AND periodo IN (?, ?)').bind(v.preco, id, periodos().semana.id, periodos().mes.id).run();   // cosmético não conta como prejuízo no ganho do período
   return await lojaVer(env, id);
 }
 
@@ -535,7 +623,12 @@ async function rota(req, env, url) {
   if (p === '/loja/comprar' && m === 'POST') return await lojaComprar(env, eu.id, String(corpo.item || ''));
   if (p === '/perfil' && m === 'GET') return await perfilVer(env, eu.id);
   if (p === '/perfil' && m === 'POST') return await perfilSalvar(env, eu.id, corpo);
-  if (p === '/ranking' && m === 'GET') return await ranking(env, eu.id);
+  if (p === '/ranking' && m === 'GET') { const t = url.searchParams.get('p'); if (t === 'semana' || t === 'mes') return await rankingPeriodo(env, eu.id, t); if (t === 'amigos') return await rankingAmigos(env, eu.id, url.searchParams.get('q')); return await ranking(env, eu.id); }
+  if (p === '/amigos' && m === 'GET') return await amigosVer(env, eu.id);
+  if (p === '/amigos/quem' && m === 'GET') { const i = Number(url.searchParams.get('id')), q = (await quemInfo(env, [i]))[i]; if (!q) throw new Erro(404, 'Piloto não encontrado.'); return { id: q.id, n: q.n, a: q.a }; }
+  if (p === '/amigos/pedir' && m === 'POST') return await amigosPedir(env, eu.id, corpo);
+  if (p === '/amigos/responder' && m === 'POST') return await amigosResponder(env, eu.id, corpo);
+  if (p === '/amigos/remover' && m === 'POST') return await amigosRemover(env, eu.id, corpo);
   if (p === '/jogo' && m === 'GET') return await jogoLer(env, eu.id, url);
   if (p === '/jogo/acao' && m === 'POST') return await jogo(env, eu.id, String(corpo.acao || ''), corpo);
   if (p === '/partida' && m === 'GET') return await partidaVer(env, eu.id, url);

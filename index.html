@@ -84,7 +84,7 @@
 
   <section class="card-panel view" id="p-settings">
     <h2>Configurações</h2>
-    <div class="row" id="pf-row" hidden><div><strong>Perfil do piloto</strong><span class="sub">Escolha seu avatar</span></div><button type="button" id="pf-edit">Editar</button></div>
+    <div class="row" id="pf-row" hidden><div><strong>Perfil do piloto</strong><span class="sub">Escolha seu avatar</span></div><span class="pf-btns"><button type="button" class="ghost" id="pf-ver">Ver perfil</button><button type="button" id="pf-edit">Editar</button></span></div>
     <div class="row" id="acct-row"><div><strong id="acct-nome">Sem conta</strong><span class="sub" id="acct-sync"></span></div><button class="buy" id="acct-btn" type="button">Entrar ou criar conta</button></div>
     <div class="row" id="acct-extra" hidden><button id="acct-now" type="button">Atualizar</button><button id="acct-out" type="button">Sair</button><button class="danger" id="acct-del" type="button">Excluir conta</button></div>
     <label class="row">Fundo animado (desligue em aparelhos lentos) <input type="checkbox" id="set-fx"></label>
@@ -157,6 +157,11 @@
 <div class="modal" id="jogador" hidden><div class="card-panel pj" role="dialog" aria-label="Perfil do piloto">
   <button type="button" class="ghost pj-x" id="pj-x" aria-label="Fechar">✕</button>
   <div id="pj-body"></div>
+</div></div>
+<div class="modal" id="conqs" hidden><div class="card-panel cqm" role="dialog" aria-label="Conquistas">
+  <button type="button" class="ghost pj-x" id="cqm-x" aria-label="Fechar">✕</button>
+  <h2 id="cqm-t">Conquistas</h2>
+  <div id="cqm-b"></div>
 </div></div>
 <div class="modal" id="suporte" hidden><div class="card-panel">
   <h2>Falar com o suporte</h2>

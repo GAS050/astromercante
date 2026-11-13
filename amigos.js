@@ -144,12 +144,19 @@ function pjRender() {
   else if (d.rel === 'enviado') ac = '<span class="tag">Pedido enviado</span>';
   else if (d.rel === 'recebido') ac = '<button type="button" class="buy" data-pa="sim">Aceitar pedido</button><button type="button" class="ghost" data-pa="nao">Recusar</button>';
   else ac = '<button type="button" class="buy" data-pa="add"><i class="fa-solid fa-user-plus"></i> Adicionar como amigo</button>';
+  const C = d.conq || { n: 0, total: 100, top: [] }, pc = Math.round(C.n / C.total * 100), ns = d.nave;
+  const barras = nv => '<ul class="lj-st">' + LJ_ST.map(t => { const v = ns[t.k], w = Math.max(6, Math.round(Math.sqrt(v / t.max) * 100)); return `<li title="${t.rot}: ${t.txt}"><i class="fa-solid ${t.ic}"></i><div><span>${t.rot} <b>${t.fmt(v)}</b></span><div class="lj-bar"><i style="width:${w}%"></i></div><small>${t.txt} · no nível 5: <b>${t.fmt(t.mx(nv))}</b></small></div></li>`; }).join('') + '</ul>';
+  const tri = (ic, v, t, cls) => `<div class="pj-tri ${cls || ''}"><i class="fa-solid ${ic}"></i><b>${v}</b><small>${t}</small></div>`;
   pjB.innerHTML = `<div class="pj-hero"><img class="hm-av mo-${rkEsc(d.m)}" src="${avSrc(d.a)}" alt="" width="84" height="84"><div class="pj-id"><h2>${rkEsc(d.n)}</h2><b>${rkEsc(d.patente)}</b><div class="sel-row">${(d.lider || []).map(x => selChip(x, 1)).join('')}${selChip(d.titulo, 1)}</div>${d.desde ? `<small>Piloto desde ${pjData(d.desde)}</small>` : ''}</div></div>`
     + `<div class="pj-grid">${st('fa-coins', pjFmt(d.pat) + ' Cr', 'Patrimônio')}${st('fa-chart-line', (d.lucro > 0 ? '+' : '') + pjFmt(d.lucro) + ' Cr', 'Lucro total')}${st('fa-ranking-star', d.pos ? d.pos + 'º' : '—', 'Ranking global')}</div>`
-    + (nv ? `<h3>Nave atual</h3><div class="pj-nave"><div class="pj-nv">${ljMiniNave(nv, d.nave)}</div><div><b>${rkEsc(nv.nome)}</b><p>Porão ${d.nave.cap} · Motor ${d.nave.eng.toFixed(1)} · Armas ${d.nave.wp.toFixed(1)}</p><small>Nível ${d.nave.c}/${d.nave.m}/${d.nave.a} · ${d.frota} ${d.frota === 1 ? 'nave' : 'naves'} na frota${d.gal ? ` · em ${rkEsc(d.gal)}` : ''}</small></div></div>` : '')
+    + (nv ? `<h3>Nave atual</h3><div class="pj-nave"><div class="pj-nv">${ljMiniNave(nv, ns)}</div><div class="pj-ni"><b>${rkEsc(nv.nome)}</b><small>Melhorias ${ns.c}/${ns.m}/${ns.a} · ${d.frota} ${d.frota === 1 ? 'nave' : 'naves'} na frota${d.gal ? ` · em ${rkEsc(d.gal)}` : ''}</small></div>${barras(nv)}</div>` : '')
+    + `<h3>Conquistas <span class="pj-cn">${C.n}/${C.total}</span></h3><div class="pj-cq"><div class="cq-prog" role="img" aria-label="${pc}% das conquistas"><i style="width:${Math.max(C.n ? 2 : 0, pc)}%"></i></div>`
+    + (C.top.length ? `<div class="pj-cqt">${C.top.map(q => `<span class="cqi r${q.r}" title="${rkEsc(q.n)}"><i class="fa-solid ${rkEsc(q.ic)}"></i></span>`).join('')}</div>` : '<p class="empty">Nenhuma conquista ainda.</p>')
+    + `<button type="button" class="ghost" data-pc="${d.id}"><i class="fa-solid fa-medal"></i> Ver todas as ${C.total} conquistas</button></div>`
     + `<h3>Selos</h3><div class="pj-sel">${(d.selos || []).map(e => { const S0 = SEL[e.f]; if (!S0) return ''; const prox = S0.lim[e.n]; return `<div class="pj-selo${e.n ? '' : ' off'}"><i class="fa-solid ${S0.ic} sel-t${e.n || 0}"></i><b>${S0.n}${e.n ? ' ' + ROM[e.n] : ''}</b><small>${prox ? `Próximo: ${fmt(prox).replace(',00', '')} ${S0.un} (${fmt(Math.min(e.v, prox)).replace(',00', '')}/${fmt(prox).replace(',00', '')})` : 'Nível máximo!'}</small></div>`; }).join('')}</div>`
-    + `<h3>Troféus</h3><div class="pj-grid pj-tro">${st('fa-trophy', T.vitorias, T.vitorias === 1 ? 'Vitória' : 'Vitórias')}${st('fa-medal', T.podios, T.podios === 1 ? 'Pódio' : 'Pódios')}${st('fa-flag-checkered', T.jogados, T.jogados === 1 ? 'Torneio' : 'Torneios')}</div>`
+    + `<h3>Torneios</h3><div class="pj-grid pj-tro2">${tri('fa-flag-checkered', T.jogados, 'Torneios jogados')}${tri('fa-trophy', T.vitorias, 'Torneios ganhos', 'ouro')}${tri('fa-medal', T.podios, T.podios === 1 ? 'Pódio' : 'Pódios')}</div>`
     + (T.premios ? `<p class="pj-sub">Prêmios ganhos: <b>${pjFmt(T.premios)} Cr</b></p>` : '')
+    + `<h3>Troféus de ranking</h3><div class="pj-grid pj-tro2 duo">${tri('fa-crown', d.tf || 0, 'De patrimônio', 'ouro')}${tri('fa-sack-dollar', d.tl || 0, 'De lucro', 'ouro')}</div><p class="pj-sub">Um troféu para quem termina a semana ou o mês em 1º no ganho de patrimônio ou de lucro.</p>`
     + (T.recentes.length ? `<ul class="pj-rec">${T.recentes.map(r => `<li><span>${r.pos === 1 ? '🥇' : r.pos === 2 ? '🥈' : r.pos === 3 ? '🥉' : '🏁'} ${r.pos}º de ${r.de}</span><small>${r.quando ? new Date(r.quando).toLocaleDateString('pt-BR') : ''}</small></li>`).join('')}</ul>` : '<p class="empty">Ainda não disputou torneios.</p>')
     + `<p class="au-err" id="pj-err" role="alert"></p><div class="pj-ac">${ac}</div>`;
 }
@@ -159,6 +166,7 @@ async function abrirJogador(id) {
 }
 pjM.addEventListener('click', async e => {
   if (e.target === pjM || e.target.closest('#pj-x')) { pjM.hidden = true; return; }
+  const pc = e.target.closest('[data-pc]'); if (pc) { abrirConquistas(+pc.dataset.pc, pjD && pjD.n); return; }
   const b = e.target.closest('[data-pa]'); if (!b || !pjD) return; const k = b.dataset.pa, id = pjD.id; b.disabled = true;
   const ok = k === 'add' ? await amCall('/amigos/pedir', { apelido: '#' + id }) : k === 'sim' ? await amCall('/amigos/responder', { id, aceitar: true }) : k === 'nao' ? await amCall('/amigos/responder', { id, aceitar: false }) : k === 'conv' ? await amCall('/amigos/convidar', { id }) : false;
   if (ok) { try { pjD = await api('/jogador?id=' + id); pjRender(); if (k === 'conv') $a('#pj-err').textContent = 'Convite enviado!'; } catch {} } else { b.disabled = false; const el = $a('#pj-err'); if (el) el.textContent = AV.msg || ''; }

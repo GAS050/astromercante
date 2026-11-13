@@ -20,6 +20,9 @@ export const RES = [
 const RES_ID = Object.fromEntries(RES.map((r) => [r.id, r]));
 const SHORT = { neutronio: 'Neutrônio', titanio: 'Titânio', helio3: 'Hélio-3', especiarias: 'Especiarias', plasma: 'Plasma', antimateria: 'Antimatéria', cristal: 'C. Temporal' };
 MINERALS.forEach((m) => { SHORT[m.id] = m.nome; });
+/* contadores de conquistas (S.st): vivem no estado gravado pelo servidor */
+const mais = (S, k, n = 1) => { const t = (S.st ??= {}); t[k] = (t[k] || 0) + n; };
+const maxi = (S, k, v) => { const t = (S.st ??= {}); if (v > (t[k] || 0)) t[k] = v; };
 export const RANKS = [[0, 'Recruta'], [12000, 'Contrabandista'], [30000, 'Mercador estelar'], [100000, 'Barão orbital'], [300000, 'Comodoro'], [1000000, 'Almirante galáctico'], [3000000, 'Lenda das estrelas'], [10000000, 'Imperador dos dados'], [30000000, 'Soberano do vazio'], [100000000, 'Arquiteto do universo']];
 const EVENTS = [
   { t: 'Tempestade solar eleva o Hélio-3', r: 'helio3', m: 1.3 },
@@ -211,9 +214,10 @@ function chegada(S, d, msgs, enc) {
   let dmg = sc ? 0 : desgasteViagem(S, d);
   for (const e of enc || []) {
     if (!sc) dmg += e.dmg;
-    if (e.w === 1) { S.credits += e.loot; S.lt = (S.lt || 0) + e.loot; say(msgs, `${e.nm} (poder ${e.lv.toFixed(1)}) derrotados pelo seu poder de fogo ${S.wpLv.toFixed(1)}! Recompensa +${fmt(e.loot)} Cr.`, 'win'); }
+    if (e.w === 1) { S.credits += e.loot; S.lt = (S.lt || 0) + e.loot; mais(S, e.m ? 'mo' : 'pi'); if (/Leviat/.test(e.nm)) mais(S, 'lv'); else if (/Frota pirata/.test(e.nm)) mais(S, 'fp'); say(msgs, `${e.nm} (poder ${e.lv.toFixed(1)}) derrotados pelo seu poder de fogo ${S.wpLv.toFixed(1)}! Recompensa +${fmt(e.loot)} Cr.`, 'win'); }
     else if (e.w === 2) say(msgs, `${e.nm} (poder ${e.lv.toFixed(1)}) recuaram: luta empatada, sem saque. Escapamos${sc ? ' sem danos' : ' com avarias'}.`, 'ok');
     else {
+      mais(S, 'df');
       let m = `${e.nm} (poder ${e.lv.toFixed(1)}) venceram: seu poder de fogo é ${S.wpLv.toFixed(1)}. `;
       const own = Object.keys(S.inv).filter((x) => S.inv[x].qty > 0);
       if (own.length) { const x = own[Math.random() * own.length | 0], q = Math.max(1, Math.ceil(S.inv[x].qty * e.f)); S.inv[x].qty -= q; if (S.inv[x].qty <= 0) { S.inv[x].qty = 0; S.inv[x].avg = 0; } m += `Perdeu ${q} × ${RES_ID[x].nome}. `; }
@@ -246,18 +250,18 @@ export function resolver(S, c, msgs) {
   const d = dia(c.now);
   if (!S.partida && (!S.daily || S.daily.day !== d)) {
     const y = dia(c.now - 864e5);
-    S.streak = S.lastDay === y ? S.streak + 1 : 1; S.lastDay = d; S.daily = { day: d, p: { trades: 0, trips: 0, profit: 0 }, done: {} };
+    S.streak = S.lastDay === y ? S.streak + 1 : 1; maxi(S, 'bk', S.streak); S.lastDay = d; S.daily = { day: d, p: { trades: 0, trips: 0, profit: 0 }, done: {} };
     const b = 100 * Math.min(S.streak, 7); S.credits += b; say(msgs, `Bônus diário: ${fmt(b)} Cr (sequência de ${S.streak} dia/s). Volte amanhã para mais!`, 'win'); mudou = true;
   }
   if (S.trip && c.now >= S.trip.end) {
-    const dd = dist(planeta(S, S.trip.from), planeta(S, S.trip.to)); S.loc = S.trip.to; const enc = S.trip.enc; S.trip = null; S.daily.p.trips++; chegada(S, dd, msgs, enc);
+    const dd = dist(planeta(S, S.trip.from), planeta(S, S.trip.to)); S.loc = S.trip.to; const enc = S.trip.enc; S.trip = null; S.daily.p.trips++; mais(S, 'vi'); chegada(S, dd, msgs, enc);
     const m = planeta(S, S.loc).m, deals = Object.keys(m).filter((k) => m[k] < 1).map((k) => SHORT[k]);
     say(msgs, `Chegada em ${planeta(S, S.loc).nome}.` + (deals.length ? ` Compre barato: ${deals.join(', ')}.` : ''), 'ok'); mudou = true;
   }
   return mudou;
 }
 export function fechar(S, c, msgs) {   // missões e patente, sempre calculadas depois de uma ação
-  MIS.forEach((m) => { if (!S.daily.done[m.k] && S.daily.p[m.k] >= m.n(S)) { S.daily.done[m.k] = 1; S.credits += m.r; say(msgs, `Missão cumprida: ${m.t}! +${fmt(m.r)} Cr`, 'win'); } });
+  MIS.forEach((m) => { if (!S.daily.done[m.k] && S.daily.p[m.k] >= m.n(S)) { S.daily.done[m.k] = 1; S.credits += m.r; mais(S, 'mi'); say(msgs, `Missão cumprida: ${m.t}! +${fmt(m.r)} Cr`, 'win'); } });
   if (S.partida) return;   // na partida a patente é a da carreira e não muda
   const w = patrimonioTotal(S, c); let k = 0; RANKS.forEach((r, i) => { if (w >= r[0]) k = i; });
   if (k > S.rank) {
@@ -283,11 +287,11 @@ const acoes = {
       if (n > (s0 - 1) / liq(S)) throw new Regra(`Este planeta só tem ${Math.floor((s0 - 1) / liq(S))} un. em oferta. Procure outro mercado.`);
       if (total > S.credits) throw new Regra(`Créditos insuficientes: faltam ${fmt(total - S.credits)}.`);
       if (used(S) + n > S.cap) throw new Regra(`Porão cheio (${used(S)}/${S.cap}). Venda ou faça upgrade.`);
-      h.avg = (h.avg * h.qty + total) / (h.qty + n); h.qty += n; S.credits -= total; setStk(S, a.id, s0 - n * liq(S), c.now);
+      mais(S, 'tr'); h.avg = (h.avg * h.qty + total) / (h.qty + n); h.qty += n; S.credits -= total; setStk(S, a.id, s0 - n * liq(S), c.now);
       say(msgs, `Comprou ${n} × ${r.nome} por ${fmt(total)}.`);
     } else {
       if (n > h.qty) throw new Regra(`Você tem apenas ${h.qty} × ${r.nome}.`);
-      S.daily.p.profit += Math.max(0, n * (p - h.avg)); S.lt = (S.lt || 0) + n * (p - h.avg); h.qty -= n; S.credits += total; setStk(S, a.id, s0 + n * liq(S), c.now); if (!h.qty) h.avg = 0;
+      S.daily.p.profit += Math.max(0, n * (p - h.avg)); S.lt = (S.lt || 0) + n * (p - h.avg); mais(S, 'tr'); maxi(S, 'mq', n); if (h.avg > 0 && p > h.avg) { maxi(S, 'lx', n * (p - h.avg)); maxi(S, 'mg', (p / h.avg - 1) * 100); } h.qty -= n; S.credits += total; setStk(S, a.id, s0 + n * liq(S), c.now); if (!h.qty) h.avg = 0;
       say(msgs, `Vendeu ${n} × ${r.nome} por ${fmt(total)}.`);
     }
     S.daily.p.trades++;

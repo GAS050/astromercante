@@ -5,6 +5,7 @@ const FX = 'https://economia.awesomeapi.com.br/json/last/USD-BRL';
 import { Regra, novo, normalizar, migrar, resolver, precisaResolver, fechar, executar, patrimonio, patrimonioTotal, RANKS, validarCfg, novoPartida, valorFinal, botPatrimonio, botNome, premiacao, desbloqueada, intensidade } from './motor.js';
 import { GALAXIES } from './dados.js';
 import { NAVES, capDe, engDe, wpDe } from './naves.js';
+import { CATALOGO as CONQ, CATEGORIAS as CQ_CAT, ganhas, metricas } from './conquistas.js';
 const STALE_MS = 30 * 60 * 1000;
 
 const json = (r) => (r.ok ? r.json() : Promise.reject(r.status));
@@ -67,7 +68,8 @@ async function feedAtual(env) {
 }
 async function gravarJogo(env, id, S, c, base) {   // compare-and-swap: só grava se ninguém mudou a conta nesse meio-tempo
   await perfisInit(env);
-  const estado = JSON.stringify(S), t = Math.max(Date.now(), (Number(base) || 0) + 1), pat = patrimonioTotal(S, c), lucro = Math.round((Number(S.lt) || 0) * 100) / 100;   // lucro: resultado das vendas + saques, sem contar naves e cosméticos
+  const pat = patrimonioTotal(S, c); if (!S.partida && pat > ((S.st || {}).pk || 0)) (S.st ??= {}).pk = Math.round(pat);   // pico de patrimônio (conquistas)
+  const estado = JSON.stringify(S), t = Math.max(Date.now(), (Number(base) || 0) + 1), lucro = Math.round((Number(S.lt) || 0) * 100) / 100;   // lucro: resultado das vendas + saques, sem contar naves e cosméticos
   const r = base
     ? await env.DB.prepare('UPDATE saves SET estado = ?, patrimonio = ?, lucro = ?, atualizado = ? WHERE usuario = ? AND atualizado = ?').bind(estado, pat, lucro, t, id, Number(base)).run()
     : await env.DB.prepare('INSERT INTO saves (usuario, estado, patrimonio, lucro, atualizado) VALUES (?, ?, ?, ?, ?) ON CONFLICT(usuario) DO NOTHING').bind(id, estado, pat, lucro, t).run();
@@ -90,7 +92,7 @@ async function garantirBase(env, id) {
   const P = periodos(), chave = P.semana.id + P.mes.id; if (baseVista.get(id) === chave) return;
   if (!(await env.DB.prepare('SELECT 1 AS x FROM saves WHERE usuario = ?').bind(id).first())) return;   // conta nova ainda sem save: tenta de novo na próxima (não guarda no cache)
   // conta criada dentro do período começa em 10.000 (não no valor de agora: senão o lucro das primeiras jogadas, tutorial incluso, some do ranking)
-  for (const p of [P.semana, P.mes]) await env.DB.prepare('INSERT OR IGNORE INTO rank_base (periodo, usuario, base) SELECT ?, s.usuario, CASE WHEN u.criado >= ? THEN MIN(s.patrimonio, 10000) ELSE s.patrimonio END FROM saves s JOIN usuarios u ON u.id = s.usuario WHERE s.usuario = ?').bind(p.id, p.ini, id).run();
+  for (const p of [P.semana, P.mes]) await env.DB.prepare('INSERT OR IGNORE INTO rank_base (periodo, usuario, base, lbase) SELECT ?, s.usuario, CASE WHEN u.criado >= ? THEN MIN(s.patrimonio, 10000) ELSE s.patrimonio END, CASE WHEN u.criado >= ? THEN 0 ELSE s.lucro END FROM saves s JOIN usuarios u ON u.id = s.usuario WHERE s.usuario = ?').bind(p.id, p.ini, p.ini, id).run();
   if (baseVista.size > 5000) baseVista.clear(); baseVista.set(id, chave);
 }
 /* ---------- selos: calculados de números que o servidor já guarda (vitórias e prêmios de torneio, lucro total, tempo de conta) ---------- */
@@ -106,6 +108,39 @@ function tituloDe(x) {   // o selo de maior nível; empate: vitórias > prêmios
   return m ? m.f + m.n : '';
 }
 const GANHO = 'CASE WHEN u.criado >= ? THEN s.patrimonio - MIN(COALESCE(b.base, 10000), 10000) WHEN b.base IS NOT NULL THEN s.patrimonio - b.base ELSE 0 END';   // 1º ? = início do período
+const GANHO_L = 'CASE WHEN b.base IS NOT NULL OR u.criado >= ? THEN s.lucro - COALESCE(b.lbase, 0) ELSE 0 END';   // lucro no período (1º ? = início)
+/** Roda no Cron: quando uma semana ou um mês termina, o 1º do ganho de patrimônio e o 1º do ganho de lucro levam um troféu (mínimo de 1.000 Cr). */
+async function fecharPeriodos(env) {
+  await perfisInit(env); const agora = Date.now(), P = periodos(agora);
+  for (const tipo of ['semana', 'mes']) {
+    const ant = periodos(P[tipo].ini - 1)[tipo];
+    if (await env.DB.prepare('SELECT 1 AS x FROM periodos_fechados WHERE periodo = ?').bind(ant.id).first()) continue;
+    if ((await env.DB.prepare('SELECT COUNT(*) AS n FROM rank_base WHERE periodo = ?').bind(ant.id).first()).n > 0) {
+      const FROM = 'FROM saves s JOIN usuarios u ON u.id = s.usuario LEFT JOIN rank_base b ON b.usuario = u.id AND b.periodo = ?';
+      for (const [kind, g] of [['patrimonio', GANHO], ['lucro', GANHO_L]]) {
+        const r = await env.DB.prepare(`SELECT s.usuario AS id, ${g} AS w ${FROM} ORDER BY w DESC, s.usuario ASC LIMIT 1`).bind(ant.ini, ant.id).first();
+        if (r && r.w >= 1000) await env.DB.prepare('INSERT OR IGNORE INTO trofeus (usuario, tipo, periodo, valor, quando) VALUES (?, ?, ?, ?, ?)').bind(r.id, kind, ant.id, Math.round(r.w), agora).run();
+      }
+    }
+    await env.DB.prepare('INSERT OR IGNORE INTO periodos_fechados (periodo, quando) VALUES (?, ?)').bind(ant.id, agora).run();
+  }
+}
+/** Números do banco que alimentam as conquistas (amigos, itens da loja, torneios e troféus de período). */
+async function extrasConq(env, id) {
+  const r = await env.DB.prepare("SELECT u.criado AS criado, p.tj AS tj, p.vit AS tv, (SELECT COUNT(*) FROM loja_itens WHERE usuario = ?1) AS lo, (SELECT COUNT(*) FROM amigos WHERE estado = 'aceito' AND (a = ?1 OR b = ?1)) AS am, (SELECT COUNT(*) FROM trofeus WHERE usuario = ?1 AND tipo = 'patrimonio') AS tf, (SELECT COUNT(*) FROM trofeus WHERE usuario = ?1 AND tipo = 'lucro') AS tl FROM usuarios u LEFT JOIN perfis p ON p.usuario = u.id WHERE u.id = ?1").bind(id).first();
+  return r || {};
+}
+async function conquistasDe(env, id, S, pat) {
+  const x = await extrasConq(env, id), m = metricas(S || {}, { ...x, pat }), ids = ganhas(m);
+  return { m, ids, x };
+}
+async function conquistasVer(env, eu, alvo) {   // catálogo (100) + ids ganhos; o progresso numérico só vai para o próprio jogador
+  alvo = Number(alvo) || eu; const row = await env.DB.prepare('SELECT s.estado AS estado, s.patrimonio AS pat FROM usuarios u JOIN perfis p ON p.usuario = u.id LEFT JOIN saves s ON s.usuario = u.id WHERE u.id = ? AND p.apelido IS NOT NULL').bind(alvo).first();
+  if (!row) throw new Erro(404, 'Piloto não encontrado.');
+  let S = {}; try { S = row.estado ? JSON.parse(row.estado) : {}; } catch { /* save ilegível */ }
+  const c = await conquistasDe(env, alvo, S, row.pat);
+  return { catalogo: CONQ, categorias: CQ_CAT, ganhas: c.ids, total: CONQ.length, ...(alvo === eu ? { prog: c.m } : {}) };
+}
 const rkPer = { semana: { t: 0 }, mes: { t: 0 } };
 async function rankingPeriodo(env, id, tipo) {
   const per = periodos()[tipo], ini = per.ini;
@@ -157,11 +192,14 @@ async function jogadorVer(env, eu, alvo) {   // perfil público: só o que já �
   const pf = (await env.DB.prepare('SELECT vit, premios FROM perfis WHERE usuario = ?').bind(alvo).first()) || {}, selos = selosDe({ vit: Math.max(pf.vit || 0, tro.vitorias), premios: Math.max(pf.premios || 0, tro.premios), lucro, criado: r.criado });
   const lider = []; for (const tp of ['semana', 'mes']) { const rp = await rankingPeriodo(env, alvo, tp); if (rp.top[0] && rp.top[0].i === alvo && rp.top[0].w >= 1000) lider.push(tp === 'mes' ? 'lm' : 'ls'); }
   if (pos === 1) lider.push('top1');
-  return { selos, lider, titulo: tituloDe({ vit: Math.max(pf.vit || 0, tro.vitorias), premios: Math.max(pf.premios || 0, tro.premios), lucro, criado: r.criado }), id: r.id, n: r.ap, a: r.av || 'a1', m: r.mo || '', patente: RANKS[k][1], pat, lucro, pos, posL, desde: r.criado || 0, gal: S.gal != null && GALAXIES[S.gal] ? GALAXIES[S.gal].nome : '', nave: nv ? { id: nv.id, nome: nv.nome, c: f ? f.c : 1, m: f ? f.m : 1, a: f ? f.a : 1, cap: capDe(nv, f ? f.c : 1), eng: engDe(nv, f ? f.m : 1), wp: wpDe(nv, f ? f.a : 1) } : null, frota: S.frota ? Object.keys(S.frota).length : 0, tro, rel, eu: eu === alvo };
+  const cq = await conquistasDe(env, alvo, S, r.pat), top = CONQ.filter((q) => cq.ids.includes(q.id)).sort((a, b) => b.r - a.r || b.g - a.g).slice(0, 8).map((q) => ({ id: q.id, n: q.n, ic: q.ic, r: q.r }));
+  tro.jogados = Math.max(tro.jogados, cq.x.tj || 0); tro.vitorias = Math.max(tro.vitorias, cq.x.tv || 0);
+  return { conq: { n: cq.ids.length, total: CONQ.length, top }, tf: cq.x.tf || 0, tl: cq.x.tl || 0, selos, lider, titulo: tituloDe({ vit: Math.max(pf.vit || 0, tro.vitorias), premios: Math.max(pf.premios || 0, tro.premios), lucro, criado: r.criado }), id: r.id, n: r.ap, a: r.av || 'a1', m: r.mo || '', patente: RANKS[k][1], pat, lucro, pos, posL, desde: r.criado || 0, gal: S.gal != null && GALAXIES[S.gal] ? GALAXIES[S.gal].nome : '', nave: nv ? { id: nv.id, nome: nv.nome, c: f ? f.c : 1, m: f ? f.m : 1, a: f ? f.a : 1, cap: capDe(nv, f ? f.c : 1), eng: engDe(nv, f ? f.m : 1), wp: wpDe(nv, f ? f.a : 1) } : null, frota: S.frota ? Object.keys(S.frota).length : 0, tro, rel, eu: eu === alvo };
 }
 async function selosMeus(env, id) {   // leve (1 consulta): o aparelho compara com o que já viu e mostra o banner de conquista quando um selo sobe de nível
   const r = await env.DB.prepare('SELECT u.criado AS cr, p.vit AS vit, p.premios AS pr, s.lucro AS lu FROM usuarios u LEFT JOIN perfis p ON p.usuario = u.id LEFT JOIN saves s ON s.usuario = u.id WHERE u.id = ?').bind(id).first() || {};
-  return { selos: selosDe({ vit: r.vit, premios: r.pr, lucro: r.lu, criado: r.cr }) };
+  const sv = await env.DB.prepare('SELECT estado, patrimonio FROM saves WHERE usuario = ?').bind(id).first(); let S = {}; try { S = sv ? JSON.parse(sv.estado) : {}; } catch { /* save ilegível */ }
+  return { selos: selosDe({ vit: r.vit, premios: r.pr, lucro: r.lu, criado: r.cr }), conq: (await conquistasDe(env, id, S, sv && sv.patrimonio)).ids };
 }
 async function jogadoresVer(env, id, q) {
   q = String(q || '').trim().toLowerCase().slice(0, 16); const like = '%' + q.replace(/[%_]/g, '') + '%';
@@ -377,7 +415,7 @@ async function finalizar(env, p) {
   const ok = await env.DB.prepare("UPDATE partidas SET estado = 'fim', resultado = ? WHERE codigo = ? AND estado = 'andamento'").bind(JSON.stringify(tabela), p.codigo).run();
   if (!(ok.meta?.changes > 0)) return;   // outro pedido já encerrou
   for (const t of tabela) if (!t.bot) await env.DB.prepare('UPDATE partida_jog SET patrimonio = ?, premio = ? WHERE codigo = ? AND usuario = ?').bind(t.w, t.premio || 0, p.codigo, t.id).run();
-  if (p.modo === 'torneio') for (const t of tabela) if (!t.bot) await env.DB.prepare('UPDATE perfis SET vit = vit + ?, pod = pod + ?, premios = premios + ? WHERE usuario = ?').bind(t.pos === 1 ? 1 : 0, t.pos <= 3 ? 1 : 0, t.premio || 0, t.id).run().catch(() => {});
+  if (p.modo === 'torneio') for (const t of tabela) if (!t.bot) await env.DB.prepare('UPDATE perfis SET vit = vit + ?, pod = pod + ?, premios = premios + ?, tj = tj + 1 WHERE usuario = ?').bind(t.pos === 1 ? 1 : 0, t.pos <= 3 ? 1 : 0, t.premio || 0, t.id).run().catch(() => {});
   await pagarPremios(env, p.codigo);
 }
 async function pagarPremios(env, cod) {   // cada prêmio é "reivindicado" uma única vez antes de creditar
@@ -517,7 +555,10 @@ async function perfisInit(env) {
   try { await env.DB.prepare("ALTER TABLE perfis ADD COLUMN moldura TEXT NOT NULL DEFAULT ''").run(); } catch { /* a coluna já existe */ }
   await env.DB.prepare("CREATE TABLE IF NOT EXISTS chamados (id INTEGER PRIMARY KEY AUTOINCREMENT, usuario INTEGER NOT NULL, email TEXT, categoria TEXT, mensagem TEXT NOT NULL, estado TEXT NOT NULL DEFAULT 'aberto', criado INTEGER NOT NULL)").run();
   await env.DB.prepare('CREATE TABLE IF NOT EXISTS amigos (a INTEGER NOT NULL, b INTEGER NOT NULL, estado TEXT NOT NULL, quem INTEGER NOT NULL, criado INTEGER NOT NULL, PRIMARY KEY (a, b))').run();
-  for (const c of ['vit', 'pod', 'premios']) { try { await env.DB.prepare(`ALTER TABLE perfis ADD COLUMN ${c} INTEGER NOT NULL DEFAULT 0`).run(); } catch { /* a coluna já existe */ } }
+  try { await env.DB.prepare('ALTER TABLE rank_base ADD COLUMN lbase REAL').run(); } catch { /* a coluna já existe */ }
+  await env.DB.prepare('CREATE TABLE IF NOT EXISTS trofeus (usuario INTEGER NOT NULL, tipo TEXT NOT NULL, periodo TEXT NOT NULL, valor REAL NOT NULL DEFAULT 0, quando INTEGER NOT NULL, PRIMARY KEY (usuario, tipo, periodo))').run();
+  await env.DB.prepare('CREATE TABLE IF NOT EXISTS periodos_fechados (periodo TEXT PRIMARY KEY, quando INTEGER NOT NULL)').run();
+  for (const c of ['vit', 'pod', 'premios', 'tj']) { try { await env.DB.prepare(`ALTER TABLE perfis ADD COLUMN ${c} INTEGER NOT NULL DEFAULT 0`).run(); } catch { /* a coluna já existe */ } }
   try { await env.DB.prepare('ALTER TABLE saves ADD COLUMN lucro REAL NOT NULL DEFAULT 0').run(); } catch { /* a coluna já existe */ }
   await env.DB.prepare('CREATE INDEX IF NOT EXISTS idx_saves_lucro ON saves(lucro DESC)').run();
   await env.DB.prepare('CREATE TABLE IF NOT EXISTS erros_cliente (id INTEGER PRIMARY KEY AUTOINCREMENT, quando INTEGER NOT NULL, usuario INTEGER, msg TEXT, onde TEXT, tela TEXT, ua TEXT)').run();
@@ -707,6 +748,7 @@ async function rota(req, env, url) {
   if (p === '/amigos' && m === 'GET') return await amigosVer(env, eu.id);
   if (p === '/amigos/quem' && m === 'GET') { const i = Number(url.searchParams.get('id')), q = (await quemInfo(env, [i]))[i]; if (!q) throw new Erro(404, 'Piloto não encontrado.'); return { id: q.id, n: q.n, a: q.a }; }
   if (p === '/log' && m === 'POST') return await erroRegistrar(env, eu.id, corpo, req.headers.get('User-Agent'));
+  if (p === '/conquistas' && m === 'GET') return await conquistasVer(env, eu.id, url.searchParams.get('id'));
   if (p === '/selos' && m === 'GET') return await selosMeus(env, eu.id);
   if (p === '/jogador' && m === 'GET') return await jogadorVer(env, eu.id, url.searchParams.get('id'));
   if (p === '/jogadores' && m === 'GET') return await jogadoresVer(env, eu.id, url.searchParams.get('q'));
@@ -734,7 +776,7 @@ async function rota(req, env, url) {
 }
 
 export default {
-  async scheduled(_evento, env, ctx) { ctx.waitUntil(refresh(env)); ctx.waitUntil(partidasManutencao(env)); },
+  async scheduled(_evento, env, ctx) { ctx.waitUntil(refresh(env)); ctx.waitUntil(partidasManutencao(env)); ctx.waitUntil(fecharPeriodos(env)); },
   async fetch(req, env) {
     const cors = { 'Access-Control-Allow-Origin': env.ALLOWED_ORIGIN || '*', 'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS', 'Access-Control-Allow-Headers': 'Content-Type, Authorization', 'Access-Control-Max-Age': '86400' };
     if (req.method === 'OPTIONS') return new Response(null, { status: 204, headers: cors });

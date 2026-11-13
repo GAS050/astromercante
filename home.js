@@ -12,6 +12,10 @@
   ];
   const esc = t => String(t).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
   const proxUp = () => { try { const n = NAVES[S.nave - 1], f = S.frota && S.frota[S.nave]; if (!n || !f) return null; const c = [['cap', f.c], ['eng', f.m], ['wp', f.a]].filter(x => x[1] < 5).map(x => upCusto(n, x[0], x[1])); return c.length ? Math.min(...c) : null; } catch { return null; } };
+  /* Meu perfil dentro do Início: mesmas seções do perfil público (vêm de /jogador), atualizadas a cada 45 s ou ao voltar para a aba. */
+  let meu = null, meuT = 0, buscando = false;
+  const carregarMeu = async () => { if (buscando || !PF || !PF.id || Date.now() - meuT < 45000) return; buscando = true; meuT = Date.now(); try { meu = await api('/jogador?id=' + PF.id); } catch { meuT = Date.now() - 30000; } buscando = false; };
+  window.meuPerfilAtualizar = () => { meuT = 0; };
   function render() {
     if (document.body.dataset.view !== 'home' || !TOK || !CLOUD() || !READY || typeof PF === 'undefined' || !PF) return;
     const emPartida = MODE === 'partida', n = NAVES[(S.nave || 1) - 1] || { nome: 'Nave' }, w = patTotal();
@@ -24,15 +28,16 @@
     const casco = S.hull == null ? 100 : S.hull;
     h += `<div class="hm-stats"><div><small>Créditos</small><b class="mono">${fmt(S.credits)}</b></div><div><small>Nave</small><b>${esc(n.nome)}</b></div><div><small>Casco</small><b class="${casco < 30 ? 'down' : ''}">${casco}%</b></div><div><small>Porão</small><b>${used()}/${S.cap}</b></div></div>`;
     if (!emPartida && S.daily && S.daily.p) {
-      h += `<div class="hm-card"><div class="hm-h"><b>Missões do dia</b><small>sequência ${S.streak || 0} dia(s)</small></div><ul class="mis">` + MIS.map(m => { const t = Math.round(m.n()), v = Math.min(Math.round(S.daily.p[m.k] || 0), t); return `<li class="${S.daily.done[m.k] ? 'done' : ''}"><span>${m.t} <b class="mono">${v}/${t}</b></span><small>+${m.r} Cr</small><i style="width:${v / t * 100}%"></i></li>`; }).join('') + '</ul></div>';
+      h += `<div class="hm-card"><div class="hm-h"><b>Missões do dia</b><small>sequência de ${pl(S.streak || 0, 'dia')}</small></div><ul class="mis">` + MIS.map(m => { const t = Math.round(m.n()), v = Math.min(Math.round(S.daily.p[m.k] || 0), t); return `<li class="${S.daily.done[m.k] ? 'done' : ''}"><span>${m.t} <b class="mono">${v}/${t}</b></span><small>+${m.r} Cr</small><i style="width:${v / t * 100}%"></i></li>`; }).join('') + '</ul></div>';
     }
     const up = proxUp(), pode = up != null && S.credits >= up && !emPartida;
-    h += `<div class="hm-tiles"><button type="button" data-hm="play"><i class="fa-solid fa-trophy"></i><b>Torneios</b><small>Desafie outros pilotos</small></button><button type="button" data-hm="fleet"><i class="fa-solid fa-rocket"></i><b>Frotas</b><small>${pode ? '<span class="hm-dot"></span>Melhoria disponível' : 'Nave e melhorias'}</small></button><button type="button" data-hm="loja"><i class="fa-solid fa-bag-shopping"></i><b>Loja</b><small>Naves e visuais</small></button></div>`;
+    h += `<div class="hm-tiles"><button type="button" data-hm="play"><i class="fa-solid fa-trophy"></i><b>Torneios</b><small>Desafie outros pilotos</small></button><button type="button" data-hm="fleet"><i class="fa-solid fa-rocket"></i><b>Frotas</b><small>${pode ? '<span class="hm-dot"></span>Melhoria disponível' : 'Nave e melhorias'}</small></button></div>`;
+    carregarMeu(); if (meu && typeof pjSecoes === 'function') h += `<div class="hm-card hm-meu"><div class="hm-h"><b>Meu perfil</b><small>como os outros pilotos veem você</small></div>${pjSecoes(meu)}</div>`;
     if (!emPartida && typeof rkCard === 'function') h += rkCard();
     h += `<div class="hm-tip"><img src="assets/avatar/capitao.webp" alt="" width="44" height="44"><p><b>Dica do Capitão</b>${DICAS[Math.floor(Date.now() / 864e5) % DICAS.length]}</p></div>`;
     const novo = h; if (novo !== el._h) { el.innerHTML = novo; el._h = novo; }
   }
-  el.addEventListener('click', e => { const b = e.target.closest('[data-hm]'); if (!b) return; const v = b.dataset.hm; if (v === 'volta') { ficouCarreira = ''; entrarModoPartida(); } else if (v === 'loja') abrirLoja('nave'); else go(v); });
-  document.querySelectorAll('.nav [data-view]').forEach(b => b.addEventListener('click', () => { if (b.dataset.view === 'home') { if (!RANK) carregarRanking(); render(); } }));
+  el.addEventListener('click', e => { const pc = e.target.closest('[data-pc]'); if (pc) return void abrirConquistas(+pc.dataset.pc, ''); const b = e.target.closest('[data-hm]'); if (!b) return; const v = b.dataset.hm; if (v === 'volta') { ficouCarreira = ''; entrarModoPartida(); } else go(v); });
+  document.querySelectorAll('.nav [data-view]').forEach(b => b.addEventListener('click', () => { if (b.dataset.view === 'home') { meuT = 0; if (!RANK) carregarRanking(); render(); } }));
   setInterval(render, 1000);
 })();

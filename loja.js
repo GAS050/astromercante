@@ -5,8 +5,13 @@ const ljFmt = n => Math.floor(n).toLocaleString('pt-BR');
 const ljEsc = t => String(t).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 const ljNorm = t => String(t).toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
 const ljRar = { 'comum': 0, 'raro': 1, 'épico': 2, 'lendário': 3, 'conquista': 4 };
-async function abrirLoja(aba) {
-  if (!TOK || !PF) return; $('#lj-err').textContent = ''; if (aba) { ljTab = aba; ljQ = ''; $('#lj-q').value = ''; } ljSel = null; $('#loja').hidden = false;
+/** Abre a aba Loja (quem chama de outro lugar, como o Hangar, vem por aqui). */
+function abrirLoja(aba) {
+  if (!TOK || !PF) return; if (aba) { ljTab = aba; ljQ = ''; $('#lj-q').value = ''; }
+  if (document.body.dataset.view !== 'loja') document.querySelector('.nav [data-view=loja]').click(); else ljCarregar();
+}
+async function ljCarregar() {
+  if (!TOK || !PF) return; $('#lj-err').textContent = ''; ljSel = null;
   try { LJ = await api('/loja'); PF = await api('/perfil').catch(() => PF); } catch (e) { LJ = null; $('#lj-err').textContent = e.message || 'Não foi possível abrir a loja.'; }
   ljRender();
 }
@@ -62,8 +67,8 @@ function ljRender() {
   const row = $('#lj-list .sel'); if (row && row.scrollIntoView) row.scrollIntoView({ block: 'nearest' });
 }
 $('#lj-q').addEventListener('input', e => { ljQ = e.target.value; ljSel = null; ljRender(); });
-$('#loja').addEventListener('click', async e => {
-  if (e.target.id === 'loja' || e.target.closest('#lj-x')) { $('#loja').hidden = true; return; }
+document.querySelector('.nav [data-view=loja]').addEventListener('click', () => { window.scrollTo(0, 0); ljCarregar(); });
+$('#p-loja').addEventListener('click', async e => {
   const t = e.target.closest('.lj-side [data-t]'); if (t) { ljTab = t.dataset.t; ljQ = ''; $('#lj-q').value = ''; ljSel = null; ljRender(); return; }
   const r = e.target.closest('.lj-row'); if (r) { ljSel = r.dataset.k; ljRender(); return; }
   const b = e.target.closest('[data-ac]'); if (!b) return; const it = ljItens().find(i => i.k === ljSel); if (!it) return; const err = $('#lj-err'); err.textContent = ''; b.disabled = true;

@@ -25,7 +25,7 @@
   const abrirMeu = () => { if (typeof abrirJogador === 'function' && PF && PF.id) abrirJogador(PF.id); };
   function mostrar(f, n) {
     const C = SEL[f]; if (!C || !(n >= 1 && n <= 3)) return;
-    banner(n, { ic: C.ic, em: ROM[n], kicker: n === 1 ? 'NOVO SELO' : 'SELO EVOLUÍDO', titulo: `${C.n} ${ROM[n]}`, sub: `${num(C.lim[n - 1])} ${C.un}`, abre: abrirMeu });
+    banner(n, { ic: C.ic, em: ROM[n], kicker: n === 1 ? 'NOVO SELO' : 'SELO EVOLUÍDO', titulo: `${C.n} ${ROM[n]}`, sub: `${num(C.lim[n - 1])} ${selUn(C, C.lim[n - 1])}`, abre: abrirMeu });
   }
   function mostrarConq(q, extra) {   // r: 1–2 bronze, 3 prata, 4–5 ouro
     banner(q.r >= 4 ? 3 : q.r === 3 ? 2 : 1, { ic: q.ic, em: '', kicker: 'CONQUISTA DESBLOQUEADA', titulo: q.n, sub: q.d + (extra ? ` · +${extra} ${extra === 1 ? 'outra' : 'outras'} no perfil` : ''), abre: () => abrirConquistas(PF.id, PF.apelido) });

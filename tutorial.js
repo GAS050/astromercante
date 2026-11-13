@@ -63,11 +63,11 @@
   }
   /* visita guiada pelos menus (passos 11 a 18): cada passo troca de tela e destaca o botão */
   const TOUR = [
-    { v: 'home', m: '.nav [data-view=home]', t: '<b>Início</b>: seu perfil, patente, missões do dia e atalhos. É o seu ponto de partida sempre que abrir o jogo.' },
+    { v: 'home', m: '.nav [data-view=home]', t: '<b>Início</b>: o seu perfil completo (nave, conquistas, selos e troféus), patente, missões do dia e atalhos. É o seu ponto de partida sempre que abrir o jogo.' },
     { v: 'market', m: '.nav [data-view=market]', t: '<b>Negociação</b>: o mapa e o mercado. Compre barato, venda caro e viaje entre planetas e galáxias.' },
     { v: 'play', m: '.nav [data-view=play]', t: '<b>Torneios</b>: salas contra outros pilotos, com prêmio para os melhores. Também dá para criar uma partida com amigos.' },
     { v: 'fleet', m: '.nav [data-view=fleet]', t: '<b>Frotas</b>: reparo do casco e melhorias da sua nave (porão, motor e armas).' },
-    { v: 'home', m: '[data-hm=loja]', t: '<b>Loja</b> (no Início): naves novas, avatares e molduras, tudo comprado com os créditos do jogo.' },
+    { v: 'loja', m: '.nav [data-view=loja]', t: '<b>Loja</b>: naves novas, avatares e molduras, tudo comprado com os créditos do jogo. Avatares e molduras são só aparência; as naves mudam o jogo.' },
     { v: 'amigos', m: '.nav [data-view=amigos]', t: '<b>Amigos</b>: veja todos os pilotos, adicione amigos, aceite pedidos e receba <b>convites para partidas</b>. No Início há o ranking entre amigos, por semana e por mês.' },
     { v: 'settings', m: '#acct', t: 'Seu nome, no topo, abre as <b>Configurações</b>: sons e música, rever este tutorial e falar com o suporte.' },
     { v: 'market', m: '.nav [data-view=market]', t: 'Pronto! Agora é com você: <b>compre barato, venda caro</b> e suba no ranking. Boa sorte, comandante!' }

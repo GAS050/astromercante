@@ -15,6 +15,7 @@ RES.push(
   { id:'cristal',     nome:'Cristal Temporal', base:2400, vol:.009, src:'gold', corr:'Correl. Ouro (PAXG)',        icon:'fa-hourglass-half', t:3 });
 RES.push(...MINERALS);
 const $ = (s, r = document) => r.querySelector(s);
+const pl = (n, um, varios) => `${n} ${n === 1 ? um : varios || um + 's'}`;   // concordância: pl(1,'dia') → "1 dia"; pl(3,'salto') → "3 saltos"
 const avSrc = id => id === 'cap' ? 'assets/avatar/capitao.webp' : `assets/avatar/${/^(a[1-8]|b[1-6])$/.test(id) ? id : 'a1'}.svg`;
 const avImg = id => id ? `<img class="av" src="${avSrc(id)}" alt="" width="20" height="20">` : '';
 const fmt = n => n.toLocaleString('pt-BR', { minimumFractionDigits:2, maximumFractionDigits:2 });
@@ -305,7 +306,7 @@ function renderWorld() {
 `) + `
     ${CLOUD() ? upRowsNave() : `<p class="empty">Porão: ${used()}/${S.cap} · Motor nv.${S.engLv}</p>
     <div class="up"><div><b>Porão nv.${S.capLv}</b><small>+40 de capacidade</small></div><button class="buy" data-up="cap">${fmt(1000 * S.capLv)} Cr</button></div>
-    <div class="up"><div><b>Motor nv.${S.engLv}</b><small>Viagens mais rápidas · alcance de ${S.engLv} salto(s) galáctico(s)</small></div><button class="buy" data-up="eng" ${S.engLv >= 5 ? 'disabled' : ''}>${S.engLv >= 5 ? 'MÁX' : fmt(1200 * S.engLv) + ' Cr'}</button></div>
+    <div class="up"><div><b>Motor nv.${S.engLv}</b><small>Viagens mais rápidas · alcance de ${pl(S.engLv, 'salto galáctico', 'saltos galácticos')}</small></div><button class="buy" data-up="eng" ${S.engLv >= 5 ? 'disabled' : ''}>${S.engLv >= 5 ? 'MÁX' : fmt(1200 * S.engLv) + ' Cr'}</button></div>
     <div class="up"><div><b>Armamento nv.${S.wpLv}</b><small>Chance de repelir piratas e monstros aqui: ${Math.round(clamp(.4 + .13 * S.wpLv - .06 * GI(), .1, .9) * 100)}%</small></div><button class="buy" data-up="wp">${fmt(1500 * S.wpLv)} Cr</button></div>`}`;
   renderHangar();
   const e = $('#evt'); e.hidden = !S.ev || (!!S.ev.p && !plan(S.ev.p)); if (!e.hidden) e.textContent = `⚡ ${S.ev.t}${S.ev.p ? ' (só em ' + plan(S.ev.p).nome + ')' : ''} · ${S.ev.left} min`;
@@ -787,7 +788,7 @@ function galInfo(i) {
   return `<h3>🌌 ${g.nome}</h3><ul class="chips"><li>${g.planetas.length} planetas</li><li>${S.vis[i] ? 'Explorada' : 'Inexplorada'}</li>${mins.map(n => `<li class="up">${n}</li>`).join('')}</ul>`
     + (here ? '<small>Você está aqui. Toque num planeta para viajar.</small>'
       : lock ? `<small>🔒 Exige ${lock}.</small>`
-      : `<button class="buy" data-jump="${i}" ${S.trip ? 'disabled' : ''}>Saltar<small>⛽ ${fmt(jumpCost(i))} Cr · ${hops(i)} salto(s)</small></button>`);
+      : `<button class="buy" data-jump="${i}" ${S.trip ? 'disabled' : ''}>Saltar<small>⛽ ${fmt(jumpCost(i))} Cr · ${pl(hops(i), 'salto')}</small></button>`);
 }
 function renderInfo() {
   $('#mapsheet').hidden = sel == null && selG == null; if (sel == null && selG == null) return;

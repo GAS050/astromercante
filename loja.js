@@ -14,13 +14,26 @@ function ljMiniNave(n, f) {
   const c = f ? f.c : 1, m = f ? f.m : 1, a = f ? f.a : 1;
   return `<div class="lj-nv"><img alt="" src="${nsrc(n.id, 'motor', m)}"><img alt="" src="${nsrc(n.id, 'casco')}"><img alt="" src="${nsrc(n.id, 'porao', c)}"><img alt="" src="${nsrc(n.id, 'armas', a)}"></div>`;
 }
+const LJ_ST = [
+  { k: 'cap', ic: 'fa-boxes-stacked', rot: 'Porão', txt: 'mercadoria por viagem: mais lucro em cada carga', val: (n, f) => capDe(n, f ? f.c : 1), max: 922, fmt: v => v },
+  { k: 'eng', ic: 'fa-bolt', rot: 'Motor', txt: 'viagens mais rápidas', val: (n, f) => engDe(n, f ? f.m : 1), max: 4.2, fmt: v => v.toFixed(1) },
+  { k: 'wp', ic: 'fa-crosshairs', rot: 'Armas', txt: 'poder de fogo contra piratas e monstros', val: (n, f) => wpDe(n, f ? f.a : 1), max: 6, fmt: v => v.toFixed(1) }
+];
+function ljStats(n) {
+  const f = S.frota[n.id], at = NAVES[(S.nave || 1) - 1], fa = S.frota[S.nave];
+  return `<div class="lj-stats"><ul class="lj-st">` + LJ_ST.map(t => {
+    const v = t.val(n, f), w = Math.max(6, Math.round(Math.sqrt(v / t.max) * 100)), d = n.id === S.nave ? 0 : v - t.val(at, fa), dd = Math.round(d * 100) / 100;
+    const cmp = n.id === S.nave ? '' : `<em class="${dd > 0 ? 'ljm' : dd < 0 ? 'ljn' : ''}">${dd > 0 ? '▲ +' : dd < 0 ? '▼ −' : '= '}${dd === 0 ? 'igual' : t.fmt(Math.abs(dd))}</em>`;
+    return `<li title="${t.rot}: ${t.txt}"><i class="fa-solid ${t.ic}"></i><div><span>${t.rot} <b>${t.fmt(v)}</b> ${cmp}</span><div class="lj-bar"><i style="width:${w}%"></i></div><small>${t.txt}</small></div></li>`;
+  }).join('') + `</ul><p class="lj-note">Cada item sobe até o nível 5 com melhorias na aba Frotas. ▲▼ comparam com a sua nave equipada.</p></div>`;
+}
 /** Junta naves (estado do jogo) e avatares/molduras (servidor) numa lista só, no mesmo formato. */
 function ljItens() {
   const itens = [], emPartida = !!(S.partida);
   if (S.frota) for (const n of NAVES) {
     const f = S.frota[n.id], eq = n.id === S.nave, trav = !f && S.rank < n.rank;
     itens.push({ k: 'n' + n.id, tipo: 'nave', nome: n.nome, raridade: n.rank >= 6 ? 'lendário' : n.rank >= 4 ? 'épico' : n.rank >= 2 ? 'raro' : 'comum', preco: n.preco, tem: !!f, eq, cond: trav ? 'Patente ' + RANKS[n.rank][1] : '', bloq: emPartida,
-      desc: f ? `Nv. ${f.c}/${f.m}/${f.a} · porão ${capDe(n, f.c)}` : `Porão ${n.cap0} · motor ${n.eng0.toFixed(1)} · armas ${n.wp0.toFixed(1)}`, thumb: ljMiniNave(n, f), id: n.id });
+      desc: f ? `Nv. ${f.c}/${f.m}/${f.a} · porão ${capDe(n, f.c)}` : `Porão ${n.cap0} · motor ${n.eng0.toFixed(1)} · armas ${n.wp0.toFixed(1)}`, thumb: ljMiniNave(n, f), id: n.id, stats: ljStats(n) });
   }
   if (LJ) for (const i of LJ.itens) {
     const eq = i.tipo === 'avatar' ? PF.avatar === i.id : (PF.moldura || '') === i.id;
@@ -45,7 +58,7 @@ function ljRender() {
   else if (it.cond) ac = `<span class="tag lock">🔒 ${ljEsc(it.cond)}</span>`;
   else ac = `<button type="button" class="buy" data-ac="buy"${S.credits < it.preco || sem ? ' disabled' : ''}>Comprar · ${ljFmt(it.preco)} Cr</button>`;
   const falta = !it.tem && !it.cond && S.credits < it.preco ? `<small class="lj-falta">Faltam ${ljFmt(it.preco - S.credits)} Cr</small>` : '', pt = it.tipo === 'nave' && it.bloq ? '<small class="lj-falta">Indisponível durante uma partida.</small>' : '';
-  $('#lj-detail').innerHTML = `<div class="lj-thumb r-${it.raridade === 'épico' ? 'epico' : it.raridade === 'lendário' ? 'lendario' : it.raridade}">${it.thumb}</div><div class="lj-info"><b>${ljEsc(it.nome)}</b><small>${rot[it.tipo]} · ${it.raridade}</small><small>${ljEsc(it.desc)}</small></div><div class="lj-buy">${ac}${falta}${pt}</div>`;
+  $('#lj-detail').innerHTML = `<div class="lj-thumb r-${it.raridade === 'épico' ? 'epico' : it.raridade === 'lendário' ? 'lendario' : it.raridade}">${it.thumb}</div><div class="lj-info"><b>${ljEsc(it.nome)}</b><small>${rot[it.tipo]} · ${it.raridade}</small><small>${it.tipo === 'nave' ? '' : ljEsc(it.desc)}</small></div>${it.stats || ''}<div class="lj-buy">${ac}${falta}${pt}</div>`;
   const row = $('#lj-list .sel'); if (row && row.scrollIntoView) row.scrollIntoView({ block: 'nearest' });
 }
 $('#lj-q').addEventListener('input', e => { ljQ = e.target.value; ljSel = null; ljRender(); });

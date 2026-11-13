@@ -78,6 +78,7 @@
 
   <section class="card-panel view" id="p-settings">
     <h2>Configurações</h2>
+    <div class="row" id="pf-row" hidden><div><strong>Perfil do piloto</strong><span class="sub">Apelido, avatar e faixa etária</span></div><button type="button" id="pf-edit">Editar</button></div>
     <div class="row" id="acct-row"><div><strong id="acct-nome">Sem conta</strong><span class="sub" id="acct-sync"></span></div><button class="buy" id="acct-btn" type="button">Entrar ou criar conta</button></div>
     <div class="row" id="acct-extra" hidden><button id="acct-now" type="button">Atualizar</button><button id="acct-out" type="button">Sair</button><button class="danger" id="acct-del" type="button">Excluir conta</button></div>
     <label class="row">Fundo animado (desligue em aparelhos lentos) <input type="checkbox" id="set-fx"></label>
@@ -117,6 +118,7 @@
     <input id="au-code" data-f="code" placeholder="Código de 6 dígitos" inputmode="numeric" autocomplete="one-time-code" maxlength="6" hidden>
     <input id="au-senha" data-f="senha" type="password" placeholder="Senha (mínimo 8 caracteres)" autocomplete="current-password" maxlength="72">
     <input id="au-senha2" data-f="senha2" type="password" placeholder="Repita a senha" autocomplete="new-password" maxlength="72" hidden>
+    <label class="au-idade" id="au-idade-l" data-f="idade" hidden><input type="checkbox" id="au-idade"> Tenho 13 anos ou mais e aceito os <a href="termos.html" target="_blank" rel="noopener">termos</a>.</label>
     <div id="au-ts" hidden></div>
     <p id="au-info" class="au-info" role="status"></p>
     <p id="au-err" class="au-err" role="alert"></p>
@@ -126,6 +128,21 @@
   </form>
   <p class="au-hint">Sua conta guarda o progresso na nuvem para jogar em qualquer aparelho. Usamos seu e-mail só para confirmar a conta e recuperar a senha.</p>
 </div></div>
+<div class="modal" id="perfil" hidden><div class="card-panel">
+  <div class="au-brand">SEU PILOTO</div>
+  <h2 id="pf-t">Crie seu perfil</h2>
+  <p class="pf-sub">Este é o nome e a imagem que os outros pilotos veem no ranking e nos torneios.</p>
+  <input id="pf-ap" class="pf-in" maxlength="16" placeholder="Apelido (3 a 16 caracteres)" autocomplete="off" spellcheck="false">
+  <div class="pf-av" id="pf-av" role="radiogroup" aria-label="Avatar"></div>
+  <fieldset class="pf-fx" id="pf-fx"><legend>Faixa etária</legend>
+    <label><input type="radio" name="pf-fx" value="13-17"> 13 a 17 anos</label>
+    <label><input type="radio" name="pf-fx" value="18+"> 18 anos ou mais</label>
+    <label><input type="radio" name="pf-fx" value="<13"> Menos de 13 anos</label></fieldset>
+  <p class="pf-sub">O Astromercante é para maiores de 13 anos. Guardamos só o e-mail e o que você escolhe aqui: nunca seu nome real, telefone ou endereço.</p>
+  <p class="au-err" id="pf-err" role="alert"></p>
+  <button class="buy" id="pf-ok" type="button">Começar</button>
+  <button class="ghost" id="pf-x" type="button" hidden>Fechar</button>
+</div></div>
 <div class="modal" id="res" hidden><div class="card-panel" id="res-box"></div></div>
 <div class="modal" id="chart" hidden><div class="card-panel"><h2 id="chart-t"></h2><svg id="chart-svg" viewBox="0 0 300 120"></svg><button class="danger" id="chart-x">Fechar</button></div></div>
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
@@ -134,6 +151,7 @@
 <script src="naves.js" defer></script>
 <script src="game.js" defer></script>
 <script src="partidas.js" defer></script>
+<script src="perfil.js" defer></script>
 <script src="tutorial.js" defer></script>
 </body>
 </html>

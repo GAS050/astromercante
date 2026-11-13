@@ -15,6 +15,8 @@ RES.push(
   { id:'cristal',     nome:'Cristal Temporal', base:2400, vol:.009, src:'gold', corr:'Correl. Ouro (PAXG)',        icon:'fa-hourglass-half', t:3 });
 RES.push(...MINERALS);
 const $ = (s, r = document) => r.querySelector(s);
+const avSrc = id => id === 'cap' ? 'assets/avatar/capitao.webp' : `assets/avatar/${/^a[1-8]$/.test(id) ? id : 'a1'}.svg`;
+const avImg = id => id ? `<img class="av" src="${avSrc(id)}" alt="" width="20" height="20">` : '';
 const fmt = n => n.toLocaleString('pt-BR', { minimumFractionDigits:2, maximumFractionDigits:2 });
 const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
 
@@ -838,8 +840,8 @@ async function carregarRanking(force) {   // ranking global real (cloud): patrim
 function renderBoard() {
   if (MODE === 'partida') { renderPlacar(); return; }
   if (!RANK) { $('#board').innerHTML = '<li class="empty">Carregando ranking…</li>'; return; }
-  const me = RANK.eu, rows = RANK.top.map((r, i) => `<li class="${me && r.n === me.n ? 'me' : ''}"><span><i class="pos">${i + 1}</i> ${r.n}</span><b class="mono">${fmt(r.w)}</b></li>`);
-  if (me && me.pos > RANK.top.length) rows.push(`<li class="gap"><span>…</span></li>`, `<li class="me"><span><i class="pos">${me.pos}</i> ${me.n}</span><b class="mono">${fmt(me.w)}</b></li>`);
+  const me = RANK.eu, rows = RANK.top.map((r, i) => `<li class="${me && r.n === me.n ? 'me' : ''}"><span><i class="pos">${i + 1}</i> ${avImg(r.a)}${r.n}</span><b class="mono">${fmt(r.w)}</b></li>`);
+  if (me && me.pos > RANK.top.length) rows.push(`<li class="gap"><span>…</span></li>`, `<li class="me"><span><i class="pos">${me.pos}</i> ${avImg(me.a)}${me.n}</span><b class="mono">${fmt(me.w)}</b></li>`);
   $('#board').innerHTML = rows.join('') + `<li class="tot"><span>${RANK.total} piloto${RANK.total === 1 ? '' : 's'} na galáxia</span></li>`;
 }
 function board() {
@@ -1010,7 +1012,7 @@ function renderAccount() {
   $('#acct-sync').textContent = !has ? 'Contas indisponíveis: configure o Worker em config.js.' : on ? syncMsg || 'Conectado.' : 'Progresso salvo só neste aparelho.';
   $('#acct-btn').hidden = on || !has; $('#acct-extra').hidden = !on;
 }
-const MODES = { in:{ t:'Entrar', f:['nome','senha'], ok:'Entrar' }, up:{ t:'Criar conta', f:['nome','email','senha','senha2'], ok:'Criar conta' },
+const MODES = { in:{ t:'Entrar', f:['nome','senha'], ok:'Entrar' }, up:{ t:'Criar conta', f:['nome','email','senha','senha2','idade'], ok:'Criar conta' },
   code:{ t:'Confirme seu e-mail', f:['code'], ok:'Confirmar' }, forgot:{ t:'Recuperar senha', f:['email'], ok:'Enviar código' }, reset:{ t:'Nova senha', f:['code','senha','senha2'], ok:'Redefinir senha' } };
 let authMode = 'in', pendEmail = '', tsToken = '', tsId = null, gsiReady = false;
 const loadScript = src => new Promise((ok, no) => { const s = document.createElement('script'); s.src = src; s.async = true; s.onload = ok; s.onerror = no; document.head.appendChild(s); });
@@ -1058,11 +1060,12 @@ async function submitAuth(e) {
   if ((mode === 'code' || mode === 'reset') && !/^\d{6}$/.test(code)) return err('O código tem 6 dígitos.');
   if ((nova || mode === 'in') && senha.length < 8) return err('A senha precisa de pelo menos 8 caracteres.');
   if (nova && senha !== $('#au-senha2').value) return err('As senhas não conferem.');
+  if (mode === 'up' && !$('#au-idade').checked) return err('O Astromercante é para maiores de 13 anos: marque a caixa para continuar.');
   if (CONFIG.TURNSTILE_SITEKEY && (mode === 'up' || mode === 'forgot') && !tsToken) return err('Confirme que você não é um robô.');
   err(''); $('#au-ok').disabled = true;
   try {
     if (mode === 'in') await afterAuth(await api('/auth/entrar', 'POST', { nome, senha }), false);
-    else if (mode === 'up') { const d = await api('/auth/registrar', 'POST', { nome, email, senha }); pendEmail = d.email; openAuth('code', `Enviamos um código de 6 dígitos para ${email}. Veja também a caixa de spam.`); }
+    else if (mode === 'up') { const d = await api('/auth/registrar', 'POST', { nome, email, senha, maior13: true }); pendEmail = d.email; openAuth('code', `Enviamos um código de 6 dígitos para ${email}. Veja também a caixa de spam.`); }
     else if (mode === 'code') await afterAuth(await api('/auth/confirmar', 'POST', { email:pendEmail, codigo:code }), true);
     else if (mode === 'forgot') { await api('/auth/esqueci', 'POST', { email, turnstile:tsToken }); pendEmail = email; openAuth('reset', 'Se existir uma conta com esse e-mail, enviamos um código. Ele vale 15 minutos.'); }
     else if (mode === 'reset') { await api('/auth/redefinir', 'POST', { email:pendEmail, codigo:code, senha }); openAuth('in', 'Senha alterada! Entre com a nova senha.'); }

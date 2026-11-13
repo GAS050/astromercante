@@ -9,3 +9,5 @@ CREATE TABLE IF NOT EXISTS partidas (codigo TEXT PRIMARY KEY, modo TEXT NOT NULL
 CREATE TABLE IF NOT EXISTS partida_jog (codigo TEXT NOT NULL, usuario INTEGER NOT NULL, estado TEXT, patrimonio REAL NOT NULL DEFAULT 0, atualizado INTEGER NOT NULL DEFAULT 0, taxa INTEGER NOT NULL DEFAULT 0, premio INTEGER NOT NULL DEFAULT 0, pago INTEGER NOT NULL DEFAULT 0, entrou INTEGER NOT NULL, PRIMARY KEY (codigo, usuario));
 CREATE INDEX IF NOT EXISTS idx_pj_usuario ON partida_jog(usuario, entrou DESC);
 CREATE INDEX IF NOT EXISTS idx_partidas_estado ON partidas(estado, fim);
+CREATE TABLE IF NOT EXISTS perfis (usuario INTEGER PRIMARY KEY, apelido TEXT COLLATE NOCASE, avatar TEXT NOT NULL DEFAULT 'a1', faixa TEXT, apelido_em INTEGER NOT NULL DEFAULT 0, criado INTEGER NOT NULL DEFAULT 0);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_perfis_apelido ON perfis(apelido);

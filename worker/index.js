@@ -74,15 +74,15 @@ async function gravarJogo(env, id, S, c, base) {   // compare-and-swap: só grav
 const publico = ({ ult, ...S }) => S;
 /* ---------- ranking global: patrimônio gravado pelo servidor em cada ação (o aparelho não consegue alterá-lo) ---------- */
 let rankCache = { t: 0, top: [], total: 0 };
-const apelido = (nome, google) => (google ? 'Piloto' + (String(nome).match(/\d{3,5}$/)?.[0] || '') : nome);   // contas Google antigas tinham parte do e-mail no nome: não expõe
+const apelido = (nome, google, ap) => ap || (google ? 'Piloto' + (String(nome).match(/\d{3,5}$/)?.[0] || '') : nome);   // contas Google antigas tinham parte do e-mail no nome: não expõe
 async function ranking(env, id) {
   if (Date.now() - rankCache.t > 30000) {
-    const r = await env.DB.prepare('SELECT u.nome AS nome, u.google AS google, s.patrimonio AS w FROM saves s JOIN usuarios u ON u.id = s.usuario ORDER BY s.patrimonio DESC, s.usuario ASC LIMIT 10').all();
+    const r = await env.DB.prepare('SELECT u.nome AS nome, u.google AS google, p.apelido AS ap, p.avatar AS av, s.patrimonio AS w FROM saves s JOIN usuarios u ON u.id = s.usuario LEFT JOIN perfis p ON p.usuario = u.id ORDER BY s.patrimonio DESC, s.usuario ASC LIMIT 10').all();
     const c = await env.DB.prepare('SELECT COUNT(*) AS n FROM saves').first();
-    rankCache = { t: Date.now(), top: r.results.map((x) => ({ n: apelido(x.nome, x.google), w: Math.round(x.w * 100) / 100 })), total: c.n };
+    rankCache = { t: Date.now(), top: r.results.map((x) => ({ n: apelido(x.nome, x.google, x.ap), a: x.av || 'a1', w: Math.round(x.w * 100) / 100 })), total: c.n };
   }
-  const eu = await env.DB.prepare('SELECT s.patrimonio AS w, u.nome AS nome, u.google AS google, (SELECT COUNT(*) FROM saves x WHERE x.patrimonio > s.patrimonio) + 1 AS pos FROM saves s JOIN usuarios u ON u.id = s.usuario WHERE s.usuario = ?').bind(id).first();
-  return { top: rankCache.top, total: rankCache.total, eu: eu ? { pos: eu.pos, w: Math.round(eu.w * 100) / 100, n: apelido(eu.nome, eu.google) } : null };
+  const eu = await env.DB.prepare('SELECT s.patrimonio AS w, u.nome AS nome, u.google AS google, p.apelido AS ap, p.avatar AS av, (SELECT COUNT(*) FROM saves x WHERE x.patrimonio > s.patrimonio) + 1 AS pos FROM saves s JOIN usuarios u ON u.id = s.usuario LEFT JOIN perfis p ON p.usuario = u.id WHERE s.usuario = ?').bind(id).first();
+  return { top: rankCache.top, total: rankCache.total, eu: eu ? { pos: eu.pos, w: Math.round(eu.w * 100) / 100, n: apelido(eu.nome, eu.google, eu.ap), a: eu.av || 'a1' } : null };
 }
 async function carregarJogo(env, id, now) {
   const row = await lerSave(env, id); let S = row ? JSON.parse(row.estado) : null;
@@ -164,7 +164,8 @@ async function humano(env, req, token) {   // Cloudflare Turnstile (anti-robô);
 }
 async function apagarUsuario(env, id) {
   const u = await env.DB.prepare('SELECT email FROM usuarios WHERE id = ?').bind(id).first();
-  for (const t of ['saves', 'sessoes', 'partida_jog']) await env.DB.prepare(`DELETE FROM ${t} WHERE usuario = ?`).bind(id).run();
+  await perfisInit(env);
+  for (const t of ['saves', 'sessoes', 'partida_jog', 'perfis']) await env.DB.prepare(`DELETE FROM ${t} WHERE usuario = ?`).bind(id).run();
   if (u && u.email) await env.DB.prepare('DELETE FROM codigos WHERE email = ?').bind(u.email).run();
   await env.DB.prepare('DELETE FROM usuarios WHERE id = ?').bind(id).run();
 }
@@ -194,7 +195,7 @@ async function ativa(env, id) {   // partida em espera/andamento do jogador, ou 
   return await env.DB.prepare("SELECT p.* FROM partida_jog j JOIN partidas p ON p.codigo = j.codigo WHERE j.usuario = ? AND p.estado IN ('espera','andamento') ORDER BY j.entrou DESC LIMIT 1").bind(id).first();
 }
 async function nomes(env, cod) {
-  const r = await env.DB.prepare('SELECT j.usuario AS id, j.patrimonio AS w, j.premio AS premio, u.nome AS nome, u.google AS google FROM partida_jog j JOIN usuarios u ON u.id = j.usuario WHERE j.codigo = ? ORDER BY j.entrou').bind(cod).all();
+  const r = await env.DB.prepare('SELECT j.usuario AS id, j.patrimonio AS w, j.premio AS premio, u.nome AS nome, u.google AS google, p.apelido AS ap, p.avatar AS av FROM partida_jog j JOIN usuarios u ON u.id = j.usuario LEFT JOIN perfis p ON p.usuario = u.id WHERE j.codigo = ? ORDER BY j.entrou').bind(cod).all();
   return r.results || [];
 }
 async function reembolsarTodos(env, p, estadoFinal) {
@@ -205,8 +206,8 @@ async function reembolsarTodos(env, p, estadoFinal) {
 }
 async function finalizar(env, p) {
   if (p.estado !== 'andamento' || Date.now() < p.fim) return;
-  const cfg = JSON.parse(p.cfg), feed = await feedAtual(env), js = (await env.DB.prepare('SELECT j.usuario AS id, j.estado AS estado, j.patrimonio AS w0, u.nome AS nome, u.google AS google FROM partida_jog j JOIN usuarios u ON u.id = j.usuario WHERE j.codigo = ?').bind(p.codigo).all()).results || [];
-  const tabela = js.map((j) => ({ id: j.id, n: apelido(j.nome, j.google), bot: 0, w: j.estado ? valorFinal(JSON.parse(j.estado), feed) : cfg.saldo }));
+  const cfg = JSON.parse(p.cfg), feed = await feedAtual(env), js = (await env.DB.prepare('SELECT j.usuario AS id, j.estado AS estado, j.patrimonio AS w0, u.nome AS nome, u.google AS google, p.apelido AS ap FROM partida_jog j JOIN usuarios u ON u.id = j.usuario LEFT JOIN perfis p ON p.usuario = u.id WHERE j.codigo = ?').bind(p.codigo).all()).results || [];
+  const tabela = js.map((j) => ({ id: j.id, n: apelido(j.nome, j.google, j.ap), bot: 0, w: j.estado ? valorFinal(JSON.parse(j.estado), feed) : cfg.saldo }));
   for (let i = 0; i < p.bots; i++) tabela.push({ id: 0, n: botNome(p.codigo, i), bot: 1, w: botPatrimonio(cfg, p.codigo, i, p.fim, p.inicio, p.fim) });
   tabela.sort((a, b) => b.w - a.w || a.bot - b.bot || a.id - b.id);
   tabela.forEach((t, i) => { t.pos = i + 1; t.w = Math.round(t.w * 100) / 100; });
@@ -247,9 +248,9 @@ async function partidaResolver(env, p, id) {
 async function vista(env, p, id, v) {
   const now = Date.now(), cfg = JSON.parse(p.cfg), js = await nomes(env, p.codigo), eu = js.find((j) => j.id === id);
   const base = { codigo: p.codigo, modo: p.modo, estado: p.estado, cfg, host: p.criador === id, criada: p.criada, inicio: p.inicio, fim: p.fim, agora: now, bots: p.bots, vagas: cfg.jogadores };
-  if (p.estado === 'espera') return { ...base, jogadores: js.map((j) => ({ n: apelido(j.nome, j.google), host: j.id === p.criador, eu: j.id === id })) };
+  if (p.estado === 'espera') return { ...base, jogadores: js.map((j) => ({ n: apelido(j.nome, j.google, j.ap), a: j.av || 'a1', host: j.id === p.criador, eu: j.id === id })) };
   if (p.estado === 'fim' || p.estado === 'cancelada') return { ...base, resultado: p.resultado ? JSON.parse(p.resultado).map((t) => ({ ...t, eu: !t.bot && t.id === id, id: undefined })) : null };
-  const tab = js.map((j) => ({ n: apelido(j.nome, j.google), w: j.w, bot: 0, eu: j.id === id }));
+  const tab = js.map((j) => ({ n: apelido(j.nome, j.google, j.ap), a: j.av || 'a1', w: j.w, bot: 0, eu: j.id === id }));
   for (let i = 0; i < p.bots; i++) tab.push({ n: botNome(p.codigo, i), w: botPatrimonio(cfg, p.codigo, i, now, p.inicio, p.fim), bot: 1 });
   tab.sort((a, b) => b.w - a.w); tab.forEach((t) => { t.w = Math.round(t.w * 100) / 100; });
   const out = { ...base, placar: tab };
@@ -344,7 +345,49 @@ async function partidaAcao(env, id, nome, args) {
   throw new Erro(503, 'Servidor ocupado. Tente de novo.');
 }
 
+/* ---------- perfil do piloto: apelido público, avatar e faixa etária (tabela criada sozinha na primeira chamada: não exige migração manual) ---------- */
+let perfisOk = false;
+async function perfisInit(env) {
+  if (perfisOk) return;
+  await env.DB.prepare("CREATE TABLE IF NOT EXISTS perfis (usuario INTEGER PRIMARY KEY, apelido TEXT COLLATE NOCASE, avatar TEXT NOT NULL DEFAULT 'a1', faixa TEXT, apelido_em INTEGER NOT NULL DEFAULT 0, criado INTEGER NOT NULL DEFAULT 0)").run();
+  await env.DB.prepare('CREATE UNIQUE INDEX IF NOT EXISTS idx_perfis_apelido ON perfis(apelido)').run();
+  perfisOk = true;
+}
+const AVATARES_GRATIS = ['a1', 'a2', 'a3', 'a4', 'a5', 'a6', 'a7', 'a8'];   // o 'cap' (Capitão) é de conquista: entra com a loja
+const PROIBIDAS = ['puta', 'porra', 'merda', 'caralho', 'buceta', 'viado', 'arrombad', 'fdp', 'estupr', 'pedofil', 'nazi', 'hitler', 'nigger', 'nigga', 'fuck', 'shit', 'bitch', 'cunt', 'admin', 'moderador', 'suporte', 'astromercante', 'staff'];
+const limpaNome = (t) => t.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[013457$@!]/g, (c) => ({ 0: 'o', 1: 'i', 3: 'e', 4: 'a', 5: 's', 7: 't', $: 's', '@': 'a', '!': 'i' }[c])).replace(/[^a-z]/g, '');
+const SETE_DIAS = 7 * 864e5;
+async function perfilVer(env, id) {
+  const r = await env.DB.prepare('SELECT p.apelido AS ap, p.avatar AS av, p.faixa AS faixa, p.apelido_em AS em, u.nome AS nome FROM usuarios u LEFT JOIN perfis p ON p.usuario = u.id WHERE u.id = ?').bind(id).first();
+  return { completo: !!(r && r.ap && r.faixa), apelido: r?.ap || r?.nome || '', sugestao: r?.nome || '', avatar: r?.av || 'a1', faixa: r?.faixa || null, avatares: AVATARES_GRATIS, troca_em: r?.em ? Math.max(0, r.em + SETE_DIAS - Date.now()) : 0 };
+}
+async function perfilSalvar(env, id, corpo) {
+  const atual = await env.DB.prepare('SELECT apelido, avatar, faixa, apelido_em FROM perfis WHERE usuario = ?').bind(id).first(), now = Date.now();
+  const faixa = atual?.faixa || corpo.faixa;
+  if (faixa === '<13') throw new Erro(403, 'O Astromercante é para maiores de 13 anos.');
+  if (!['13-17', '18+'].includes(faixa)) throw new Erro(400, 'Escolha sua faixa etária.');
+  const avatar = corpo.avatar === undefined ? (atual?.avatar || 'a1') : String(corpo.avatar);
+  if (!AVATARES_GRATIS.includes(avatar)) throw new Erro(400, 'Avatar indisponível.');
+  let ap = atual?.apelido || null, em = atual?.apelido_em || 0;
+  if (corpo.apelido !== undefined) {
+    const novo = String(corpo.apelido).trim().replace(/\s+/g, ' ');
+    if (novo !== ap) {
+      if (ap && now - em < SETE_DIAS) throw new Erro(429, 'Você já trocou de apelido há pouco. Dá para trocar de novo depois de 7 dias.');
+      if (novo.length < 3 || novo.length > 16 || !/^[\p{L}\p{N}_ .-]+$/u.test(novo)) throw new Erro(400, 'Apelido: 3 a 16 letras, números, espaço, ponto, _ ou -.');
+      const l = limpaNome(novo); if (PROIBIDAS.some((w) => l.includes(w))) throw new Erro(400, 'Esse apelido não é permitido. Escolha outro.');
+      const outro = await env.DB.prepare('SELECT 1 AS x FROM perfis WHERE apelido = ? AND usuario <> ?').bind(novo, id).first() || await env.DB.prepare('SELECT 1 AS x FROM usuarios WHERE nome = ? AND id <> ?').bind(novo, id).first();
+      if (outro) throw new Erro(409, 'Esse apelido já está em uso.');
+      em = ap ? now : 0; ap = novo;   // a primeira escolha é livre; só as trocas seguintes esperam 7 dias
+    }
+  }
+  if (!ap) throw new Erro(400, 'Escolha um apelido.');
+  try { await env.DB.prepare('INSERT INTO perfis (usuario, apelido, avatar, faixa, apelido_em, criado) VALUES (?, ?, ?, ?, ?, ?) ON CONFLICT(usuario) DO UPDATE SET apelido = excluded.apelido, avatar = excluded.avatar, faixa = excluded.faixa, apelido_em = excluded.apelido_em').bind(id, ap, avatar, faixa, em, now).run(); }
+  catch (e) { if (/UNIQUE/i.test(String(e))) throw new Erro(409, 'Esse apelido já está em uso.'); throw e; }
+  rankCache.t = 0;   // o ranking mostra o apelido novo já na próxima leitura
+  return await perfilVer(env, id);
+}
 async function rota(req, env, url) {
+  await perfisInit(env);
   const m = req.method, p = url.pathname;
   const corpo = m === 'GET' ? {} : await req.json().catch(() => ({}));
   if (p === '/precos' && m === 'GET') {
@@ -356,6 +399,7 @@ async function rota(req, env, url) {
     const nome = corpo.nome || '', senha = corpo.senha, ip = req.headers.get('CF-Connecting-IP') || 'ip';
     if (!/^\w{3,20}$/.test(nome)) throw new Erro(400, 'Nome: 3 a 20 letras, números ou _.');
     if (typeof senha !== 'string' || senha.length < 8 || senha.length > 72) throw new Erro(400, 'A senha precisa ter de 8 a 72 caracteres.');
+    if (corpo.maior13 !== true) throw new Erro(400, 'O Astromercante é para maiores de 13 anos: confirme para criar a conta.');
     const email = normEmail(corpo.email);
     await limite(env, ['reg:' + ip]); await humano(env, req, corpo.turnstile);
     await env.DB.prepare('INSERT INTO falhas (chave, quando) VALUES (?, ?)').bind('reg:' + ip, Date.now()).run();   // freia criação em massa
@@ -430,6 +474,8 @@ async function rota(req, env, url) {
   }
   const eu = await autenticar(req, env);
   if (p === '/auth/sair' && m === 'POST') { await env.DB.prepare('DELETE FROM sessoes WHERE hash = ?').bind(eu.hash).run(); return { ok: true }; }
+  if (p === '/perfil' && m === 'GET') return await perfilVer(env, eu.id);
+  if (p === '/perfil' && m === 'POST') return await perfilSalvar(env, eu.id, corpo);
   if (p === '/ranking' && m === 'GET') return await ranking(env, eu.id);
   if (p === '/jogo' && m === 'GET') return await jogoLer(env, eu.id, url);
   if (p === '/jogo/acao' && m === 'POST') return await jogo(env, eu.id, String(corpo.acao || ''), corpo);

@@ -354,3 +354,15 @@ body.gated .goal,body.loading .goal,body.inmatch .goal{display:none}
 @media (prefers-reduced-motion:reduce){.tut-hl{animation:none}}
 body.tuton .toast{bottom:calc(210px + env(safe-area-inset-bottom))}
 @media (min-width:900px){body.tuton .toast{bottom:calc(86px + env(safe-area-inset-bottom))}}
+
+/* perfil do piloto */
+.au-idade{display:flex;gap:8px;align-items:flex-start;font-size:.82rem;color:var(--mt)}.au-idade[hidden]{display:none}.au-idade a{color:var(--cyan)}
+.pf-sub{font-size:.8rem;color:var(--mt);margin:6px 0}
+.pf-in{width:100%;padding:10px 12px;border-radius:8px;border:1px solid var(--line);background:rgba(5,11,24,.7);margin:6px 0 10px}
+.pf-av{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:10px}
+.pf-av button{padding:0;border:2px solid var(--line);border-radius:14px;background:transparent;overflow:hidden;aspect-ratio:1}
+.pf-av button img{width:100%;height:100%;display:block}.pf-av button.on{border-color:var(--neon);box-shadow:0 0 14px rgba(57,255,136,.5)}
+.pf-fx{border:1px solid var(--line);border-radius:8px;padding:6px 10px;margin-bottom:6px;display:flex;flex-direction:column;gap:4px}.pf-fx legend{font-size:.78rem;color:var(--mt);padding:0 4px}
+.pf-fx label{font-size:.9rem;display:flex;gap:8px;align-items:center}
+.acct-av,.av{border-radius:50%;vertical-align:middle;object-fit:cover}.acct-av{width:22px;height:22px;margin-right:6px}.av{margin-right:6px}
+#pf-ok{width:100%;padding:10px;margin-top:4px}#pf-x{width:100%}

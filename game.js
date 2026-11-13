@@ -541,9 +541,11 @@ function trafego(ts) {
 }
 /* ---------- piratas e monstros: o servidor decide as lutas (S.trip.enc); aqui só se desenha. Mesma fórmula de patrulha do servidor. ---------- */
 const HH = n => { n = (n ^ 61) ^ (n >>> 16); n = Math.imul(n, 0x45d9f3b); n ^= n >>> 4; n = Math.imul(n, 0x45d9f3b); n ^= n >>> 15; return n >>> 0; };
+const PTG = g => (2 + .5 * g) * (1 + .02 * g);   // poder típico na galáxia (igual ao servidor)
 function iniG(g, k) {
-  const h = HH(g * 977 + k * 131 + 7), h2 = HH(h + 1), m = g >= 2 && k % 3 === 2, lv = Math.min(9, 1 + Math.floor((g + (k % 3)) * .8) + (m ? 1 : 0));
-  return { g, k, T:30000 + (h >> 4) % 25000, ph:((h2 >> 6) % 1000) / 1000, m, lv, R:m ? 38 : 26 };
+  const h = HH(g * 977 + k * 131 + 7), h2 = HH(h + 1), m = g >= 2 && k % 3 === 2, tier = clamp(1 + Math.floor((g + (k % 3)) * .4), 1, 5);
+  const lv = Math.max(1, Math.round(m ? PTG(g) * .96 : PTG(g) * [.5, .8, .95][k % 3]));
+  return { g, k, T:30000 + (h >> 4) % 25000, ph:((h2 >> 6) % 1000) / 1000, m, lv, tier, R:m ? 38 : 26 };
 }
 function iniAt(e, t) {
   const pl = GALAXIES[e.g].planetas, tt = t / e.T + e.ph, n = Math.floor(tt), u = tt - n, q = i => pl[HH(e.g * 977 + e.k * 131 + i * 7919 + 13) % pl.length], x = Math.min(1, u / .8);
@@ -590,7 +592,7 @@ function monstroAnim(L, sz, tm, t, k) {
   cx.globalCompositeOperation = 'lighter'; cx.globalAlpha = .55 + .45 * Math.sin(tm * 3 + k); lay(L.brilho); cx.restore();
 }
 function desenhaInimigo(p, e, ts, alvo, forca) {   // p: posição na tela; alvo: ângulo para onde olha (só os piratas giram)
-  const k = p.sc * (cam.z < .5 ? .7 : 1), tm = ts / 1000 + e.k * 1.7, tier = tierDe(e.lv), im = inimSprite(e.m, tier), sz = (e.m ? 26 + tier * 5 : 22 + tier * 3) * k * (tier >= 4 ? .85 : 1);
+  const k = p.sc * (cam.z < .5 ? .7 : 1), tm = ts / 1000 + e.k * 1.7, tier = e.tier || (e.tier || tierDe(e.lv)), im = inimSprite(e.m, tier), sz = (e.m ? 26 + tier * 5 : 22 + tier * 3) * k * (tier >= 4 ? .85 : 1);
   cx.save(); cx.translate(p.x, p.y);
   cx.fillStyle = e.m ? 'rgba(178,75,255,.08)' : 'rgba(255,50,50,.09)'; cx.beginPath(); cx.arc(0, 0, sz * .5, 0, 7); cx.fill();   // halo de aviso, sem shadowBlur
   if (im) {
@@ -599,7 +601,7 @@ function desenhaInimigo(p, e, ts, alvo, forca) {   // p: posição na tela; alvo
     else { cx.rotate(e.m ? 0 : alvo + Math.PI / 2); cx.drawImage(im, -sz / 2, -sz / 2, sz, sz); }
   }
   cx.restore();
-  if (forca) { cx.save(); cx.font = '700 7px Chakra Petch, sans-serif'; cx.textAlign = 'center'; const tx = (e.m ? '☣ ' : '☠ ') + 'nv.' + e.lv, ty = p.y - (e.m ? 17 + tierDe(e.lv) * 2.5 : 14 + tierDe(e.lv) * 1.5) * p.sc; cx.lineWidth = 2; cx.strokeStyle = 'rgba(0,0,0,.7)'; cx.strokeText(tx, p.x, ty); cx.fillStyle = corNv(e); cx.fillText(tx, p.x, ty); cx.restore(); }
+  if (forca) { cx.save(); cx.font = '700 7px Chakra Petch, sans-serif'; cx.textAlign = 'center'; const tx = (e.m ? '☣ ' : '☠ ') + 'nv.' + e.lv, ty = p.y - (e.m ? 17 + (e.tier || tierDe(e.lv)) * 2.5 : 14 + (e.tier || tierDe(e.lv)) * 1.5) * p.sc; cx.lineWidth = 2; cx.strokeStyle = 'rgba(0,0,0,.7)'; cx.strokeText(tx, p.x, ty); cx.fillStyle = corNv(e); cx.fillText(tx, p.x, ty); cx.restore(); }
 }
 function inimigos(ts, fase) {   // fase 0: patrulha (desenhada ANTES dos planetas, nomes ficam por cima); fase 1: lutas (acima dos planetas, abaixo da nave)
   if (!iniOn() || !PL.length) return;

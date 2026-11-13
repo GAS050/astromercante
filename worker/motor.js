@@ -125,9 +125,12 @@ const tripInfo = (S, to) => { const d = dist(planeta(S, S.loc), planeta(S, to));
 const HH = (n) => { n = (n ^ 61) ^ (n >>> 16); n = Math.imul(n, 0x45d9f3b); n ^= n >>> 4; n = Math.imul(n, 0x45d9f3b); n ^= n >>> 15; return n >>> 0; };
 export const PAUSA = 4800;   // tempo que a nave fica parada lutando (a chegada atrasa esse tempo)
 export const nIni = (g) => 2 + Math.min(g, 2);
+/** Poder "típico" de um jogador na galáxia g (nave da patente certa, upgrades médios): os inimigos são calibrados a partir dele. */
+export const PT = (g) => (2 + .5 * g) * (1 + .02 * g);
 export function ini(g, k) {
-  const h = HH(g * 977 + k * 131 + 7), h2 = HH(h + 1), m = g >= 2 && k % 3 === 2, lv = Math.min(9, 1 + Math.floor((g + (k % 3)) * .8) + (m ? 1 : 0));
-  return { g, k, T: 30000 + (h >> 4) % 25000, ph: ((h2 >> 6) % 1000) / 1000, m, lv, R: m ? 38 : 26, nm: m ? (lv >= 5 ? 'Leviatã estelar' : 'Monstro do vazio') : (lv >= 4 ? 'Frota pirata' : 'Piratas') };
+  const h = HH(g * 977 + k * 131 + 7), h2 = HH(h + 1), m = g >= 2 && k % 3 === 2, tier = clamp(1 + Math.floor((g + (k % 3)) * .4), 1, 5);
+  const lv = Math.max(1, Math.round(m ? PT(g) * .96 : PT(g) * [.5, .8, .95][k % 3]));   // pirata fraco / médio / forte; monstro vale lv×1,2 ≈ 115% do poder típico
+  return { g, k, T: 30000 + (h >> 4) % 25000, ph: ((h2 >> 6) % 1000) / 1000, m, lv, tier, R: m ? 38 : 26, nm: m ? (tier >= 3 ? 'Leviatã estelar' : 'Monstro do vazio') : (tier >= 3 ? 'Frota pirata' : 'Piratas') };
 }
 /** Rota em etapas: a cada etapa o inimigo sorteia (de forma fixa por relógio) o próximo planeta, então o caminho nunca se repete de forma previsível. */
 export function iniAt(e, t) {
@@ -151,8 +154,8 @@ function encontros(S, t0, t1) {
 /** Poder de combate: arma da nave, enfraquecida por casco danificado, com bônus pequeno de patente. O inimigo vale o nível (monstro +20%). */
 export const poderJog = (S) => S.wpLv * (.6 + .4 * S.hull / 100) * (1 + .02 * S.rank);
 export const poderIni = (e) => e.lv * (e.m ? 1.2 : 1);
-/** Saque-base por galáxia: cresce ~50% a cada galáxia, então voltar a galáxias fáceis não compensa. */
-export const SAQUE = (g) => 90 * Math.pow(1.5, g);
+/** Saque-base por galáxia: cresce ~38% a cada galáxia, então voltar a galáxias fáceis não compensa. */
+export const SAQUE = (g) => 130 * Math.pow(1.38, g);
 /** A luta é decidida pela razão de poder (com ±8% de "sorte do momento") e fica gravada: o que se vê no mapa é o que acontece.
  *  w: 1 vitória, 2 empate (escapa com avarias), 0 derrota. */
 function lutar(S, e, td, tc) {
@@ -160,7 +163,7 @@ function lutar(S, e, td, tc) {
   const o = { k: e.k, td, tc, lv: e.lv, nm: e.nm, m: e.m ? 1 : 0, r: Math.round(r * 100) / 100, w: rr >= 1 ? 1 : rr >= .75 ? 2 : 0 };
   if (o.w === 1) {
     // vencer inimigo muito fraco paga pouco (clamp em .25): sem farmar monstro pequeno
-    o.loot = Math.round(SAQUE(D) * (.6 + .4 * e.lv) * clamp(q, .25, 1.4) * (e.m ? 1.8 : 1) * v(.88, 1.12));
+    o.loot = Math.round(SAQUE(D) * clamp(q, .25, 1.4) * (e.m ? 1.8 : 1) * v(.88, 1.12));
     o.dmg = Math.max(1, Math.round(5 * Math.min(q, 2) * (1 + D * .1) * v(.8, 1.2)));
   } else if (o.w === 2) o.dmg = Math.round(10 * (1 + D * .1) * v(.85, 1.15));
   else { o.dmg = Math.round((10 + 8 * Math.min(q, 2)) * (1 + D * .12) * v(.85, 1.15)); o.f = clamp(.08 + .08 * q, .1, .45); }

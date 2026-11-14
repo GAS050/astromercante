@@ -301,7 +301,7 @@ export function ofertas(S, c) {
     let dest, r;
     r = prods[h % prods.length]; dest = outros[(h >>> 7) % outros.length];
     const id = `${S.loc}:${b}:${k}`, q = clamp(Math.round(S.cap * (.25 + .5 * f1)), 1, S.cap), t = tripInfo(S, dest.id), mult = 1.05 + .13 * f2;
-    out.push({ id, r: r.id, q, dest: dest.id, gal: S.gal, falta: 1, comb: t.cost, cau: Math.round(CAUCAO * q * unitDest(S, dest.id, r.id, c)), mult: Math.round(mult * 100) / 100, dur: Math.max(150 - 10 * S.gal, 75, Math.round(t.secs * Math.max(1.25, 2 - .1 * S.gal))) });
+    out.push({ id, r: r.id, q, dest: dest.id, gal: S.gal, falta: 1, comb: t.cost, cau: Math.round(CAUCAO * q * unitDest(S, dest.id, r.id, c)), mult: Math.round(mult * 100) / 100, dur: Math.max(100 - 8 * S.gal, 50, Math.round(t.secs * Math.max(1.15, 1.6 - .05 * S.gal))) });
   }
   return out;
 }

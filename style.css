@@ -784,35 +784,37 @@ body.gated .lp-mus{display:grid}.lp-mus.off{color:var(--mt);border-color:var(--l
 .modos button:disabled{opacity:.4;border-color:var(--line)}
 
 /* carrossel do Duelo X1 */
-.pcard.duelo{padding:14px 0 12px;overflow:hidden;position:relative;background:radial-gradient(120% 80% at 50% 0,rgba(255,77,109,.18),transparent 60%),#0a0d1c}
-.pcard.duelo>h3,.pcard.duelo>p,.pcard.duelo>.err{margin-left:14px;margin-right:14px}
+.pcard.duelo{padding:14px 0 10px;overflow:hidden;position:relative;border-color:rgba(130,150,255,.35);background:radial-gradient(110% 60% at 50% 0,rgba(99,102,241,.28),transparent 65%),radial-gradient(60% 40% at 90% 100%,rgba(34,211,238,.12),transparent 70%),linear-gradient(180deg,#0d1133,#070a1b)}
+.pcard.duelo>h3,.pcard.duelo>.err{margin-left:16px;margin-right:16px}
+.pcard.duelo>h3{display:flex;align-items:baseline;flex-wrap:wrap;gap:4px 10px;color:#e9eeff}
+.pcard.duelo>h3 small{font:400 .68rem 'Chakra Petch',sans-serif;color:#8fa0d8;letter-spacing:.04em}
 .carw{position:relative}
-.car{display:flex;gap:12px;overflow-x:auto;scroll-snap-type:x mandatory;padding:10px 12%;scrollbar-width:none;-webkit-overflow-scrolling:touch;position:relative}
+.car{display:flex;gap:12px;overflow-x:auto;scroll-snap-type:x mandatory;padding:12px 8%;scrollbar-width:none;-webkit-overflow-scrolling:touch;position:relative}
 .car::-webkit-scrollbar{display:none}
-.cd{flex:0 0 76%;max-width:340px;scroll-snap-align:center;position:relative;border-radius:16px;padding:12px 14px 14px;text-align:center;overflow:hidden;
-  background:radial-gradient(90% 60% at 50% 22%,color-mix(in srgb,var(--c) 38%,transparent),transparent 70%),linear-gradient(180deg,#141a33,#0b0e1d);
-  border:1px solid color-mix(in srgb,var(--c) 45%,#222);transform:scale(.88);opacity:.55;filter:saturate(.7);transition:transform .35s,opacity .35s,filter .35s,box-shadow .35s}
-.cd.on{transform:scale(1);opacity:1;filter:none;box-shadow:0 0 0 1px var(--c),0 10px 36px -8px var(--c),inset 0 0 40px -18px var(--c)}
-.cd::before{content:"⚔";position:absolute;right:-14px;bottom:30px;font-size:7rem;line-height:1;opacity:.06;transform:rotate(-14deg);pointer-events:none}
-.cd::after{content:"";position:absolute;inset:0;background:repeating-linear-gradient(0deg,rgba(255,255,255,.025) 0 1px,transparent 1px 4px);pointer-events:none}
-.cd-sala{font:700 .62rem/1 'Chakra Petch',sans-serif;letter-spacing:.3em;color:var(--c);text-align:left}
-.cd-art{position:relative;height:118px;display:grid;place-items:center;margin:4px 0 0}
-.cd-art img{width:104px;height:104px;object-fit:contain;position:relative;animation:cdflut 6s ease-in-out infinite;filter:drop-shadow(0 6px 14px rgba(0,0,0,.6))}
-.cd-halo{position:absolute;width:150px;height:150px;border-radius:50%;background:radial-gradient(circle,color-mix(in srgb,var(--c) 55%,transparent),transparent 68%);animation:cdpulso 3s ease-in-out infinite}
+.cd{flex:0 0 84%;max-width:400px;scroll-snap-align:center;position:relative;border-radius:18px;padding:14px 14px 16px;text-align:center;overflow:hidden;
+  background:radial-gradient(90% 55% at 50% 20%,color-mix(in srgb,var(--c) 34%,transparent),transparent 72%),linear-gradient(180deg,#171d44,#0b0f26);
+  border:1px solid color-mix(in srgb,var(--c) 40%,#2a3160);transform:scale(.9);opacity:.5;filter:saturate(.7);transition:transform .35s,opacity .35s,filter .35s,box-shadow .35s}
+.cd.on{transform:scale(1);opacity:1;filter:none;box-shadow:0 0 0 1px color-mix(in srgb,var(--c) 70%,transparent),0 12px 40px -10px var(--c),inset 0 0 44px -20px var(--c)}
+.cd::after{content:"";position:absolute;inset:0;background:repeating-linear-gradient(0deg,rgba(255,255,255,.02) 0 1px,transparent 1px 4px);pointer-events:none}
+.cd-art{position:relative;height:132px;display:grid;place-items:center;margin:2px 0 0}
+.cd-art img{width:116px;height:116px;object-fit:contain;position:relative;animation:cdflut 6s ease-in-out infinite;filter:drop-shadow(0 8px 16px rgba(0,0,0,.6))}
+.cd-halo{position:absolute;width:170px;height:170px;border-radius:50%;background:radial-gradient(circle,color-mix(in srgb,var(--c) 50%,transparent),transparent 68%);animation:cdpulso 3s ease-in-out infinite}
 @keyframes cdflut{50%{transform:translateY(-6px) rotate(3deg)}}@keyframes cdpulso{50%{transform:scale(1.15);opacity:.7}}
-.cd-nome{font:700 1.45rem/1.1 'Chakra Petch',sans-serif;letter-spacing:.14em;text-transform:uppercase;color:#fff;text-shadow:0 0 18px var(--c);margin:2px 0 8px}
-.cd-aposta small,.cd-grade small{display:block;font-size:.55rem;letter-spacing:.2em;color:var(--mt)}
-.cd-aposta b{font:700 2.3rem/1.05 'Chakra Petch',monospace;color:#ffb347;text-shadow:0 0 16px rgba(255,150,40,.55)}.cd-aposta b i{font-size:.9rem;font-style:normal;color:#ffd9a0}
-.cd-grade{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin:10px 0 12px}
-.cd-grade>div{background:rgba(0,0,0,.35);border:1px solid rgba(255,255,255,.07);border-radius:8px;padding:5px 4px}
-.cd-grade b{font:700 .95rem 'Chakra Petch',monospace;color:#e8f4ff}.cd-grade b.verde{color:#39ff88}
-.pcard .cd-go{width:100%;padding:11px;border:0;border-radius:10px;font:700 .85rem 'Chakra Petch',sans-serif;letter-spacing:.12em;color:#fff;background:linear-gradient(90deg,#ff4d6d,#ff8a3d);box-shadow:0 0 18px rgba(255,77,109,.5);position:relative;z-index:1}
-.pcard .cd-go:disabled{background:#232a42;color:var(--mt);box-shadow:none;letter-spacing:.04em;font-size:.72rem}
-.cd-lock{padding:11px 8px;border:1px dashed #3a4468;border-radius:10px;color:#8fa3b8;font-size:.74rem;position:relative;z-index:1}
+.cd-nome{font:700 1.5rem/1.1 'Chakra Petch',sans-serif;letter-spacing:.16em;text-transform:uppercase;color:#fff;text-shadow:0 0 18px var(--c);margin:0 0 8px}
+.cd-aposta small,.cd-grade small{display:block;font-size:.55rem;letter-spacing:.14em;color:#8fa0d8;white-space:nowrap}
+.cd-aposta b{font:700 2.4rem/1.05 'Chakra Petch',monospace;color:#ffc65c;text-shadow:0 0 16px rgba(255,170,60,.5)}.cd-aposta b i{font-size:.9rem;font-style:normal;color:#ffe0a8}
+.cd-grade{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:12px 0 8px}
+.cd-grade>div{background:rgba(5,8,25,.55);border:1px solid rgba(140,160,255,.14);border-radius:10px;padding:7px 4px}
+.cd-grade b{font:700 1rem 'Chakra Petch',monospace;color:#eaf1ff;white-space:nowrap}.cd-grade b.verde{color:#4dffa0}
+.cd-fila{font-size:.7rem;color:#8fa0d8;margin:0 0 12px;display:flex;align-items:center;justify-content:center;gap:6px;position:relative;z-index:1}
+.cd-fila i{width:7px;height:7px;border-radius:50%;background:#3b4570}.cd-fila i.on{background:#4dffa0;box-shadow:0 0 8px #4dffa0}
+.pcard .cd-go{width:100%;padding:12px;border:0;border-radius:12px;font:700 .85rem 'Chakra Petch',sans-serif;letter-spacing:.12em;color:#04101e;background:linear-gradient(90deg,#22d3ee,#7c8cff);box-shadow:0 0 20px rgba(80,170,255,.45);position:relative;z-index:1;white-space:nowrap}
+.pcard .cd-go:disabled{background:#1f2748;color:#8fa0d8;box-shadow:none;letter-spacing:.03em;font-size:.72rem}
+.cd-lock{padding:12px 8px;border:1px dashed #3a4468;border-radius:12px;color:#8fa3b8;font-size:.74rem;position:relative;z-index:1}
 .cd.lk{filter:grayscale(.85) brightness(.75)}.cd.lk.on{box-shadow:0 0 0 1px #3a4468}.cd.lk .cd-art img{opacity:.5}
-.pcard .car-b{position:absolute;top:50%;left:2px;z-index:3;width:34px;height:34px;margin-top:-17px;border-radius:50%;border:1px solid var(--line);background:rgba(10,13,28,.85);color:#fff;font-size:1.3rem;line-height:1;display:grid;place-items:center;padding:0}
-.pcard .car-b.r{left:auto;right:2px}
-.car-dots{display:flex;justify-content:center;gap:5px;margin:6px 0 4px}
-.car-dots i{width:6px;height:6px;border-radius:3px;background:#2b3556;transition:all .25s;cursor:pointer}.car-dots i.on{width:20px;background:#ff4d6d}.car-dots i.lk:not(.on){opacity:.5}
-@media(min-width:700px){.car{padding:10px calc(50% - 170px)}.cd{flex-basis:340px}}
+.pcard .car-b{position:absolute;top:50%;left:4px;z-index:3;width:34px;height:34px;margin-top:-17px;border-radius:50%;border:1px solid rgba(140,160,255,.35);background:rgba(10,14,40,.85);color:#fff;font-size:1.3rem;line-height:1;display:grid;place-items:center;padding:0}
+.pcard .car-b.r{left:auto;right:4px}
+.car-dots{display:flex;justify-content:center;gap:5px;margin:4px 0 2px}
+.car-dots i{width:6px;height:6px;border-radius:3px;background:#2b3566;transition:all .25s;cursor:pointer}.car-dots i.on{width:20px;background:#22d3ee}.car-dots i.lk:not(.on){opacity:.5}
+@media(min-width:700px){.car{padding:12px calc(50% - 200px)}.cd{flex-basis:400px}}
 @media(prefers-reduced-motion:reduce){.cd-art img,.cd-halo{animation:none}}

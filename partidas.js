@@ -88,7 +88,8 @@ setInterval(() => { if (TOK && CLOUD() && MODE !== 'partida' && noAr() && !docum
 /* ---------- Duelo X1: carrossel de salas (uma por galáxia), abre na última galáxia desbloqueada ---------- */
 let ARENA_I = -1, SALAS = null, salasAt = 0;
 const ultimaLiberada = () => { let k = 0; GALAXIES.forEach((_, i) => { if (galLiberada(i)) k = i; }); return k; };
-const carImg = g => { const pl = g.planetas.reduce((a, b) => b.r > a.r ? b : a); return { img: pl.img, c: pl.c }; };
+const CAR_ART = [['b076_terra', '#e6c84a'], ['a085_gelo', '#9fdcff'], ['b049_asteroide', '#9bd16a'], ['b057_ilha_flutuante', '#f2a65a'], ['b053_megaestrutura', '#a9b8cc'], ['b055_binario', '#7fb0e0'], ['b017_buraco_negro', '#ffd24a'], ['a021_cristal', '#c58bf2'], ['b087_oceano', '#9b6cf5'], ['a066_lava', '#ff8a3d'], ['b091_crescente', '#ff5fd2']];   // um planeta bem diferente por galáxia
+const carImg = (g, i) => ({ img: CAR_ART[i][0] + '.svg', c: CAR_ART[i][1] });
 async function salasPoll() {
   if (!TOK || !CLOUD() || document.hidden || document.body.dataset.view !== 'play' || (PT && (PT.estado === 'espera' || noAr()))) return;
   try { SALAS = await api('/duelo/salas'); salasAt = Date.now(); if (!document.querySelector('#play .car:active')) renderPlay(); } catch {}
@@ -97,22 +98,21 @@ function dueloHtml(dano) {
   if (ARENA_I < 0) ARENA_I = ultimaLiberada();
   const f = x => fmt(x).replace(',00', '');
   const cards = GALAXIES.map((g, i) => {
-    const ok = galLiberada(i), ap = APOSTAS[i], { img, c } = carImg(g), pode = ok && !dano && S.credits >= ap, esp = SALAS ? SALAS.esp[i] : 0, jog = SALAS ? SALAS.jog[i] : 0;
+    const ok = galLiberada(i), ap = APOSTAS[i], { img, c } = carImg(g, i), pode = ok && !dano && S.credits >= ap, esp = SALAS ? SALAS.esp[i] : 0, jog = SALAS ? SALAS.jog[i] : 0;
     const motivo = !ok ? `Exige ${RANKS[g.t] ? RANKS[g.t][1] : 'patente ' + g.t}${g.eng > 1 ? ' e motor nv ' + g.eng : ''}` : dano ? 'Repare o casco' : S.credits < ap ? `Faltam ${f(ap - S.credits)} Cr` : '';
     return `<article class="cd${ok ? '' : ' lk'}${i === ARENA_I ? ' on' : ''}" data-i="${i}" style="--c:${c}">
-      <div class="cd-sala">SALA ${String(i + 1).padStart(2, '0')}</div>
       <div class="cd-art"><i class="cd-halo"></i><img src="assets/planets/${img}" alt=""></div>
       <h4 class="cd-nome">${g.nome}</h4>
       <div class="cd-aposta"><small>APOSTA</small><b>${f(ap)}<i> Cr</i></b></div>
-      <div class="cd-grade"><div><small>PRÊMIO</small><b class="verde">${f(Math.round(ap * 1.8))}</b></div><div><small>SALDO INICIAL</small><b>${f(ap * 50)}</b></div><div><small>NA FILA</small><b>${esp}</b></div><div><small>EM DUELO</small><b>${jog}</b></div></div>
+      <div class="cd-grade"><div><small>PRÊMIO</small><b class="verde">${f(Math.round(ap * 1.8))}</b></div><div><small>SALDO INICIAL</small><b>${f(ap * 50)}</b></div></div>
+      <div class="cd-fila"><i class="${esp ? 'on' : ''}"></i>${esp ? esp + ' na fila' : 'fila vazia'}${jog ? ' · ' + jog + ' em duelo' : ''}</div>
       ${ok ? `<button type="button" class="cd-go" data-gal="${i}" ${pode ? '' : 'disabled'}>${pode ? '⚔ ENTRAR NA FILA' : esc(motivo)}</button>` : `<div class="cd-lock">🔒 ${esc(motivo)}</div>`}
     </article>`;
   }).join('');
-  return `<div class="pcard duelo"><h3>⚔️ Duelo X1</h3>
-    <p>5 minutos, nave contra nave, mercado dividido. Vence quem tiver mais patrimônio; dá para <b>atacar e roubar a carga</b> do rival. Quem some por 60 s perde.</p>
+  return `<div class="pcard duelo"><h3>⚔️ Duelo X1 <small>5 min · mercado dividido · ataque e roubo de carga</small></h3>
     <div class="carw"><button type="button" class="car-b" data-car="-1" aria-label="Sala anterior">‹</button><div class="car" id="car">${cards}</div><button type="button" class="car-b r" data-car="1" aria-label="Próxima sala">›</button></div>
     <div class="car-dots">${GALAXIES.map((_, i) => `<i data-d="${i}" class="${i === ARENA_I ? 'on' : ''}${galLiberada(i) ? '' : ' lk'}"></i>`).join('')}</div>
-    <p class="err" id="d-err">${esc(duelMsg)}</p><p class="empty">A aposta sai dos créditos da carreira. A busca por um rival dura até 60 segundos; sem ninguém, ela volta para você.</p></div>`;
+    <p class="err" id="d-err">${esc(duelMsg)}</p></div>`;
 }
 function carIr(i, suave) {
   const car = $('#car'); if (!car) return; ARENA_I = Math.max(0, Math.min(GALAXIES.length - 1, i));

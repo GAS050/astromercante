@@ -125,7 +125,7 @@ const qty = () => Math.max(1, Math.floor(+$('#qty').value) || 1);
 
 function trade(id, side) {
   if (CLOUD()) return act('negociar', { id, lado:side, n:qty(), esperado:px(id) });
-  const LIQ = .4 / (1 + 1.5 * S.gal), r = RES.find(x => x.id === id), n = qty(), s0 = stk(id), p = pxAt(id, side === 'buy' ? s0 - n * LIQ / 2 : s0 + n * LIQ / 2) * (side === 'buy' ? 1 : .97), h = S.inv[id], total = n * p;
+  const LIQ = .4 / (1 + .4 * S.gal), r = RES.find(x => x.id === id), n = qty(), s0 = stk(id), p = pxAt(id, side === 'buy' ? s0 - n * LIQ / 2 : s0 + n * LIQ / 2) * (side === 'buy' ? 1 : .97), h = S.inv[id], total = n * p;
   if (S.trip) return say('Nave em trânsito.', 'err');
   if (side === 'buy') {
     if (n > (s0 - 1) / LIQ) return say(`Este planeta só tem ${Math.floor((s0 - 1) / LIQ)} un. em oferta. Procure outro mercado.`, 'err');
@@ -225,7 +225,7 @@ const RANKS = [[0,'Recruta'],[12000,'Contrabandista'],[30000,'Mercador estelar']
 const plan = id => PL.find(p => p.id === id);
 const used = () => RES.reduce((s, r) => s + S.inv[r.id].qty, 0);
 const dist = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
-const trip = to => { const d = dist(plan(S.loc), plan(to)); return { d, cost:Math.round(d * .8 * .5 * (1 + .3 * (S.engLv - 1) + .25 * (S.capLv - 1)) * (1 + (100 - S.hull) / 150)), secs:Math.max(3, Math.round(d / (18 + S.engLv * 7) * (S.hull < 40 ? 1.3 : 1))) }; };
+const trip = to => { const d = dist(plan(S.loc), plan(to)); return { d, cost:Math.round(d * .8 * .8 * (1 + .3 * (S.engLv - 1) + .25 * (S.capLv - 1)) * (1 + (100 - S.hull) / 150)), secs:Math.max(3, Math.round(d / (18 + S.engLv * 7) * (S.hull < 40 ? 1.3 : 1))) }; };
 const recov = (o, now = NOW()) => 100 - (100 - o.v) * Math.pow(.94, (now - o.t) / 30000);   // a oferta volta a 100% com o tempo: função do relógio, igual em qualquer aparelho
 const stk = id => { const o = S.stock[S.loc]?.[id]; return o ? recov(o) : 100; };
 const setStk = (id, v) => { (S.stock[S.loc] ??= {})[id] = { v:Math.max(1, v), t:Date.now() }; };

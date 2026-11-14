@@ -543,11 +543,15 @@ async function partidaIniciar(env, id) {
   const inicio = Date.now(), fim = inicio + cfg.duracao * 60000;
   const ok = await env.DB.prepare("UPDATE partidas SET estado = 'andamento', inicio = ?, fim = ?, bots = ? WHERE codigo = ? AND estado = 'espera'").bind(inicio, fim, bots, p.codigo).run();
   if (!(ok.meta?.changes > 0)) throw new Erro(409, 'A partida já começou.');
-  for (const j of (await env.DB.prepare('SELECT usuario FROM partida_jog WHERE codigo = ?').bind(p.codigo).all()).results || []) {
-    const carr = (await carregarJogo(env, j.usuario, inicio)).S, S = novoPartida(carr, cfg, p.codigo, inicio, fim);
+  const jogs = (await env.DB.prepare('SELECT usuario FROM partida_jog WHERE codigo = ?').bind(p.codigo).all()).results || [], carrs = [];
+  for (const j of jogs) carrs.push((await carregarJogo(env, j.usuario, inicio)).S);
+  cfg.rb = Math.round(carrs.reduce((s, c) => s + (c.rank || 0), 0) / Math.max(1, carrs.length) * 10) / 10;   // patente média: calibra os bots
+  await env.DB.prepare('UPDATE partidas SET cfg = ? WHERE codigo = ?').bind(JSON.stringify(cfg), p.codigo).run();
+  for (const [k, j] of jogs.entries()) {
+    const carr = carrs[k], S = novoPartida(carr, cfg, p.codigo, inicio, fim);
     await env.DB.prepare('UPDATE partida_jog SET estado = ?, patrimonio = ?, atualizado = ? WHERE codigo = ? AND usuario = ?').bind(JSON.stringify(S), cfg.saldo, inicio, p.codigo, j.usuario).run();
   }
-  return await vista(env, { ...p, estado: 'andamento', inicio, fim, bots }, id);
+  return await vista(env, { ...p, cfg: JSON.stringify(cfg), estado: 'andamento', inicio, fim, bots }, id);
 }
 async function partidaAcao(env, id, nome, args) {
   const p = await ativa(env, id);

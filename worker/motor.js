@@ -121,9 +121,10 @@ const fmt = (n) => n.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximum
 
 function stk(S, id, now) { const o = S.stock[S.loc]?.[id]; return o ? 100 - (100 - o.v) * Math.pow(.94, (now - o.t) / 30000) : 100; }
 /** Liquidez do mercado: cada unidade negociada mexe LIQ do estoque (preço e estoque usam a mesma conta, então comprar e vender no mesmo lugar nunca dá lucro). */
-export const LIQ = .4, TAXA_VENDA = .97, COMBUSTIVEL = .5;
+export const LIQ = .4, TAXA_VENDA = .97, COMBUSTIVEL = .8;
 /** Profundidade do mercado: em galáxias avançadas os planetas movimentam muito mais unidades (os porões lá são maiores), sem mudar a lógica de preço. */
-export const liq = (S) => LIQ / (1 + 1.5 * S.gal);
+export const GALK = .4;   // profundidade de mercado por galáxia (calibrado por simulação: bot esperto chega a 100M em ~25 h)
+export const liq = (S) => LIQ / (1 + GALK * S.gal);
 const setStk = (S, id, v, now) => { (S.stock[S.loc] ??= {})[id] = { v: Math.max(1, v), t: now }; };
 export function preco(S, id, st, c) {
   const r = RES_ID[id], ev = S.partida && !S.partida.eventos ? null : evAt(c.now);
@@ -422,7 +423,8 @@ const GBOT = { facil: 0.35, normal: 0.7, dificil: 1.1 };   // fração do ritmo 
 export const ritmoReferencia = (cfg) => cfg.saldo * 0.02 * cfg.duracao;   // ganho de um bot 'difícil' médio ≈ 2% do saldo por minuto (valor ajustável: ainda não calibrado com jogadores reais)
 export function botPatrimonio(cfg, codigo, i, t, inicio, fim) {
   const tau = clamp((t - inicio) / (fim - inicio), 0, 1), h = hash(codigo + ':bot' + i), hab = .8 + (h % 1000) / 2500;   // habilidade 0,8 a 1,2
-  const ganho = ritmoReferencia(cfg) * GBOT[cfg.dific] * hab * Math.pow(tau, .9);
+  const fr = clamp(.55 + .09 * (cfg.rb || 0), .55, 1.2);   // bots acompanham a patente média dos humanos da sala (novatos enfrentam bots mais fracos)
+  const ganho = ritmoReferencia(cfg) * GBOT[cfg.dific] * fr * hab * Math.pow(tau, .9);
   const ruido = (vnoise(codigo + 'b' + i, tau * 9) * .05 + vnoise(codigo + 'c' + i, tau * 31) * .02) * cfg.saldo * Math.min(1, tau * 4);
   return Math.max(cfg.saldo * .5, cfg.saldo + ganho + ruido);
 }

@@ -223,11 +223,13 @@ function lutar(S, e, td, tc) {
  *  Contas antigas não têm o campo tv e jogam normalmente. */
 function viagemTutorial(S) {
   if (S.partida || S.tv === undefined || S.tv > 1) return null;
-  if (S.tv === 0) return [];
+  if (S.tv === 0) return { enc: [] };
+  const q = Math.random();   // 2ª viagem do tutorial: um perigo de propósito (pirata 50%, chuva de asteroides 25%, tempestade solar 25%)
+  if (q >= .5) return { enc: [], imp: { nm: q < .75 ? 'Chuva de asteroides' : 'Tempestade solar', dmg: 2 } };
   const e = ini(S.gal, 0), { start: a, end: b } = S.trip, dur = b - a, td = a + Math.max(500, Math.round(dur * .3)), tc = Math.min(td + 2200, b - 400);
-  if (tc - td < 800) return [];
+  if (tc - td < 800) return { enc: [] };
   const P = poderJog(S);
-  return [{ k: 0, td, tc, lv: e.lv, nm: e.nm, m: 0, r: Math.round(P / e.lv * 100) / 100, w: 1, loot: Math.round(SAQUE(S.gal) * .5), dmg: 2 }];
+  return { enc: [{ k: 0, td, tc, lv: e.lv, nm: e.nm, m: 0, r: Math.round(P / e.lv * 100) / 100, w: 1, loot: Math.round(SAQUE(S.gal) * .5), dmg: 2 }] };
 }
 /** Partidas podem desligar o desgaste do casco (cfg.casco === false): sem dano, sem reparo. As lutas continuam valendo (saque e carga perdida). */
 /** Desgaste sofrido na partida em pontos de casco por viagem (conta o dano e não o reparo pago, então não dá para fugir dele): mede o perigo da sala e alimenta o bônus do 1º colocado.
@@ -414,8 +416,8 @@ const acoes = {
     if (situacao(S, to.id, c.now) === 'quarentena') throw new Regra(`${to.nome} está em quarentena: ninguém pousa lá agora. Tente de novo em alguns minutos.`);
     const t0 = tripInfo(S, to.id, c.now), t = seg ? { ...t0, cost: Math.round(t0.cost * 1.25), secs: Math.round(t0.secs * 1.6) } : t0;
     if (t.cost > S.credits) throw new Regra(`Combustível custa ${fmt(t.cost)} Cr. Créditos insuficientes.`);
-    S.credits -= t.cost; S.trip = { from: S.loc, to: to.id, start: c.now, end: c.now + t.secs * 1000 }; if (seg) S.trip.seg = 1; const enc = seg ? [] : (viagemTutorial(S) ?? encontros(S, S.trip.start, S.trip.end));
-    if (!seg && !S.partida && (S.tv === undefined || S.tv > 1)) {   // imprevisto invisível: 7% a 22% por viagem (mais em rotas longas, galáxias avançadas e porão cheio)
+    S.credits -= t.cost; S.trip = { from: S.loc, to: to.id, start: c.now, end: c.now + t.secs * 1000 }; if (seg) S.trip.seg = 1; const vt = seg ? null : viagemTutorial(S), enc = seg ? [] : (vt ? vt.enc : encontros(S, S.trip.start, S.trip.end)); if (vt?.imp) S.trip.imp = vt.imp;
+    if (!seg && !vt && !S.partida && (S.tv === undefined || S.tv > 1)) {   // imprevisto invisível: 7% a 22% por viagem (mais em rotas longas, galáxias avançadas e porão cheio)
       const pr = clamp(.07 + .0004 * t.d + .01 * S.gal, .07, .22) * (.6 + .8 * used(S) / Math.max(1, S.cap));
       if (Math.random() < pr) {
         const r = Math.random(), k = 1 + S.gal * .1, own = Object.entries(S.inv).filter(([, h]) => h.qty > 0).sort((a, b) => b[1].qty * b[1].avg - a[1].qty * a[1].avg)[0];

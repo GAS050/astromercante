@@ -739,7 +739,7 @@ body.gated .lp-evt{display:flex}.lp-evt.on{opacity:1;transform:translate(-50%,0)
 }
 @media(prefers-reduced-motion:reduce){.lp-down i{animation:none}}
 
-.intro-fx{z-index:21}
+
 body.lp-rolou .lp-evt{opacity:0!important}
 
 /* chips e destaques do topo: sempre numa linha só */

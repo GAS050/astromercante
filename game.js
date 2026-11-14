@@ -975,7 +975,7 @@ function introSetup() {
 }
 const introXY = (o, ts, W, H) => { const sp = .004 * o.d; let x = ((o.x - ts / 1000 * sp) % 1.15 + 1.15) % 1.15 - .075; return { x:x * W, y:o.y * H + Math.sin(ts / 2200 + o.ph) * 8 * o.d, r:(16 + 48 * o.d) * Math.min(W, H) / 800 }; };
 /* ---- Eventos da tela de login: piratas, monstros, batalhas, chuva de asteroides e tempestade solar (só visual; nada aqui toca no jogo) ---- */
-let introCv2 = null, introCx2 = null, introEv = null, introNext = 0, introLast = 0, introFx = [], introLastTipo = '';
+let introEv = null, introNext = 0, introLast = 0, introFx = [], introLastTipo = '';
 const rng = (a, b) => a + Math.random() * (b - a), easeIO = u => u * u * (3 - 2 * u);
 const INTRO_TXT = { pirata:['fa-skull-crossbones', 'Piratas na rota', 'Combate de naves'], monstro:['fa-dragon', 'Monstro do vazio', 'Criatura gigante à vista'], ast:['fa-meteor', 'Chuva de asteroides', 'Desvie ou aguente o casco'], sol:['fa-sun', 'Tempestade solar', 'Radiação alta no setor'] };
 function introCaption(tipo) {
@@ -1037,8 +1037,8 @@ function introEvento(c, f, ts, dt, W, H, sx, sy, ang, run) {   // c: canvas de f
     const im = inimSprite(m, ev.tier), st = INIM[(m ? 'monstro_' : 'pirata_') + ev.tier], tm = ts / 1000;
     if (morre < 1) {
       if (!ev.boom && morre > 0) { ev.boom = 1; introFaisca(ex, ey, 46, m ? '#c88bff' : '#ffb36b', 220); introFaisca(ex, ey, 18, '#ffffff', 120); }
-      f.save(); f.translate(ex, ey); f.globalAlpha = 1 - morre; const fz = 1 - morre * .5; f.scale(fz, fz);
-      f.fillStyle = m ? 'rgba(178,75,255,.10)' : 'rgba(255,50,50,.11)'; f.beginPath(); f.arc(0, 0, sz * .62, 0, 7); f.fill();
+      f.save(); f.translate(ex, ey); f.globalAlpha = (1 - morre) * Math.min(1, chega * 1.6 + .05); const fz = 1 - morre * .5; f.scale(fz, fz);
+      { const gr = f.createRadialGradient(0, 0, sz * .08, 0, 0, sz * .7); gr.addColorStop(0, m ? 'rgba(190,110,255,.22)' : 'rgba(255,80,60,.18)'); gr.addColorStop(1, 'rgba(0,0,0,0)'); f.fillStyle = gr; f.beginPath(); f.arc(0, 0, sz * .7, 0, 7); f.fill(); }
       if (im) { if (m && st && st.L) { f.translate(0, Math.sin(tm * 1.1) * sz * .04); f.rotate(Math.sin(tm * .9) * .05); monstroAnim(st.L, sz, tm, ev.tier, ev.seed, f); } else { f.rotate(m ? 0 : alvoAng - Math.PI / 2); f.drawImage(im, -sz / 2, -sz / 2, sz, sz); } }
       else { f.fillStyle = m ? '#8a3bd1' : '#d24545'; f.beginPath(); f.arc(0, 0, sz * .3, 0, 7); f.fill(); }
       if (luta && ev.shots.length && ts - ev.shots[ev.shots.length - 1].t < 120 && ev.shots[ev.shots.length - 1].meu === false) { f.globalCompositeOperation = 'lighter'; f.fillStyle = m ? 'rgba(220,160,255,.5)' : 'rgba(255,120,90,.5)'; f.beginPath(); f.arc(0, 0, sz * .3, 0, 7); f.fill(); }
@@ -1084,8 +1084,6 @@ function introFrame(ts) {
   const W = introCv.clientWidth, H = introCv.clientHeight; if (!W) return; const dpr = Math.min(devicePixelRatio || 1, 2), dt = Math.min(64, introLast ? ts - introLast : 16); introLast = ts;
   if (introCv.width !== Math.round(W * dpr)) { introCv.width = Math.round(W * dpr); introCv.height = Math.round(H * dpr); }
   const c = introCx; c.setTransform(dpr, 0, 0, dpr, 0, 0); c.clearRect(0, 0, W, H);
-  if (introCv2.width !== introCv.width) { introCv2.width = introCv.width; introCv2.height = introCv.height; }
-  introCx2.setTransform(dpr, 0, 0, dpr, 0, 0); introCx2.clearRect(0, 0, W, H);
   const pos = introPl.map(o => introXY(o, ts, W, H));
   const ru = introRun; let a = pos[ru.a], b = pos[ru.b], u = Math.min(1, (ts - ru.t0) / ru.dur);
   if (ru.wait) { if (ts > ru.wait) { ru.wait = 0; ru.a = ru.b; do { ru.b = Math.floor(Math.random() * introPl.length); } while (ru.b === ru.a || Math.abs(pos[ru.b].x - pos[ru.a].x) < W * .15); ru.t0 = ts; ru.dur = 6500 + Math.random() * 3000; ru.trail.length = 0; } u = 1; }
@@ -1107,14 +1105,14 @@ function introFrame(ts) {
   const fade = ru.wait ? 0 : Math.min(1, Math.min(u, 1 - u) * 12 + .15);
   // sorteia o próximo evento (batalhas só com a nave em voo)
   if (!introEv && !REDUZ && ts > introNext && (introNext || (introNext = ts + 2500, false))) { const voando = !ru.wait && u > .12 && u < .55; if (voando || Math.random() < .5) introNovoEvento(ts, W, H, voando); else introNext = ts + 900; }
-  const fx = introEvento(c, introCx2, ts, dt, W, H, sx, sy, ang, ru), sk = fx.shake ? (Math.random() - .5) * 3 * fx.shake : 0;
+  const fx = introEvento(c, c, ts, dt, W, H, sx, sy, ang, ru), sk = fx.shake ? (Math.random() - .5) * 3 * fx.shake : 0;
   c.save(); c.globalAlpha = Math.max(0, fade); c.translate(sx + sk, sy + sk); c.rotate(ang + Math.PI / 2); c.scale(2.4, 2.4);
   paintShip(c, shipLv(), ts, 46 - (shipLv().id - 1) * .2); c.restore();
 }
 function introToggle(on) {
   if (on === introOn) return; introOn = on;
-  if (!on) { introCaption(null); introEv = null; if (introCx2) introCx2.clearRect(0, 0, 9999, 9999); return; }
-  introCv = introCv || $('#intro'); introCx = introCx || introCv.getContext('2d'); introCv2 = introCv2 || $('#intro-fx'); introCx2 = introCx2 || introCv2.getContext('2d'); if (!introPl) introSetup();
+  if (!on) { introCaption(null); introEv = null; return; }
+  introCv = introCv || $('#intro'); introCx = introCx || introCv.getContext('2d'); if (!introPl) introSetup();
   for (const t of [1, 2, 3, 4]) { inimSprite(false, t); inimSprite(true, t); }   // aquece os sprites dos inimigos
   introLast = 0; introNext = 0; requestAnimationFrame(introFrame);
 }

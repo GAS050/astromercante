@@ -128,7 +128,7 @@ function trade(id, side) {
   const LIQ = .4 / (1 + .4 * S.gal), r = RES.find(x => x.id === id), n = qty(), s0 = stk(id), p = pxAt(id, side === 'buy' ? s0 - n * LIQ / 2 : s0 + n * LIQ / 2) * (side === 'buy' ? 1 : .97), h = S.inv[id], total = n * p;
   if (S.trip) return say('Nave em trânsito.', 'err');
   if (side === 'buy') {
-    if (escasso(S.loc, NOW()) === id) return say(`${r.nome} está em falta neste planeta: não há estoque para comprar. Traga de outro lugar — aqui ele paga mais caro.`, 'err');
+    if (escasso(S.loc, NOW()) === id) return say(`${r.nome} está em falta neste planeta: não há estoque para comprar. Traga de outro lugar enquanto o contrato durar.`, 'err');
     if (n > (s0 - 1) / LIQ) return say(`Este planeta só tem ${Math.floor((s0 - 1) / LIQ)} un. em oferta. Procure outro mercado.`, 'err');
     if (total > S.credits) return say(`Créditos insuficientes: faltam ${fmt(total - S.credits)}.`, 'err');
     if (used() + n > S.cap) return say(`Porão cheio (${used()}/${S.cap}). Venda ou faça upgrade.`, 'err');
@@ -259,13 +259,12 @@ const trip = to => { const d = dist(plan(S.loc), plan(to)); return { d, cost:Mat
 const recov = (o, now = NOW()) => 100 - (100 - o.v) * Math.pow(.94, (now - o.t) / 30000);   // a oferta volta a 100% com o tempo: função do relógio, igual em qualquer aparelho
 const stk = id => { const o = S.stock[S.loc]?.[id]; return o ? recov(o) : 100; };
 const setStk = (id, v) => { (S.stock[S.loc] ??= {})[id] = { v:Math.max(1, v), t:Date.now() }; };
-const ESC_JAN = 3 * 3600e3, ESC_M = 1.25;   // espelho do servidor: planeta sem um produto a cada 3 h (+25% de preço)
-function escasso(planId, now) {
+function escasso(planId, now) {   // espelho do servidor: planeta em falta = destino de contrato ativo
   if (S.partida) return null;
-  const prods = RES.filter(r => (r.t || 0) <= S.rank), h = hash(`esc:${GI()}:${planId}:${Math.floor(now / ESC_JAN)}`);
-  return prods.length && h % 10 < 7 ? prods[(h >>> 8) % prods.length].id : null;
+  const x = (S.ct || []).find(k => k.dest === planId && k.gal === GI() && now <= k.ate);
+  return x ? x.r : null;
 }
-function pxAt(id, st) { return S.price[id] * (plan(S.loc).m[id] || 1) * (1 + .12 * GI()) * clamp((100 / Math.max(st, 5)) ** .4, .6, 2.5) * (S.ev && S.ev.r === id && (!S.ev.p || S.ev.p === S.loc) ? S.ev.m : 1) * (escasso(S.loc, NOW()) === id ? ESC_M : 1); }
+function pxAt(id, st) { return S.price[id] * (plan(S.loc).m[id] || 1) * (1 + .12 * GI()) * clamp((100 / Math.max(st, 5)) ** .4, .6, 2.5) * (S.ev && S.ev.r === id && (!S.ev.p || S.ev.p === S.loc) ? S.ev.m : 1); }
 function px(id) { return pxAt(id, stk(id)); }
 
 function goTo(to) {

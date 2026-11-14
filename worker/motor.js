@@ -126,16 +126,15 @@ export const LIQ = .4, TAXA_VENDA = .97, COMBUSTIVEL = .8;
 export const GALK = .4;   // profundidade de mercado por galáxia (calibrado por simulação: bot esperto chega a 100M em ~25 h)
 export const liq = (S) => LIQ / (1 + GALK * S.gal);
 const setStk = (S, id, v, now) => { (S.stock[S.loc] ??= {})[id] = { v: Math.max(1, v), t: now }; };
-/** Escassez: a cada 3 h, cada planeta (70% deles) fica sem um produto — preço +25% ali. Vale só na carreira. */
-export const ESC_JAN = 3 * 3600e3, ESC_M = 1.25;
+/** Escassez: um planeta fica "em falta" do produto só enquanto você tem um contrato ativo para ele (dentro do prazo): não dá para comprá-lo lá. */
 export function escasso(S, planId, now) {
   if (S.partida) return null;
-  const prods = RES.filter((r) => (r.t || 0) <= S.rank), h = hash(`esc:${S.gal}:${planId}:${Math.floor(now / ESC_JAN)}`);
-  return prods.length && h % 10 < 7 ? prods[(h >>> 8) % prods.length].id : null;
+  const x = (S.ct || []).find((k) => k.dest === planId && k.gal === S.gal && now <= k.ate);
+  return x ? x.r : null;
 }
 export function preco(S, id, st, c) {
   const r = RES_ID[id], ev = S.partida && !S.partida.eventos ? null : evAt(c.now);
-  return precoBase(r, cyc(c.now), S.partida && !S.partida.eventos ? { ...c.feed, news: [] } : c.feed) * (planeta(S, S.loc).m[id] || 1) * (1 + .12 * S.gal) * clamp((100 / Math.max(st, 5)) ** .4, .6, 2.5) * (ev && ev.r === id && (!ev.p || ev.p === S.loc) ? ev.m : 1) * (escasso(S, S.loc, c.now) === id ? ESC_M : 1);
+  return precoBase(r, cyc(c.now), S.partida && !S.partida.eventos ? { ...c.feed, news: [] } : c.feed) * (planeta(S, S.loc).m[id] || 1) * (1 + .12 * S.gal) * clamp((100 / Math.max(st, 5)) ** .4, .6, 2.5) * (ev && ev.r === id && (!ev.p || ev.p === S.loc) ? ev.m : 1);
 }
 const carga = (S, c) => Object.keys(S.inv).reduce((s, id) => s + S.inv[id].qty * preco(S, id, stk(S, id, c.now), c), 0);
 export const patrimonio = (S, c) => S.credits + carga(S, c);
@@ -296,21 +295,19 @@ export function ofertas(S, c) {
   if (S.partida || S.trip) return [];
   const b = Math.floor(c.now / CT_JANELA), outros = planetas(S).filter((p) => p.id !== S.loc && p.t <= S.rank), prods = RES.filter((r) => (r.t || 0) <= S.rank);
   if (!outros.length || !prods.length) return [];
-  const faltas = outros.map((p) => [p, escasso(S, p.id, c.now)]).filter((x) => x[1]);   // destinos em falta de algum produto
-  const out = [];
+    const out = [];
   for (let k = 0; k < 2; k++) {
     const h = hash(`${S.gal}:${S.loc}:${b}:${k}`), f1 = (h >>> 14) % 1000 / 1000, f2 = (h >>> 3) % 1000 / 1000;
     let dest, r;
-    if (faltas.length && (k === 0 || h % 2)) { const [pl, id] = faltas[(h >>> 7) % faltas.length]; dest = pl; r = RES_ID[id]; }
-    else { r = prods[h % prods.length]; dest = outros[(h >>> 7) % outros.length]; }
+    r = prods[h % prods.length]; dest = outros[(h >>> 7) % outros.length];
     const id = `${S.loc}:${b}:${k}`, q = clamp(Math.round(S.cap * (.25 + .5 * f1)), 1, S.cap), t = tripInfo(S, dest.id), mult = 1.05 + .13 * f2;
-    out.push({ id, r: r.id, q, dest: dest.id, gal: S.gal, falta: escasso(S, dest.id, c.now) === r.id ? 1 : 0, comb: t.cost, cau: Math.round(CAUCAO * q * unitDest(S, dest.id, r.id, c)), mult: Math.round(mult * 100) / 100, dur: Math.max(300 - 20 * S.gal, 120, Math.round(t.secs * Math.max(1.5, 3 - .15 * S.gal))) });
+    out.push({ id, r: r.id, q, dest: dest.id, gal: S.gal, falta: 1, comb: t.cost, cau: Math.round(CAUCAO * q * unitDest(S, dest.id, r.id, c)), mult: Math.round(mult * 100) / 100, dur: Math.max(150 - 10 * S.gal, 75, Math.round(t.secs * Math.max(1.25, 2 - .1 * S.gal))) });
   }
   return out;
 }
 /** Preço-base do produto no destino, sem a alta temporária da escassez (a escassez já premia quem vende no mercado). */
 function unitDest(S, dest, rid, c) {
-  const loc = S.loc; S.loc = dest; try { return preco(S, rid, 100, c) / (escasso(S, dest, c.now) === rid ? ESC_M : 1); } finally { S.loc = loc; }
+  const loc = S.loc; S.loc = dest; try { return preco(S, rid, 100, c); } finally { S.loc = loc; }
 }
 export const CAUCAO = .1;   // caução paga ao aceitar (10% do valor); devolvida na entrega, perdida se o prazo vencer
 /** Valor de entrega de n unidades: preço do destino na hora × bônus, mais 60% da parte do combustível. */
@@ -327,7 +324,7 @@ const acoes = {
     if (esperado > 0 && Math.abs(vitrine / esperado - 1) > .08) throw new Regra('O preço mudou. Confira o mercado e tente de novo.');
     const p = preco(S, a.id, lado === 'buy' ? s0 - n * liq(S) / 2 : s0 + n * liq(S) / 2, c) * (lado === 'buy' ? 1 : TAXA_VENDA), total = n * p, h = (S.inv[a.id] ??= { qty: 0, avg: 0 });
     if (lado === 'buy') {
-      if (escasso(S, S.loc, c.now) === a.id) throw new Regra(`${r.nome} está em falta neste planeta: não há estoque para comprar. Traga de outro lugar — aqui ele paga mais caro.`);
+      if (escasso(S, S.loc, c.now) === a.id) throw new Regra(`${r.nome} está em falta neste planeta: não há estoque para comprar. Traga de outro lugar — enquanto o contrato durar.`);
       if (n > (s0 - 1) / liq(S)) throw new Regra(`Este planeta só tem ${Math.floor((s0 - 1) / liq(S))} un. em oferta. Procure outro mercado.`);
       if (total > S.credits) throw new Regra(`Créditos insuficientes: faltam ${fmt(total - S.credits)}.`);
       if (used(S) + n > S.cap) throw new Regra(`Porão cheio (${used(S)}/${S.cap}). Venda ou faça upgrade.`);

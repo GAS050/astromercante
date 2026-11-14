@@ -771,6 +771,39 @@ function alertas(now) {
   if (now < SHAKE) { shaking = true; w.style.transform = `translate(${(Math.random() - .5) * 4}px,${(Math.random() - .5) * 4}px)`; } else if (shaking) { shaking = false; w.style.transform = ''; }
 }
 
+
+/* ---------- Duelo X1: o rival no mapa ---------- */
+const DUELO_ALC = 70;   // igual a DUELO.alcance no servidor
+const emDuelo = () => MODE === 'partida' && PT && PT.modo === 'duelo' && PT.estado === 'andamento';
+function locPos(loc, trip, now) {   // posição local (a mesma conta do servidor: suavização entre os planetas)
+  if (trip && plan(trip.from) && plan(trip.to)) { const A = plan(trip.from), B = plan(trip.to), u = clamp((now - trip.start) / Math.max(1, trip.end - trip.start), 0, 1), q = u * u * (3 - 2 * u); return { x:A.x + (B.x - A.x) * q, y:A.y + (B.y - A.y) * q, ang:Math.atan2(B.y - A.y, B.x - A.x), fly:1 }; }
+  const P = plan(loc); return P ? { x:P.x, y:P.y, ang:0, fly:0 } : null;
+}
+function duelInfo() {   // distância e situação do ataque, para o painel e o desenho
+  if (!emDuelo() || !PT.rival || PT.rival.gal !== S.gal) return null;
+  const R = PT.rival, now = NOW(), me = locPos(S.loc, S.trip, now), rv = locPos(R.loc, R.trip, now); if (!me || !rv) return null;
+  const d = Math.hypot(me.x - rv.x, me.y - rv.y), pa = S.partida || {}, esfria = Math.max(0, (pa.atk || 0) + 40000 - now), prot = Math.max(0, (R.prot || 0) - now);
+  let bloq = ''; if (S.trip) bloq = 'Pouse para atacar'; else if (R.trip && R.trip.seg) bloq = 'Rival em rota segura'; else if (prot) bloq = 'Rival protegido ' + Math.ceil(prot / 1000) + ' s'; else if (esfria) bloq = 'Canhões ' + Math.ceil(esfria / 1000) + ' s'; else if (d > DUELO_ALC) bloq = 'Fora do alcance'; else if (!R.carga) bloq = 'Rival sem carga';
+  return { d, rv, me, R, bloq, alvo:!bloq };
+}
+let avisoT = 0;
+function duelAvisos() {   // ataques recebidos: aparecem uma vez, com som de alerta
+  const av = S.partida && S.partida.avisos; if (!av || MODE !== 'partida') return;
+  const novos = av.filter(a => a.t > avisoT && a.t > NOW() - 40000); av.forEach(a => { if (a.t > avisoT) avisoT = a.t; });
+  novos.forEach(a => say(a.m, a.k || 'err')); if (novos.length) SHAKE = Math.max(SHAKE, NOW() + 500);
+}
+function drawRival(ts) {
+  const di = duelInfo(); if (!di) return;
+  const { rv, me, R } = di, a = lscr(S.gal, rv), m = lscr(S.gal, me), kx = (.82 + .3 * me.y / 300) * cam.z, ky = .8 * cam.z;
+  cx.save(); cx.strokeStyle = di.alvo ? 'rgba(255,77,109,.9)' : 'rgba(255,77,109,.28)'; cx.lineWidth = 1; cx.setLineDash([4, 4]); cx.lineDashOffset = -ts / 90;
+  cx.beginPath(); cx.ellipse(m.x, m.y, DUELO_ALC * kx, DUELO_ALC * ky, 0, 0, 7); cx.stroke(); cx.restore();
+  const t = ts / 600, ox = R.trip ? 0 : Math.cos(t) * 12 * a.sc, oy = R.trip ? 0 : Math.sin(t) * 5 * a.sc - 8 * a.sc, x = a.x + ox, y = a.y + oy;
+  if (R.trip) { cx.fillStyle = 'rgba(255,77,109,.35)'; for (let i = 1; i < 6; i++) { cx.beginPath(); cx.arc(x - Math.cos(rv.ang) * i * 5 * a.sc, y - Math.sin(rv.ang) * i * 4 * a.sc, Math.max(.6, 2.4 * a.sc - i * .3), 0, 7); cx.fill(); } }
+  miniShip(x, y, R.trip ? rv.ang : Math.atan2(Math.cos(t) * .4, -Math.sin(t)), Math.max(1.3, a.sc * 2.4), R.on === false ? '#8a8f99' : '#ff4d6d');
+  if (di.alvo) { const k = (ts / 30) % 22; cx.strokeStyle = `rgba(255,77,109,${1 - k / 22})`; cx.lineWidth = 1.5; cx.beginPath(); cx.arc(x, y, 6 + k, 0, 7); cx.stroke(); }
+  cx.font = '600 9px Chakra Petch, sans-serif'; cx.textAlign = 'center'; cx.fillStyle = '#ff9db0'; cx.fillText('⚔ ' + R.n + (R.on === false ? ' (offline)' : ''), x, y - 14 * Math.max(1, a.sc));
+  const w = 26, h = Math.max(0, Math.min(100, R.hull || 0)); cx.fillStyle = 'rgba(0,0,0,.6)'; cx.fillRect(x - w / 2, y - 11 * Math.max(1, a.sc), w, 3); cx.fillStyle = h > 50 ? '#39ff88' : h > 25 ? '#ffb347' : '#ff4d6d'; cx.fillRect(x - w / 2, y - 11 * Math.max(1, a.sc), w * h / 100, 3);
+}
 function drawShip(ts) {
   const s = shipPos(ts);
   if (s.fly) { trail.push({ x:s.x, y:s.y }); if (trail.length > 36) trail.shift(); } else trail.length = 0;
@@ -836,7 +869,7 @@ function frame(ts) {
   if (t) { const d = plan(t.to)._s, k = (ts / 25) % 30; cx.strokeStyle = `rgba(62,230,255,${1 - k / 30})`; cx.lineWidth = 1.2; cx.beginPath(); cx.ellipse(d.x, d.y + 14 * d.sc, k * d.sc, k * d.sc * .35, 0, 0, 7); cx.stroke(); }
   inimigos(ts, 1);
   alertas(NOW());
-  drawShip(ts);
+  drawShip(ts); drawRival(ts);
   if (cam.z < .5) { const sp = shipPos(ts), k = (ts / 40) % 24; cx.strokeStyle = `rgba(57,255,136,${1 - k / 24})`; cx.lineWidth = 1.4; cx.beginPath(); cx.arc(sp.x, sp.y, 4 + k, 0, 7); cx.stroke(); cx.fillStyle = '#39ff88'; cx.beginPath(); cx.arc(sp.x, sp.y, 2.2, 0, 7); cx.fill(); }
   const wk = (performance.now() - warpT) / 900; if (wk < 1) { g = cx.createRadialGradient(200, 150, 0, 200, 150, 300); g.addColorStop(0, '#fff'); g.addColorStop(1, '#3ee6ff'); cx.globalAlpha = 1 - wk; cx.fillStyle = g; cx.fillRect(0, 0, 400, 300); cx.globalAlpha = 1; }
   g = cx.createRadialGradient(200, 150, 120, 200, 150, 260); g.addColorStop(0, 'transparent'); g.addColorStop(1, 'rgba(0,0,0,.6)'); cx.fillStyle = g; cx.fillRect(0, 0, 400, 300);
@@ -869,7 +902,7 @@ function renderInfo() {
     + (S.ev && S.ev.p === p.id ? `<p class="evtl">⚡ ${S.ev.t}</p>` : '')
     + (p.t > S.rank ? `<small>🔒 Exige a patente <b>${RANKS[p.t][1]}</b>.</small>` : here ? '<small>Você está aqui. Toque em outro planeta ou galáxia.</small>'
             : `<div class="rotas"><button class="buy" data-go="${p.id}" ${S.trip || situacao(p.id, NOW()) === 'quarentena' ? 'disabled' : ''}><b>Rota direta</b><small>⛽ ${fmt(t.cost).replace(',00', '')} Cr · ${t.secs}s</small><em>Rápida, mas pode cruzar inimigos e sofrer imprevistos</em></button>`
-              + (CLOUD() && !S.partida && (S.tv === undefined || S.tv > 1) && situacao(p.id, NOW()) !== 'quarentena' ? `<button class="rt-seg" data-go="${p.id}" data-rota="segura" ${S.trip ? 'disabled' : ''}><b>Rota segura</b><small>⛽ ${fmt(Math.round(t.cost * 1.25)).replace(',00', '')} Cr · ${Math.round(t.secs * 1.6)}s</small><em>Mais longa: sem inimigos nem imprevistos, metade do desgaste</em></button>` : '') + '</div>');
+              + (CLOUD() && (!S.partida || S.partida.duelo) && (S.tv === undefined || S.tv > 1) && situacao(p.id, NOW()) !== 'quarentena' ? `<button class="rt-seg" data-go="${p.id}" data-rota="segura" ${S.trip ? 'disabled' : ''}><b>Rota segura</b><small>⛽ ${fmt(Math.round(t.cost * 1.25)).replace(',00', '')} Cr · ${Math.round(t.secs * 1.6)}s</small><em>Mais longa: sem inimigos nem imprevistos, metade do desgaste</em></button>` : '') + '</div>');
 }
 
 /* ---------- Vício: som, missões, ranking, gráfico ---------- */
@@ -1157,6 +1190,7 @@ function aplicarEstado(r) {   // o servidor manda; este aparelho só mostra
     const now = NOW(); RES.forEach(x => { S.price[x.id] = priceNow(x, cyc(now)); S.prev[x.id] = priceNow(x, cyc(now) - STEP); }); S.ev = evNow(now);
   }
   (r.msgs || []).forEach(m => m.n ? note(m.m, m.k) : say(m.m, m.k));
+  duelAvisos();
   syncMsg = 'Conectado às ' + hora(); renderAccount(); save(); render();
 }
 async function act(nome, args = {}) {   // toda ação do jogador passa pelo servidor, que valida e executa

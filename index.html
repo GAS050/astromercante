@@ -71,7 +71,7 @@
   </section>
 
   <section class="card-panel view" id="p-play">
-    <h2>Partidas</h2><div id="play"></div>
+    <h2>Arena</h2><div id="play"></div>
   </section>
 
   <section class="card-panel view" id="p-amigos">
@@ -131,7 +131,7 @@
 <nav class="nav">
   <button data-view="home" class="on"><i class="fa-solid fa-house"></i>Início</button>
   <button data-view="market"><i class="fa-solid fa-chart-line"></i>Negociação</button>
-  <button data-view="play"><i class="fa-solid fa-trophy"></i>Torneios</button>
+  <button data-view="play"><i class="fa-solid fa-trophy"></i>Arena</button>
   <button data-view="fleet"><i class="fa-solid fa-rocket"></i>Frotas</button>
   <button data-view="loja" id="nav-lj"><i class="fa-solid fa-bag-shopping"></i>Loja</button>
   <button data-view="amigos" id="nav-am"><i class="fa-solid fa-user-group"></i>Amigos</button>
@@ -148,7 +148,7 @@
     <ul class="lp-pts">
       <li><i class="fa-solid fa-chart-line"></i>Preços seguem Bitcoin, ouro, dólar e mais</li>
       <li><i class="fa-solid fa-skull-crossbones"></i>Piratas, monstros e tempestades no caminho</li>
-      <li><i class="fa-solid fa-trophy"></i>Torneios, contratos e conquistas</li>
+      <li><i class="fa-solid fa-trophy"></i>Arena (duelo X1 e torneios), contratos e conquistas</li>
     </ul>
     <button type="button" class="lp-down" id="lp-down">Como funciona <i class="fa-solid fa-chevron-down"></i></button>
   </div>
@@ -223,7 +223,7 @@
     <h2><i class="fa-solid fa-rocket"></i> E tem muito mais</h2>
     <div class="lp-grid g3">
       <article class="lp-c"><i class="fa-solid fa-file-contract"></i><h3>Contratos</h3><p>Entregas com prazo curto e pagamento acima do mercado, até para outras galáxias. Entregue a tempo para receber de volta a caução.</p></article>
-      <article class="lp-c"><i class="fa-solid fa-trophy"></i><h3>Torneios e amigos</h3><p>Todos começam com o mesmo saldo e o mesmo tempo. Vence quem negocia melhor. Convide amigos para salas privadas.</p></article>
+      <article class="lp-c"><i class="fa-solid fa-trophy"></i><h3>Arena: duelos e torneios</h3><p>Todos começam com o mesmo saldo e o mesmo tempo. Vence quem negocia melhor. Convide amigos para salas privadas.</p></article>
       <article class="lp-c"><i class="fa-solid fa-medal"></i><h3>Patentes e conquistas</h3><p>De Recruta a Arquiteto do universo, com mais de 110 conquistas, molduras e avatares para o seu perfil.</p></article>
     </div>
   </section>
@@ -237,7 +237,7 @@
       <details><summary>Como ganho dinheiro no jogo?</summary><p>Comprando onde o produto está barato e vendendo onde paga mais. Descontando combustível e a taxa de venda (3%), a diferença é o seu lucro. Contratos de entrega pagam acima do mercado se você cumprir o prazo.</p></details>
       <details><summary>O que acontece se eu perder uma batalha?</summary><p>Sua nave perde casco e uma parte da carga. Você nunca perde a conta, a patente nem os créditos guardados. Para evitar, melhore o armamento, mantenha o casco alto ou use a rota segura.</p></details>
       <details><summary>Qual a diferença entre rota direta e segura?</summary><p>A direta é mais rápida e barata, mas pode cruzar piratas, monstros, asteroides e tempestades solares. A segura evita tudo isso e gasta metade do desgaste, mas demora mais e custa mais combustível.</p></details>
-      <details><summary>Como funcionam os torneios?</summary><p>Todos começam com o mesmo saldo e o mesmo tempo, em uma partida à parte da sua carreira. Quem terminar com mais patrimônio vence. Também dá para criar salas livres e convidar amigos por código.</p></details>
+      <details><summary>Como funcionam os torneios e o duelo X1?</summary><p>Todos começam com o mesmo saldo e o mesmo tempo, em uma partida à parte da sua carreira. Quem terminar com mais patrimônio vence. Também dá para criar salas livres e convidar amigos por código. No <b>Duelo X1</b> você aposta créditos do jogo (de 100 a 50 mil) contra outro piloto: 10 minutos, nave igual, mercado compartilhado e a chance de atacar e roubar a carga do rival. O vencedor leva o bolo (90%); quem ficar mais de 60 segundos offline perde a aposta.</p></details>
       <details><summary>Posso jogar no celular e no computador?</summary><p>Sim. Seu progresso fica salvo na conta, na nuvem, e você continua de onde parou em qualquer aparelho com o mesmo login.</p></details>
       <details><summary>Esqueci minha senha. E agora?</summary><p>Na tela de entrada toque em “Esqueci minha senha”. Enviamos um código para o e-mail da conta para você criar outra.</p></details>
     </div>
@@ -267,7 +267,7 @@
 <div class="modal" id="perfil" hidden><div class="card-panel">
   <div class="au-brand">SEU PILOTO</div>
   <h2 id="pf-t">Crie seu perfil</h2>
-  <p class="pf-sub" id="pf-intro">Este é o nome e a imagem que os outros pilotos veem no ranking e nos torneios.</p>
+  <p class="pf-sub" id="pf-intro">Este é o nome e a imagem que os outros pilotos veem no ranking e na Arena.</p>
   <input id="pf-ap" class="pf-in" maxlength="16" placeholder="Apelido (3 a 16 caracteres)" autocomplete="off" spellcheck="false">
   <div class="pf-av" id="pf-av" role="radiogroup" aria-label="Avatar"></div>
   <fieldset class="pf-fx" id="pf-fx"><legend>Faixa etária</legend>

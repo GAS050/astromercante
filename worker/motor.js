@@ -382,11 +382,11 @@ const acoes = {
       if (n > (s0 - 1) / liq(S)) throw new Regra(`Este planeta só tem ${Math.floor((s0 - 1) / liq(S))} un. em oferta. Procure outro mercado.`);
       if (total > S.credits) throw new Regra(`Créditos insuficientes: faltam ${fmt(total - S.credits)}.`);
       if (used(S) + n > S.cap) throw new Regra(`Porão cheio (${used(S)}/${S.cap}). Venda ou faça upgrade.`);
-      mais(S, 'tr'); h.avg = (h.avg * h.qty + total) / (h.qty + n); h.qty += n; S.credits -= total; setStk(S, a.id, s0 - n * liq(S), c.now);
+      mais(S, 'tr'); h.avg = (h.avg * h.qty + total) / (h.qty + n); h.qty += n; S.credits -= total; setStk(S, a.id, s0 - n * liq(S), c.now); if (S.partida?.duelo) (c.efeitos ??= []).push({ loc: S.loc, id: a.id, d: -n * liq(S) });
       say(msgs, `Comprou ${n} × ${r.nome} por ${fmt(total)}.`);
     } else {
       if (n > h.qty) throw new Regra(`Você tem apenas ${h.qty} × ${r.nome}.`);
-      S.daily.p.profit += Math.max(0, n * (p - h.avg)); S.lt = (S.lt || 0) + n * (p - h.avg); mais(S, 'tr'); maxi(S, 'mq', n); if (h.avg > 0 && p > h.avg) { maxi(S, 'lx', n * (p - h.avg)); maxi(S, 'mg', (p / h.avg - 1) * 100); } h.qty -= n; S.credits += total; setStk(S, a.id, s0 + n * liq(S), c.now); if (!h.qty) h.avg = 0;
+      S.daily.p.profit += Math.max(0, n * (p - h.avg)); S.lt = (S.lt || 0) + n * (p - h.avg); mais(S, 'tr'); maxi(S, 'mq', n); if (h.avg > 0 && p > h.avg) { maxi(S, 'lx', n * (p - h.avg)); maxi(S, 'mg', (p / h.avg - 1) * 100); } h.qty -= n; S.credits += total; setStk(S, a.id, s0 + n * liq(S), c.now); if (!h.qty) h.avg = 0; if (S.partida?.duelo) (c.efeitos ??= []).push({ loc: S.loc, id: a.id, d: n * liq(S) });
       say(msgs, `Vendeu ${n} × ${r.nome} por ${fmt(total)}.`);
     }
     S.daily.p.trades++;
@@ -428,7 +428,7 @@ const acoes = {
     if (to.t > S.rank) throw new Regra('Setor bloqueado: suba de patente.');
     if (S.hull < 15) throw new Regra('Casco crítico: repare a nave na aba Frotas.');
     const seg = a.rota === 'segura';   // rota segura: contorna os inimigos do mapa, mas é 60% mais longa e gasta 25% mais combustível
-    if (seg && S.partida) throw new Regra('A rota segura existe só na carreira.');
+    if (seg && S.partida && !S.partida.duelo) throw new Regra('A rota segura existe só na carreira e no duelo.');   // no duelo é também a fuga do rival: inalcançável durante a viagem
     if (seg && S.tv !== undefined && S.tv <= 1) throw new Regra('A rota segura é liberada depois do tutorial.');
     if (situacao(S, to.id, c.now) === 'quarentena') throw new Regra(`${to.nome} está em quarentena: ninguém pousa lá agora. Tente de novo em alguns minutos.`);
     const t0 = tripInfo(S, to.id, c.now), t = seg ? { ...t0, cost: Math.round(t0.cost * 1.25), secs: Math.round(t0.secs * 1.6) } : t0;
@@ -532,10 +532,13 @@ export function validarCfg(cfg, carr, modo) {
 /** Estado inicial de um jogador na partida: nave da carreira (porão, motor, armamento e patente), saldo igual para todos. */
 export function novoPartida(carr, cfg, codigo, now, fim) {
   const S = novo(now), g0 = cfg.galaxias[0]; delete S.tv;   // o roteiro do tutorial vale só para a carreira
-  S.credits = cfg.saldo; S.rank = carr.rank; S.nave = carr.nave; S.frota = { [carr.nave]: { ...carr.frota[carr.nave], h: 100, mh: 100 } }; recalc(S);
+  S.credits = cfg.saldo;
+  if (cfg.duelo) { S.rank = DUELO.rank; S.nave = DUELO.nave; S.frota = { [DUELO.nave]: { c: DUELO.nivel, m: DUELO.nivel, a: DUELO.nivel, h: 100, mh: 100 } }; }   // duelo: os dois pilotam a mesma nave (a da carreira não conta)
+  else { S.rank = carr.rank; S.nave = carr.nave; S.frota = { [carr.nave]: { ...carr.frota[carr.nave], h: 100, mh: 100 } }; }
+  recalc(S);
   S.gal = g0; S.loc = GALAXIES[g0].planetas[0].id; S.vis = { [g0]: 1 };
   S.daily = { day: 'partida', p: { trades: 0, trips: 0, profit: 0 }, done: { trades: 1, trips: 1, profit: 1 } };
-  S.partida = { codigo, inicio: now, fim, galaxias: cfg.galaxias, eventos: cfg.eventos, piratas: cfg.piratas, casco: cfg.casco !== false };
+  S.partida = { codigo, inicio: now, fim, galaxias: cfg.galaxias, eventos: cfg.eventos, piratas: cfg.piratas, casco: cfg.casco !== false, ...(cfg.duelo ? { duelo: 1, atk: 0, prot: 0, avisos: [] } : {}) };
   return S;
 }
 /** Patrimônio do jogador no instante do fim (créditos + carga avaliada com os preços daquele instante). */
@@ -574,4 +577,59 @@ export function premiacao(humanos, total, cfg, x = 0) {
   } else if (humanos.length === 2) premios.set(humanos[0].usuario, Math.round(bolo));
   else [.6 + .1 * k, .3 - .08 * k, .1 - .02 * k].forEach((p, i) => { if (humanos[i]) premios.set(humanos[i].usuario, Math.round(bolo * p)); });
   return premios;
+}
+
+
+/* ================= DUELO X1 (arena): dois pilotos, mesma nave, mesmo mercado, 10 minutos ================= */
+export const DUELO_APOSTAS = [100, 250, 500, 1000, 2000, 3000, 5000, 10000, 25000, 50000];
+export const DUELO = { duracao: 10, saldo: 5000, casa: .1, sumiu: 60000, espera: 600000, alcance: 70, recarga: 40000, prot: 45000, nave: 10, nivel: 3, rank: 3 };
+/** Configuração fixa do duelo: só a aposta muda. Galáxia inicial (aberta a todos), nave padronizada, piratas e casco ligados. */
+export const cfgDuelo = (aposta) => ({ duracao: DUELO.duracao, saldo: DUELO.saldo, galaxias: [0], jogadores: 2, bots: false, dific: 'normal', taxa: aposta, eventos: true, piratas: true, casco: true, duelo: 1 });
+/** Prêmio do vencedor: as duas apostas menos a taxa da casa (10%). */
+export const premioDuelo = (aposta) => Math.round(2 * aposta * (1 - DUELO.casa));
+/** Posição da nave no mapa (parada no planeta ou no meio da viagem). */
+export function posNave(S, now) {
+  const t = S.trip;
+  if (t && GALAXIES[S.gal]) { const A = planeta(S, t.from), B = planeta(S, t.to), u = clamp((now - t.start) / Math.max(1, t.end - t.start), 0, 1), q = u * u * (3 - 2 * u); return { x: A.x + (B.x - A.x) * q, y: A.y + (B.y - A.y) * q }; }
+  const P = planeta(S, S.loc); return { x: P.x, y: P.y };
+}
+export const distDuelo = (A, D, now) => { const a = posNave(A, now), b = posNave(D, now); return Math.hypot(a.x - b.x, a.y - b.y); };
+export const cargaTotal = (S) => used(S);
+/** Ataque do piloto A (parado em um planeta) contra a nave de D, no alcance. Muda os dois estados e devolve as mensagens de A. */
+export function ataque(A, D, now) {
+  const pa = A.partida, pd = D.partida, msgs = [];
+  if (!pa?.duelo || !pd?.duelo) throw new Regra('Só existe ataque dentro de um duelo.');
+  if (now >= pa.fim) throw new Regra('A partida acabou.', 410);
+  if (A.trip) throw new Regra('Pouse em um planeta para atacar: com a nave em trânsito você não consegue mirar.');
+  if (now - (pa.atk || 0) < DUELO.recarga) throw new Regra(`Canhões esfriando: aguarde ${Math.ceil((DUELO.recarga - (now - pa.atk)) / 1000)} s.`);
+  if (D.trip && D.trip.seg) throw new Regra('O rival está em rota segura: inalcançável.');
+  if ((pd.prot || 0) > now) throw new Regra(`O rival acabou de ser atacado: protegido por ${Math.ceil((pd.prot - now) / 1000)} s.`);
+  if (distDuelo(A, D, now) > DUELO.alcance) throw new Regra('O rival está fora do alcance. Aproxime-se: o alcance é o raio mostrado no mapa.');
+  if (used(D) < 1) throw new Regra('O rival não está carregando nada: não há o que roubar.');
+  if (used(A) >= A.cap) throw new Regra('Seu porão está cheio: não há onde levar a carga roubada.');
+  const sc = semCasco(A), pA = poderJog(A), pD = poderJog(D), r = pA / pD * (.92 + Math.random() * .16), v = (a, b) => a + Math.random() * (b - a);
+  pa.atk = now;
+  const aviso = (m, k = 'err') => { pd.avisos = [...(pd.avisos || []).slice(-4), { t: now, m, k }]; };
+  if (r >= 1) {
+    const frac = clamp(.18 + .15 * (r - 1), .18, .4); let livre = A.cap - used(A), tomado = 0; const itens = [];
+    for (const id of Object.keys(D.inv).filter((x) => D.inv[x].qty > 0)) {
+      const q = Math.min(Math.max(1, Math.ceil(D.inv[id].qty * frac)), D.inv[id].qty, livre); if (q <= 0) continue;
+      const ha = (A.inv[id] ??= { qty: 0, avg: 0 }); ha.avg = (ha.avg * ha.qty + D.inv[id].avg * q) / (ha.qty + q); ha.qty += q;
+      D.inv[id].qty -= q; if (!D.inv[id].qty) D.inv[id].avg = 0; livre -= q; tomado += q; itens.push(`${q} × ${RES_ID[id].nome}`);
+    }
+    const dD = sc ? 0 : Math.round(v(4, 8)), dA = sc ? 0 : Math.round(v(1, 2));
+    D.hull = Math.max(Math.min(D.hull, 5), D.hull - dD); A.hull = Math.max(Math.min(A.hull, 5), A.hull - dA); pd.prot = now + DUELO.prot;
+    say(msgs, `Ataque certeiro! Você levou ${itens.join(', ')} do rival${sc ? '' : ` (casco dele -${dD}%, o seu -${dA}%)`}.`, 'win');
+    aviso(`Você foi atacado! O rival levou ${itens.join(', ')}${sc ? '' : ` e seu casco caiu ${dD}%`}. Fique protegido por ${DUELO.prot / 1000} s ou fuja pela rota segura.`);
+    mais(A, 'dkx');
+  } else if (r >= .75) {
+    const dd = sc ? 0 : Math.round(v(3, 6)); A.hull = Math.max(Math.min(A.hull, 5), A.hull - dd); D.hull = Math.max(Math.min(D.hull, 5), D.hull - dd);
+    say(msgs, `Combate empatado: o rival resistiu e ninguém levou nada${sc ? '' : ` (casco -${dd}% nos dois)`}.`, 'ok');
+    aviso('O rival tentou atacar sua nave, mas você resistiu. Nada foi levado.', 'ok');
+  } else {
+    const dA = sc ? 0 : Math.round(v(7, 12)); A.hull = Math.max(Math.min(A.hull, 5), A.hull - dA);
+    say(msgs, `Ataque repelido! A defesa do rival era mais forte${sc ? '' : `: seu casco caiu ${dA}%`}.`, 'err');
+    aviso('Você repeliu um ataque do rival!', 'ok');
+  }
+  return msgs;
 }

@@ -767,3 +767,13 @@ body.lp-rolou .lp-evt{opacity:0!important}
 /* botão de som da tela de login */
 .lp-mus{position:fixed;right:12px;top:calc(12px + env(safe-area-inset-top));z-index:22;width:42px;height:42px;border-radius:50%;display:none;place-items:center;border:1px solid rgba(62,230,255,.45);background:rgba(7,16,32,.8);color:var(--cyan);font-size:1.05rem;backdrop-filter:blur(6px)}
 body.gated .lp-mus{display:grid}.lp-mus.off{color:var(--mt);border-color:var(--line)}
+
+.pcard.duelo{border-color:#ff4d6d;background:linear-gradient(135deg,rgba(255,77,109,.1),transparent);margin-bottom:12px}
+.pcard.duelo h3{color:#ff9db0}
+.apostas{display:grid;grid-template-columns:repeat(5,1fr);gap:6px}
+.apostas button{display:flex;flex-direction:column;align-items:center;padding:8px 2px;border:1px solid #ff4d6d;border-radius:4px;background:none;color:#ffb3c2;font-weight:700;line-height:1.1}
+.apostas button small{font-weight:400;font-size:.62rem;color:var(--mt)}
+.apostas button:disabled{opacity:.35;border-color:var(--line);color:var(--mt)}
+.matchbar button.danger:not(:disabled){border-color:#ff4d6d;color:#fff;background:#ff4d6d;animation:pulsa 1s infinite}
+@keyframes pulsa{50%{box-shadow:0 0 10px #ff4d6d}}
+@media(max-width:420px){.apostas{grid-template-columns:repeat(5,1fr);gap:4px}.apostas button{font-size:.78rem}}

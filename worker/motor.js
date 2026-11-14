@@ -126,9 +126,16 @@ export const LIQ = .4, TAXA_VENDA = .97, COMBUSTIVEL = .8;
 export const GALK = .4;   // profundidade de mercado por galáxia (calibrado por simulação: bot esperto chega a 100M em ~25 h)
 export const liq = (S) => LIQ / (1 + GALK * S.gal);
 const setStk = (S, id, v, now) => { (S.stock[S.loc] ??= {})[id] = { v: Math.max(1, v), t: now }; };
+/** Escassez: a cada 3 h, cada planeta (70% deles) fica sem um produto — preço +40% ali. Vale só na carreira. */
+export const ESC_JAN = 3 * 3600e3, ESC_M = 1.4;
+export function escasso(S, planId, now) {
+  if (S.partida) return null;
+  const prods = RES.filter((r) => (r.t || 0) <= S.rank), h = hash(`esc:${S.gal}:${planId}:${Math.floor(now / ESC_JAN)}`);
+  return prods.length && h % 10 < 7 ? prods[(h >>> 8) % prods.length].id : null;
+}
 export function preco(S, id, st, c) {
   const r = RES_ID[id], ev = S.partida && !S.partida.eventos ? null : evAt(c.now);
-  return precoBase(r, cyc(c.now), S.partida && !S.partida.eventos ? { ...c.feed, news: [] } : c.feed) * (planeta(S, S.loc).m[id] || 1) * (1 + .12 * S.gal) * clamp((100 / Math.max(st, 5)) ** .4, .6, 2.5) * (ev && ev.r === id && (!ev.p || ev.p === S.loc) ? ev.m : 1);
+  return precoBase(r, cyc(c.now), S.partida && !S.partida.eventos ? { ...c.feed, news: [] } : c.feed) * (planeta(S, S.loc).m[id] || 1) * (1 + .12 * S.gal) * clamp((100 / Math.max(st, 5)) ** .4, .6, 2.5) * (ev && ev.r === id && (!ev.p || ev.p === S.loc) ? ev.m : 1) * (escasso(S, S.loc, c.now) === id ? ESC_M : 1);
 }
 const carga = (S, c) => Object.keys(S.inv).reduce((s, id) => s + S.inv[id].qty * preco(S, id, stk(S, id, c.now), c), 0);
 export const patrimonio = (S, c) => S.credits + carga(S, c);
@@ -287,17 +294,24 @@ export function fechar(S, c, msgs) {   // missões e patente, sempre calculadas 
 export const CT_JANELA = 20 * 60000, CT_MAX = 3;
 export function ofertas(S, c) {
   if (S.partida || S.trip) return [];
-  const b = Math.floor(c.now / CT_JANELA), here = planeta(S, S.loc), outros = planetas(S).filter((p) => p.id !== S.loc && p.t <= S.rank), prods = RES.filter((r) => (r.t || 0) <= S.rank);
+  const b = Math.floor(c.now / CT_JANELA), outros = planetas(S).filter((p) => p.id !== S.loc && p.t <= S.rank), prods = RES.filter((r) => (r.t || 0) <= S.rank);
   if (!outros.length || !prods.length) return [];
+  const faltas = outros.map((p) => [p, escasso(S, p.id, c.now)]).filter((x) => x[1]);   // destinos em falta de algum produto
   const out = [];
-  for (let k = 0; k < 3; k++) {
-    const h = hash(`${S.gal}:${S.loc}:${b}:${k}`), r = prods[h % prods.length], dest = outros[(h >>> 7) % outros.length], f1 = (h >>> 14) % 1000 / 1000, f2 = (h >>> 3) % 1000 / 1000;
-    const id = `${S.loc}:${b}:${k}`, q = clamp(Math.round(S.cap * (.25 + .5 * f1)), 1, S.cap), t = tripInfo(S, dest.id);
-    const loc = S.loc; S.loc = dest.id; let unit; try { unit = preco(S, r.id, 100, c); } finally { S.loc = loc; }
-    const mult = 1.2 + .25 * f2;
-    out.push({ id, r: r.id, q, dest: dest.id, gal: S.gal, pay: Math.round(q * unit * mult + t.cost), mult: Math.round(mult * 100) / 100, dur: Math.max(300, Math.round(t.secs * 3)) });
+  for (let k = 0; k < 2; k++) {
+    const h = hash(`${S.gal}:${S.loc}:${b}:${k}`), f1 = (h >>> 14) % 1000 / 1000, f2 = (h >>> 3) % 1000 / 1000;
+    let dest, r;
+    if (faltas.length && (k === 0 || h % 2)) { const [pl, id] = faltas[(h >>> 7) % faltas.length]; dest = pl; r = RES_ID[id]; }
+    else { r = prods[h % prods.length]; dest = outros[(h >>> 7) % outros.length]; }
+    const id = `${S.loc}:${b}:${k}`, q = clamp(Math.round(S.cap * (.25 + .5 * f1)), 1, S.cap), t = tripInfo(S, dest.id), mult = 1.15 + .15 * f2;
+    out.push({ id, r: r.id, q, dest: dest.id, gal: S.gal, falta: escasso(S, dest.id, c.now) === r.id ? 1 : 0, comb: t.cost, mult: Math.round(mult * 100) / 100, dur: Math.max(300 - 20 * S.gal, 120, Math.round(t.secs * Math.max(1.5, 3 - .15 * S.gal))) });
   }
   return out;
+}
+/** Valor de entrega de n unidades: preço de mercado do destino (sem impacto de estoque) × bônus, mais a parte do combustível. */
+function valorContrato(S, x, n, c) {
+  const loc = S.loc; S.loc = x.dest; let unit; try { unit = preco(S, x.r, 100, c); } finally { S.loc = loc; }
+  return Math.round(n * unit * x.mult + x.comb * n / x.q0);
 }
 const acoes = {
   negociar(S, c, msgs, a) {
@@ -331,8 +345,8 @@ const acoes = {
     S.ct ??= []; S.cf ??= [];
     if (S.ct.length >= CT_MAX) throw new Regra(`Você já tem ${CT_MAX} contratos ativos.`);
     if (S.ct.some((x) => x.id === o.id) || S.cf.includes(o.id)) throw new Regra('Você já aceitou esta oferta.');
-    const { dur, mult, ...x } = o; S.ct.push({ ...x, de: S.loc, ate: c.now + dur * 1000 });
-    say(msgs, `Contrato aceito: ${o.q} × ${RES_ID[o.r].nome} para ${planeta(S, o.dest).nome} em ${Math.round(dur / 60)} min. Pagamento: ${fmt(o.pay)} Cr.`, 'ok');
+    const { dur, falta, ...x } = o; S.ct.push({ ...x, q0: o.q, de: S.loc, ate: c.now + dur * 1000 });
+    say(msgs, `Contrato ATIVO: ${o.q} × ${RES_ID[o.r].nome} para ${planeta(S, o.dest).nome} em ${Math.round(dur / 60)} min. Veja em Mercado › Contratos.`, 'ok');
   },
   contratoEntregar(S, c, msgs, a) {
     if (S.trip) throw new Regra('Nave em trânsito.');
@@ -340,12 +354,12 @@ const acoes = {
     const x = S.ct[i];
     if (c.now > x.ate) throw new Regra('O prazo deste contrato acabou.');
     if (S.gal !== x.gal || S.loc !== x.dest) throw new Regra(`Entregue em ${GALAXIES[x.gal].planetas.find((p) => p.id === x.dest)?.nome}.`);
-    const h = S.inv[x.r]; if (!h || h.qty < x.q) throw new Regra(`Faltam ${x.q - (h?.qty || 0)} × ${RES_ID[x.r].nome} no porão.`);
-    const lucro = Math.max(0, x.pay - x.q * h.avg);
-    h.qty -= x.q; if (!h.qty) h.avg = 0;
-    S.credits += x.pay; S.lt = (S.lt || 0) + lucro; S.daily.p.profit += lucro; mais(S, 'ct');
-    S.ct.splice(i, 1); (S.cf ??= []).push(x.id); if (S.cf.length > 40) S.cf.shift();
-    say(msgs, `Contrato cumprido! +${fmt(x.pay)} Cr.`, 'win');
+    const h = S.inv[x.r], n = Math.min(x.q, h?.qty || 0); if (n < 1) throw new Regra(`Você não tem ${RES_ID[x.r].nome} no porão.`);
+    const pay = valorContrato(S, x, n, c), lucro = Math.max(0, pay - n * h.avg);
+    h.qty -= n; if (!h.qty) h.avg = 0; x.q -= n;
+    S.credits += pay; S.lt = (S.lt || 0) + lucro; S.daily.p.profit += lucro; mais(S, 'ct');
+    if (x.q <= 0) { S.ct.splice(i, 1); (S.cf ??= []).push(x.id); if (S.cf.length > 40) S.cf.shift(); say(msgs, `Contrato cumprido! Última entrega: +${fmt(pay)} Cr.`, 'win'); }
+    else say(msgs, `Entregou ${n} × ${RES_ID[x.r].nome}: +${fmt(pay)} Cr. Faltam ${x.q}.`, 'win');
   },
   viajar(S, c, msgs, a) {
     const to = planeta(S, a.to);

@@ -163,7 +163,7 @@ function buildMarket() {
       <span class="res__n">${i + 1}.</span>
       <img class="res__img" src="${iconSrc(r)}" alt="" onerror="this.style.visibility='hidden'">
       <div>
-        <div class="res__name">${r.nome}</div>
+        <div class="res__name">${r.nome}<span class="falta-tag">EM FALTA</span></div>
         <div class="res__price mono" data-f="price"></div>
         <div class="res__meta"><span class="mono" data-f="chg"></span> | ${r.corr} | Oferta: <span data-f="sup"></span></div>
         <div class="res__pos" data-f="pos" hidden></div>
@@ -176,19 +176,31 @@ function buildMarket() {
 
 let OF = [], ctSig = '', ctBucket = 0;   // ofertas de contrato (vêm do servidor)
 const resNome = id => RES.find(x => x.id === id)?.nome || id;
+const resIcon = id => { const r = RES.find(x => x.id === id); return r ? iconSrc(r) : ''; };
 const destNome = (g, id) => GALAXIES[g]?.planetas.find(p => p.id === id)?.nome || id;
+const ctTempo = ms => { const t = Math.max(0, Math.ceil(ms / 1000)); return Math.floor(t / 60) + ":" + String(t % 60).padStart(2, "0"); };
 function renderContratos() {
   const el = $('#contratos'); if (!el) return;
-  if (MODE === 'partida' || S.trip || !TOK) { el.innerHTML = ''; ctSig = ''; return; }
+  if (MODE === 'partida' || !TOK) { el.innerHTML = ''; ctSig = ''; return; }
   const now = NOW(), b = Math.floor(now / 1200000), ativos = S.ct || [], feitos = new Set([...(S.cf || []), ...ativos.map(x => x.id)]);
-  if (OF.length && Number(OF[0].id.split(':')[1]) !== b && ctBucket !== b) { ctBucket = b; refrescar(true); }
-  const min = t => Math.max(0, Math.ceil((t - now) / 60000));
-  const act = ativos.map(x => { const h = S.inv[x.r]?.qty || 0, aqui = S.gal === x.gal && S.loc === x.dest, ok = aqui && h >= x.q;
-    return `<li><b>${x.q} × ${resNome(x.r)}</b> → ${destNome(x.gal, x.dest)}<small>${fmt(x.pay)} Cr · prazo ${min(x.ate)} min · porão ${Math.min(h, x.q)}/${x.q}</small><button data-ce="${x.id}" ${ok ? '' : 'disabled'}>${aqui ? 'Entregar' : 'Em rota'}</button></li>`; }).join('');
-  const of = OF.filter(o => !feitos.has(o.id)).map(o => `<li><b>${o.q} × ${resNome(o.r)}</b> → ${destNome(o.gal, o.dest)}<small>${fmt(o.pay)} Cr (+${Math.round((o.mult - 1) * 100)}%) · ${Math.ceil(o.dur / 60)} min</small><button data-ca="${o.id}" ${ativos.length >= 3 ? 'disabled' : ''}>Aceitar</button></li>`).join('');
-  const html = (act || of) ? `<section class="ct"><h3>Contratos</h3>${act ? `<ul>${act}</ul>` : ''}${of ? `<h4>Ofertas aqui</h4><ul>${of}</ul>` : ''}</section>` : '';
-  if (html !== ctSig) { ctSig = html; el.innerHTML = html; }
+  if ((!OF.length || Number(OF[0].id.split(':')[1]) !== b) && ctBucket !== b && !S.trip && CLOUD()) { ctBucket = b; refrescar(true); }   // ofertas ausentes ou de outra janela: pede ao servidor
+  const card = (x, atv) => {
+    const aqui = !S.trip && S.gal === x.gal && S.loc === x.dest, h = S.inv[x.r]?.qty || 0, pct = Math.round(100 * (x.q0 ? 1 - x.q / x.q0 : 0));
+    return `<li class="ctc ${atv ? 'on' : ''}"><img src="${resIcon(x.r)}" alt="" onerror="this.style.visibility='hidden'">
+      <div class="ctc__b"><div class="ctc__t">${atv ? '<span class="ctc__tag">ATIVO</span>' : ''}<b>${x.q} × ${resNome(x.r)}</b>${x.falta ? '<span class="ctc__fl">em falta lá</span>' : ''}</div>
+      <div class="ctc__s">→ ${destNome(x.gal, x.dest)} · mercado +${Math.round((x.mult - 1) * 100)}% + combustível</div>
+      ${atv ? `<div class="ctc__s"><span class="ctc__time" data-ate="${x.ate}">⏱ ${ctTempo(x.ate - now)}</span> · porão ${Math.min(h, x.q)}/${x.q}${x.q0 > x.q ? ` · entregue ${pct}%` : ''}</div><div class="ctc__bar"><i style="width:${pct}%"></i></div>`
+        : `<div class="ctc__s">⏱ prazo ${Math.ceil(x.dur / 60)} min</div>`}</div>
+      ${atv ? `<button data-ce="${x.id}" ${aqui && h ? '' : 'disabled'}>${aqui ? (h ? 'Entregar' : 'Sem carga') : (S.trip ? 'Em viagem' : 'Vá até lá')}</button>`
+        : `<button data-ca="${x.id}" ${ativos.length >= 3 || S.trip ? 'disabled' : ''}>Aceitar</button>`}</li>`; };
+  const ofs = S.trip ? [] : OF.filter(o => !feitos.has(o.id));
+  const html = (ativos.length || ofs.length) ? `<section class="ct">
+    <h3>Contratos <small>${ativos.length}/3 ativos</small></h3>
+    ${ativos.length ? `<ul>${ativos.map(x => card(x, true)).join('')}</ul>` : '<p class="ct__vz">Nenhum contrato ativo. Aceite uma oferta abaixo.</p>'}
+    ${ofs.length ? `<h4>Ofertas neste planeta</h4><ul>${ofs.map(o => card(o, false)).join('')}</ul>` : ''}</section>` : '';
+  const sig = html.replace(/⏱ \d+:\d+/g, ''); if (sig !== ctSig) { ctSig = sig; el.innerHTML = html; }
 }
+setInterval(() => { const n = NOW(); document.querySelectorAll('.ctc__time').forEach(e => { const t = Number(e.dataset.ate) - n; e.textContent = '⏱ ' + ctTempo(t); e.classList.toggle('urg', t < 60000); }); }, 1000);
 $('#contratos')?.addEventListener('click', e => { const a = e.target.closest('[data-ca]'), d = e.target.closest('[data-ce]'); if (a && !a.disabled) act('contratoAceitar', { id:a.dataset.ca }); else if (d && !d.disabled) act('contratoEntregar', { id:d.dataset.ce }); });
 function render() {
   renderContratos();
@@ -196,7 +208,7 @@ function render() {
   $('#hud-networth').textContent = fmt(patTotal());
   RES.forEach(r => {
     const el = $(`[data-id="${r.id}"]`), g = S.price[r.id], p = px(r.id), pct = (g / S.prev[r.id] - 1) * 100;
-    el.hidden = r.t > S.rank; const su = $('[data-f=sup]', el); su.textContent = Math.round(stk(r.id)) + '%'; su.className = stk(r.id) < 50 ? 'down' : '';
+    el.hidden = r.t > S.rank; el.classList.toggle('falta', !S.trip && escasso(S.loc, NOW()) === r.id); const su = $('[data-f=sup]', el); su.textContent = Math.round(stk(r.id)) + '%'; su.className = stk(r.id) < 50 ? 'down' : '';
     $('[data-f=price]', el).textContent = fmt(p) + ' Cr';
     const c = $('[data-f=chg]', el);
     c.textContent = `${pct >= 0 ? '▲ +' : '▼ '}${fmt(pct)}%`; c.className = 'mono ' + (pct >= 0 ? 'up' : 'down');
@@ -246,7 +258,13 @@ const trip = to => { const d = dist(plan(S.loc), plan(to)); return { d, cost:Mat
 const recov = (o, now = NOW()) => 100 - (100 - o.v) * Math.pow(.94, (now - o.t) / 30000);   // a oferta volta a 100% com o tempo: função do relógio, igual em qualquer aparelho
 const stk = id => { const o = S.stock[S.loc]?.[id]; return o ? recov(o) : 100; };
 const setStk = (id, v) => { (S.stock[S.loc] ??= {})[id] = { v:Math.max(1, v), t:Date.now() }; };
-function pxAt(id, st) { return S.price[id] * (plan(S.loc).m[id] || 1) * (1 + .12 * GI()) * clamp((100 / Math.max(st, 5)) ** .4, .6, 2.5) * (S.ev && S.ev.r === id && (!S.ev.p || S.ev.p === S.loc) ? S.ev.m : 1); }
+const ESC_JAN = 3 * 3600e3, ESC_M = 1.4;   // espelho do servidor: planeta sem um produto a cada 3 h (+40% de preço)
+function escasso(planId, now) {
+  if (S.partida) return null;
+  const prods = RES.filter(r => (r.t || 0) <= S.rank), h = hash(`esc:${GI()}:${planId}:${Math.floor(now / ESC_JAN)}`);
+  return prods.length && h % 10 < 7 ? prods[(h >>> 8) % prods.length].id : null;
+}
+function pxAt(id, st) { return S.price[id] * (plan(S.loc).m[id] || 1) * (1 + .12 * GI()) * clamp((100 / Math.max(st, 5)) ** .4, .6, 2.5) * (S.ev && S.ev.r === id && (!S.ev.p || S.ev.p === S.loc) ? S.ev.m : 1) * (escasso(S.loc, NOW()) === id ? ESC_M : 1); }
 function px(id) { return pxAt(id, stk(id)); }
 
 function goTo(to) {
@@ -994,7 +1012,7 @@ const setSession = (token, nome) => { TOK = token; USER = nome; store('astromerc
 const clearSession = () => { TOK = USER = ''; CTS = 0; ['astromercante_view', 'astromercante_tok', 'astromercante_user', 'astromercante_cts', 'astromercante_google'].forEach(k => store(k, null)); };
 // Só sobe para a nuvem o que mudou de verdade (compra, viagem, upgrade...) e sem os dados recalculáveis pelo relógio.
 /* ---------- Conta e servidor ---------- */
-const SERVER_KEYS = ['credits', 'stock', 'loc', 'gal', 'cap', 'capLv', 'engLv', 'wpLv', 'hull', 'maxHull', 'rank', 'trip', 'vis', 'daily', 'streak', 'lastDay', 'partida', 'nave', 'frota', 'tv'];
+const SERVER_KEYS = ['credits', 'stock', 'loc', 'gal', 'cap', 'capLv', 'engLv', 'wpLv', 'hull', 'maxHull', 'rank', 'trip', 'vis', 'daily', 'streak', 'lastDay', 'partida', 'nave', 'frota', 'tv', 'ct', 'cf'];
 let firstState = true;
 function aplicarEstado(r) {   // o servidor manda; este aparelho só mostra
   if (r.agora) SKEW = r.agora - Date.now();

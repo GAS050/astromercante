@@ -637,8 +637,17 @@ body[data-view=loja] #p-loja{display:flex}
 .hm-news .nw-f{display:block;margin-top:8px;color:var(--mt);font-size:.68rem}
 
 /* contratos de entrega */
-.ct{margin:0 0 10px;padding:10px;border:1px solid var(--line);border-radius:6px;background:rgba(5,14,26,.7)}
-.ct h3{margin:0 0 6px;font-size:.95rem;color:var(--cyan)}.ct h4{margin:8px 0 4px;font-size:.78rem;color:var(--mt);font-weight:600}
-.ct ul{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:6px}
-.ct li{display:grid;grid-template-columns:1fr auto;gap:2px 8px;align-items:center;font-size:.86rem}
-.ct li small{grid-column:1;color:var(--mt)}.ct li button{grid-column:2;grid-row:1 / span 2;padding:6px 10px}
+.ct{margin:0 0 12px;padding:12px;border:1px solid var(--line);border-radius:8px;background:linear-gradient(180deg,rgba(8,24,44,.9),rgba(5,14,26,.8))}
+.ct h3{margin:0 0 8px;font-size:1rem;color:var(--cyan);display:flex;justify-content:space-between;align-items:baseline}.ct h3 small{color:var(--mt);font-weight:500;font-size:.76rem}
+.ct h4{margin:12px 0 6px;font-size:.76rem;color:var(--mt);font-weight:600;text-transform:uppercase;letter-spacing:.05em}
+.ct ul{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}.ct__vz{margin:0;color:var(--mt);font-size:.84rem}
+.ctc{display:grid;grid-template-columns:44px 1fr auto;gap:10px;align-items:center;padding:8px;border:1px solid var(--line);border-radius:6px;background:rgba(5,14,26,.7)}
+.ctc.on{border-color:var(--cyan);box-shadow:0 0 0 1px rgba(0,229,255,.25) inset}
+.ctc img{width:44px;height:44px;border-radius:4px;object-fit:cover;background:#0b1d33}
+.ctc__t{display:flex;flex-wrap:wrap;gap:6px;align-items:center;font-size:.9rem}.ctc__s{color:var(--mt);font-size:.78rem;margin-top:2px}
+.ctc__tag{background:var(--cyan);color:#021018;font-size:.62rem;font-weight:800;padding:2px 6px;border-radius:3px;letter-spacing:.06em}
+.ctc__fl,.falta-tag{background:rgba(255,170,0,.16);color:#ffb84a;font-size:.62rem;font-weight:700;padding:2px 6px;border-radius:3px}
+.ctc__time.urg{color:#ff6b6b;font-weight:700}
+.ctc__bar{height:4px;background:#0b1d33;border-radius:2px;margin-top:5px;overflow:hidden}.ctc__bar i{display:block;height:100%;background:var(--cyan)}
+.ctc button{padding:8px 12px;white-space:nowrap}.ctc button:disabled{opacity:.5}
+.falta-tag{display:none;margin-left:6px;vertical-align:middle}.res.falta .falta-tag{display:inline-block}

@@ -50,7 +50,14 @@ const feedCh = (feed, src, t) => {
   return Number.isFinite(a) && feed.feedAt ? a + (c - a) * clamp((t - feed.feedAt) / FEED_EVERY, 0, 1) : c;
 };
 // notícias do jogo: empurrão limitado (±20% no total), entra em 5 min, fica estável e sai suave no último quarto da duração
-const newsMult = (id, t, feed) => { let m = 0; for (const n of feed.news || []) { if (!n.s || t < n.t0 || t >= n.t1 || !n.r?.includes(id)) continue; m += n.s * Math.min(1, (t - n.t0) / 300000, (n.t1 - t) / ((n.t1 - n.t0) * .25)); } return clamp(m, -.2, .2); };
+const newsMult = (id, t, feed) => {   // por produto vale a notícia mais recente (a anterior sai suavemente em 5 min): nunca soma efeitos; no máx. ±20%
+  const at = [];
+  for (const n of feed.news || []) if (n.s && t >= n.t0 && t < n.t1 && n.r?.includes(id)) at.push(n);
+  if (!at.length) return 0;
+  at.sort((a, b) => b.t0 - a.t0);
+  const env = (n) => Math.min(1, (t - n.t0) / 300000, (n.t1 - t) / ((n.t1 - n.t0) * .25)), ent = Math.min(1, (t - at[0].t0) / 300000);
+  return clamp(at[0].s * env(at[0]) + (at[1] ? (1 - ent) * at[1].s * env(at[1]) : 0), -.2, .2);
+};
 function precoBase(r, t, feed) {
   const s = t / 1000, n = vnoise(r.id + 'a', s / 900) * .55 + vnoise(r.id + 'b', s / 240) * .3 + vnoise(r.id + 'c', s / 60) * .15;
   const ch = feedCh(feed, r.src, t), tg = Number.isFinite(ch) ? clamp(ch * 3, -30, 30) / 100 : 0;

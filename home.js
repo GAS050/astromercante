@@ -21,7 +21,7 @@
   const noticiasCard = () => {
     const L = (typeof NOTICIAS !== 'undefined' ? NOTICIAS : []).slice(0, 5); if (!L.length) return '';
     const nome = id => esc((RES.find(r => r.id === id) || {}).nome || id);
-    return `<div class="hm-card hm-news"><div class="hm-h"><b>📰 Noticiário Interplanetário</b><small>Ficção inspirada no mundo real</small></div><ul class="nw">` + L.map(n => `<li><div class="nw-t"><b>${esc(n.ti)}</b><small>${hA(n.t0)}</small></div><p>${esc(n.tx)}</p>${n.s && Date.now() < n.t1 ? `<div class="nw-c">${n.r.map(id => `<span class="${n.s > 0 ? 'up' : 'down'}">${n.s > 0 ? '▲' : '▼'} ${nome(id)}</span>`).join('')}</div>` : ''}</li>`).join('') + `</ul><small class="nw-f">Notícias fictícias. Não são recomendação financeira.</small></div>`;
+    return `<div class="hm-card hm-news"><div class="hm-h"><b>📰 Noticiário Interplanetário</b><small>Ficção inspirada no mundo real</small></div><ul class="nw">` + L.map(n => `<li><div class="nw-t"><b>${esc(n.ti)}</b><small>${hA(n.t0)}</small></div><p>${esc(n.tx)}</p>${n.s && Date.now() < n.t1 ? `<div class="nw-c">${n.r.filter(id => !L.some(m => m !== n && m.s && m.t0 > n.t0 && Date.now() < m.t1 && m.r.includes(id))).map(id => `<span class="${n.s > 0 ? 'up' : 'down'}">${n.s > 0 ? '▲' : '▼'} ${nome(id)}</span>`).join('')}</div>` : ''}</li>`).join('') + `</ul><small class="nw-f">Notícias fictícias. Não são recomendação financeira.</small></div>`;
   };
   function render() {
     if (document.body.dataset.view !== 'home' || !TOK || !CLOUD() || !READY || typeof PF === 'undefined' || !PF) return;

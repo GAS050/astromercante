@@ -80,8 +80,15 @@ function feedCh(src, t) {   // variação 24h do feed, suavizada entre uma atual
   const c = change[src]; if (!Number.isFinite(c)) return null; const a = ant[src];
   return Number.isFinite(a) && feedAt ? a + (c - a) * clamp((t - feedAt) / FEED_EVERY, 0, 1) : c;
 }
-const newsMult = (id, t) => { let m = 0; if (S.partida && !S.partida.eventos) return 0;   // partidas sem eventos também ficam sem notícias
-   for (const n of NEWS) { if (!n.s || t < n.t0 || t >= n.t1 || !n.r?.includes(id)) continue; m += n.s * Math.min(1, (t - n.t0) / 300000, (n.t1 - t) / ((n.t1 - n.t0) * .25)); } return clamp(m, -.2, .2); };   // idêntico ao servidor
+const newsMult = (id, t) => {   // por produto vale a notícia mais recente (a anterior sai suavemente em 5 min): nunca soma efeitos; no máx. ±20%
+  const at = []; if (S.partida && !S.partida.eventos) return 0;   // partidas sem eventos também ficam sem notícias
+  
+  for (const n of NEWS) if (n.s && t >= n.t0 && t < n.t1 && n.r?.includes(id)) at.push(n);
+  if (!at.length) return 0;
+  at.sort((a, b) => b.t0 - a.t0);
+  const env = (n) => Math.min(1, (t - n.t0) / 300000, (n.t1 - t) / ((n.t1 - n.t0) * .25)), ent = Math.min(1, (t - at[0].t0) / 300000);
+  return clamp(at[0].s * env(at[0]) + (at[1] ? (1 - ent) * at[1].s * env(at[1]) : 0), -.2, .2);
+};
 function priceNow(r, t) {
   const s = t / 1000, n = vnoise(r.id + 'a', s / 900) * .55 + vnoise(r.id + 'b', s / 240) * .3 + vnoise(r.id + 'c', s / 60) * .15;
   const ch = feedCh(r.src, t), tg = Number.isFinite(ch) ? clamp(ch * 3, -30, 30) / 100 : 0;

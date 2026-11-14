@@ -511,12 +511,17 @@ export const valorFinal = (S, feed) => patrimonio(S, { now: S.partida.fim, feed 
 /* ---------- bots: curva de patrimônio determinística (não precisam de estado nem de ações) ---------- */
 export const NOMES_BOT = ['Vega Prime', 'Capitão Zen', 'Nova-7', 'Dr. Quasar', 'Lyra-Bot', 'Orion-X', 'Kappa Rex', 'Sirius Jr.'];
 export const botNome = (codigo, i) => NOMES_BOT[(hash(codigo) + i) % NOMES_BOT.length] + (i >= NOMES_BOT.length ? ' ' + i : '');
-const GBOT = { facil: 0.35, normal: 0.7, dificil: 1.1 };   // fração do ritmo de referência de um jogador esperto (calibrado por simulação)
-export const ritmoReferencia = (cfg) => cfg.saldo * 0.02 * cfg.duracao;   // ganho de um bot 'difícil' médio ≈ 2% do saldo por minuto (valor ajustável: ainda não calibrado com jogadores reais)
+const GBOT = { facil: 0.5, normal: 1, dificil: 1.5 };   // fração do ritmo de referência de um jogador esperto (calibrado por simulação)
+/** Ganho esperado de um bot 'normal' em 30 min, em fração do saldo, conforme a patente média da sala (índice = patente 0 a 9).
+ *  Calibrado por simulação: um piloto esperto rende 5-6× o saldo em 30 min com naves de patente 3+; um jogador de verdade rende ~25% disso (e nas patentes 0-2 há um piso). */
+export const GANHO30 = [.15, .2, .3, .6, .9, 1.15, 1.35, 1.45, 1.55, 1.65];
+export const ritmoReferencia = (cfg) => {
+  const r = clamp(cfg.rb || 0, 0, 9), i = Math.floor(r), g = GANHO30[i] + (GANHO30[Math.min(9, i + 1)] - GANHO30[i]) * (r - i);
+  return cfg.saldo * g * cfg.duracao / 30;
+};
 export function botPatrimonio(cfg, codigo, i, t, inicio, fim) {
   const tau = clamp((t - inicio) / (fim - inicio), 0, 1), h = hash(codigo + ':bot' + i), hab = .8 + (h % 1000) / 2500;   // habilidade 0,8 a 1,2
-  const fr = clamp(.55 + .09 * (cfg.rb || 0), .55, 1.2);   // bots acompanham a patente média dos humanos da sala (novatos enfrentam bots mais fracos)
-  const ganho = ritmoReferencia(cfg) * GBOT[cfg.dific] * fr * hab * Math.pow(tau, .9);
+  const ganho = ritmoReferencia(cfg) * GBOT[cfg.dific] * hab * Math.pow(tau, .9);   // acompanha a patente média dos humanos da sala (cfg.rb)
   const ruido = (vnoise(codigo + 'b' + i, tau * 9) * .05 + vnoise(codigo + 'c' + i, tau * 31) * .02) * cfg.saldo * Math.min(1, tau * 4);
   return Math.max(cfg.saldo * .5, cfg.saldo + ganho + ruido);
 }

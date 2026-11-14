@@ -497,9 +497,12 @@ async function partidaVer(env, id, url) {
   if (p.estado === 'fim') await pagarPremios(env, p.codigo);
   return await vista(env, p, id, Number(url.searchParams.get('v')));
 }
+const avariada = (S) => S.hull < 99.99;
+const MSG_REPARO = (S) => `Sua nave está com ${Math.floor(S.hull)}% de casco. Repare-a (Reparar casco) antes de jogar na Arena: todos começam com 100%.`;
 async function entrarNaSala(env, p, id, cfg) {
   if (await ativa(env, id)) throw new Erro(409, 'Você já está em uma partida. Termine ou saia dela antes.');
   const carr = (await carregarJogo(env, id, Date.now())).S;
+  if (avariada(carr)) throw new Erro(412, MSG_REPARO(carr));
   for (const g of cfg.galaxias) if (!desbloqueada(carr, g)) throw new Erro(403, `Você ainda não desbloqueou a galáxia ${GALAXIES[g].nome}, que faz parte desta partida.`);
   const taxa = p.modo === 'torneio' || p.modo === 'duelo' ? cfg.taxa : 0, now = Date.now();
   if (taxa && carr.credits < taxa) throw new Erro(402, `A taxa de entrada é ${taxa} Cr e você tem ${Math.floor(carr.credits)} Cr na carreira.`);
@@ -598,6 +601,7 @@ async function dueloFila(env, id, corpo) {
   if (!DUELO_APOSTAS.includes(aposta)) throw new Erro(400, 'Aposta inválida.');
   if (await ativa(env, id)) throw new Erro(409, 'Você já está em uma partida. Termine ou saia dela antes.');
   const carr = (await carregarJogo(env, id, Date.now())).S;
+  if (avariada(carr)) throw new Erro(412, MSG_REPARO(carr));
   if (carr.credits < aposta) throw new Erro(402, `A aposta é ${aposta} Cr e você tem ${Math.floor(carr.credits)} Cr na carreira.`);
   const procurar = async () => ((await env.DB.prepare("SELECT * FROM partidas WHERE modo = 'duelo' AND estado = 'espera' AND criador <> ? AND criada > ? ORDER BY criada, codigo LIMIT 30").bind(id, Date.now() - DUELO.espera).all()).results || []).filter((q) => JSON.parse(q.cfg).taxa === aposta);
   for (let t = 0; t < 3; t++) {

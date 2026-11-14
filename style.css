@@ -777,3 +777,4 @@ body.gated .lp-mus{display:grid}.lp-mus.off{color:var(--mt);border-color:var(--l
 .matchbar button.danger:not(:disabled){border-color:#ff4d6d;color:#fff;background:#ff4d6d;animation:pulsa 1s infinite}
 @keyframes pulsa{50%{box-shadow:0 0 10px #ff4d6d}}
 @media(max-width:420px){.apostas{grid-template-columns:repeat(5,1fr);gap:4px}.apostas button{font-size:.78rem}}
+.pcard.aviso{border-color:var(--amber);background:rgba(255,179,71,.08);margin-bottom:12px}.pcard.aviso h3{color:var(--amber)}

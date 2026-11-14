@@ -87,13 +87,14 @@ function renderPlay() {
   if (noAr()) { el.innerHTML = emAndamentoHtml(); return; }
   if (FORM) { el.innerHTML = formHtml(); return; }
   const um = location.search.match(/[?&]sala=([A-Za-z0-9]{6})/), pre = um ? um[1].toUpperCase() : '';
-  el.innerHTML = `<div class="pcard duelo"><h3>⚔️ Duelo X1</h3><p>Você contra outro piloto, 5 minutos e saldo de 5.000 Cr. Cada um usa a nave que tem equipada na carreira. Os dois dividem o mesmo mercado (o que um compra encarece para o outro), se enxergam o tempo todo e podem <b>atacar e roubar a carga</b> um do outro. Quem tiver mais patrimônio leva o bolo (90%; 10% fica com a casa). Se um sumir por 60 s, perde a aposta.</p>
-    <div class="apostas">${APOSTAS.map(a => `<button type="button" data-aposta="${a}" ${S.credits < a ? 'disabled' : ''}>${a >= 1000 ? a / 1000 + ' mil' : a}<small>Cr</small></button>`).join('')}</div>
-    <p class="err" id="d-err">${esc(duelMsg)}</p><p class="empty">A aposta sai dos créditos da carreira. Sem rival na fila, você espera até 10 minutos e a aposta é devolvida.</p></div>
+  const dano = MODE !== 'partida' && S.hull < 99.99;
+  el.innerHTML = (dano ? `<div class="pcard aviso"><h3>🔧 Nave danificada</h3><p>Seu casco está em <b>${Math.floor(S.hull)}%</b>. Na Arena todos começam com 100%: repare a nave (botão <b>Reparar casco</b>) antes de entrar em qualquer modo.</p></div>` : '') + `<div class="pcard duelo"><h3>⚔️ Duelo X1</h3><p>Você contra outro piloto, 5 minutos e saldo de 5.000 Cr. Cada um usa a nave que tem equipada na carreira. Os dois dividem o mesmo mercado (o que um compra encarece para o outro), se enxergam o tempo todo e podem <b>atacar e roubar a carga</b> um do outro. Quem tiver mais patrimônio leva o bolo (90%; 10% fica com a casa). Se um sumir por 60 s, perde a aposta.</p>
+    <div class="apostas">${APOSTAS.map(a => `<button type="button" data-aposta="${a}" ${S.credits < a || dano ? 'disabled' : ''}>${a >= 1000 ? a / 1000 + ' mil' : a}<small>Cr</small></button>`).join('')}</div>
+    <p class="err" id="d-err">${esc(duelMsg)}</p><p class="empty">A aposta sai dos créditos da carreira. A busca por um rival dura até 60 segundos; sem ninguém, a aposta volta para você.</p></div>
   <div class="pcards">
     <div class="pcard"><h3>🚀 Carreira</h3><p>Seu progresso de sempre: ranking global, missões e patentes.</p><button type="button" data-p="carreira">Continuar</button></div>
-    <div class="pcard"><h3>🏆 Torneio</h3><p>Até 8 pilotos pagam uma taxa de entrada; os melhores levam o prêmio. Bots completam a sala.</p><button type="button" class="buy" data-p="novo-torneio">Criar torneio</button></div>
-    <div class="pcard"><h3>🤝 Entre amigos</h3><p>Sala livre, sem taxa: escolha tempo, galáxias e regras e convide por código.</p><button type="button" class="buy" data-p="novo-amigos">Criar sala</button></div>
+    <div class="pcard"><h3>🏆 Torneio</h3><p>Até 8 pilotos pagam uma taxa de entrada; os melhores levam o prêmio. Bots completam a sala.</p><button type="button" class="buy" data-p="novo-torneio" ${dano ? "disabled" : ""}>Criar torneio</button></div>
+    <div class="pcard"><h3>🤝 Entre amigos</h3><p>Sala livre, sem taxa: escolha tempo, galáxias e regras e convide por código.</p><button type="button" class="buy" data-p="novo-amigos" ${dano ? "disabled" : ""}>Criar sala</button></div>
   </div>
   <form class="prow" id="join"><label>Tem um código? <input id="join-cod" maxlength="6" autocomplete="off" placeholder="ABC123" value="${pre}"></label><button class="buy" type="submit">Entrar na sala</button></form>
   <p class="err" id="join-err">${esc(joinMsg)}</p>
@@ -121,7 +122,7 @@ function formHtml() {
   <div class="prow"><button type="button" id="f-x">Voltar</button><button type="button" class="buy" id="f-ok">Criar sala${t ? ' e pagar taxa' : ''}</button></div>`;
 }
 function lobbyHtml() {
-  if (duelo()) return `<h3>⚔️ Duelo X1 · procurando rival</h3><p class="pbig"><i class="fa-solid fa-satellite-dish fa-beat-fade"></i></p><p class="empty">Aposta de <b>${fmt(PT.cfg.taxa).replace(',00', '')} Cr</b> já reservada. Assim que outro piloto escolher a mesma aposta, o duelo começa sozinho. Se ninguém entrar em 10 minutos, a aposta volta para você.</p><p class="err" id="l-err"></p><div class="prow"><button type="button" class="danger" id="l-x">Cancelar e recuperar a aposta</button></div>`;
+  if (duelo()) return `<h3>⚔️ Duelo X1 · procurando rival</h3><p class="pbig"><i class="fa-solid fa-satellite-dish fa-beat-fade"></i></p><p class="empty">Aposta de <b>${fmt(PT.cfg.taxa).replace(',00', '')} Cr</b> já reservada. Assim que outro piloto escolher a mesma aposta, o duelo começa sozinho. Se ninguém entrar em 60 segundos, a aposta volta para você.</p><p class="err" id="l-err"></p><div class="prow"><button type="button" class="danger" id="l-x">Cancelar e recuperar a aposta</button></div>`;
   const c = PT.cfg, link = location.origin + location.pathname + '?sala=' + PT.codigo, hum = PT.jogadores.length;
   return `<h3>${PT.modo === 'torneio' ? '🏆 Torneio' : '🤝 Sala entre amigos'} · aguardando</h3>
   <div class="pcode"><small>Código da sala</small><b class="mono">${PT.codigo}</b><button type="button" id="l-cp">Copiar convite</button></div>
@@ -141,7 +142,8 @@ function emAndamentoHtml() {
 }
 function mostrarResultado(p) {
   const box = $('#res-box');
-  if (p.estado === 'cancelada') box.innerHTML = '<h2>Sala cancelada</h2><p class="empty">A sala não começou a tempo. As taxas foram devolvidas.</p><button class="buy" id="res-x">Fechar</button>';
+  if (p.estado === 'cancelada' && p.modo === 'duelo') box.innerHTML = '<h2>Nenhum oponente encontrado</h2><p class="empty">Ninguém entrou na fila em 60 segundos. Sua aposta foi devolvida; tente de novo daqui a pouco.</p><button class="buy" id="res-x">Fechar</button>';
+  else if (p.estado === 'cancelada') box.innerHTML = '<h2>Sala cancelada</h2><p class="empty">A sala não começou a tempo. As taxas foram devolvidas.</p><button class="buy" id="res-x">Fechar</button>';
   else {
     const eu = (p.resultado || []).find(r => r.eu), t = p.modo === 'torneio';
     if (p.modo === 'duelo') {

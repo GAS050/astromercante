@@ -84,6 +84,59 @@ setInterval(() => { if (TOK && CLOUD() && PT && (PT.estado === 'espera' || (noAr
 setInterval(() => { if (TOK && CLOUD() && noAr() && duelo() && !document.hidden) partidaPoll(true); }, 3000);
 setInterval(() => { if (TOK && CLOUD() && MODE !== 'partida' && noAr() && !document.hidden) partidaPoll(true); }, 30000);
 
+
+/* ---------- Duelo X1: carrossel de salas (uma por galáxia), abre na última galáxia desbloqueada ---------- */
+let ARENA_I = -1, SALAS = null, salasAt = 0;
+const ultimaLiberada = () => { let k = 0; GALAXIES.forEach((_, i) => { if (galLiberada(i)) k = i; }); return k; };
+const carImg = g => { const pl = g.planetas.reduce((a, b) => b.r > a.r ? b : a); return { img: pl.img, c: pl.c }; };
+async function salasPoll() {
+  if (!TOK || !CLOUD() || document.hidden || document.body.dataset.view !== 'play' || (PT && (PT.estado === 'espera' || noAr()))) return;
+  try { SALAS = await api('/duelo/salas'); salasAt = Date.now(); if (!document.querySelector('#play .car:active')) renderPlay(); } catch {}
+}
+function dueloHtml(dano) {
+  if (ARENA_I < 0) ARENA_I = ultimaLiberada();
+  const f = x => fmt(x).replace(',00', '');
+  const cards = GALAXIES.map((g, i) => {
+    const ok = galLiberada(i), ap = APOSTAS[i], { img, c } = carImg(g), pode = ok && !dano && S.credits >= ap, esp = SALAS ? SALAS.esp[i] : 0, jog = SALAS ? SALAS.jog[i] : 0;
+    const motivo = !ok ? `Exige ${RANKS[g.t] ? RANKS[g.t][1] : 'patente ' + g.t}${g.eng > 1 ? ' e motor nv ' + g.eng : ''}` : dano ? 'Repare o casco' : S.credits < ap ? `Faltam ${f(ap - S.credits)} Cr` : '';
+    return `<article class="cd${ok ? '' : ' lk'}${i === ARENA_I ? ' on' : ''}" data-i="${i}" style="--c:${c}">
+      <div class="cd-sala">SALA ${String(i + 1).padStart(2, '0')}</div>
+      <div class="cd-art"><i class="cd-halo"></i><img src="assets/planets/${img}" alt=""></div>
+      <h4 class="cd-nome">${g.nome}</h4>
+      <div class="cd-aposta"><small>APOSTA</small><b>${f(ap)}<i> Cr</i></b></div>
+      <div class="cd-grade"><div><small>PRÊMIO</small><b class="verde">${f(Math.round(ap * 1.8))}</b></div><div><small>SALDO INICIAL</small><b>${f(ap * 50)}</b></div><div><small>NA FILA</small><b>${esp}</b></div><div><small>EM DUELO</small><b>${jog}</b></div></div>
+      ${ok ? `<button type="button" class="cd-go" data-gal="${i}" ${pode ? '' : 'disabled'}>${pode ? '⚔ ENTRAR NA FILA' : esc(motivo)}</button>` : `<div class="cd-lock">🔒 ${esc(motivo)}</div>`}
+    </article>`;
+  }).join('');
+  return `<div class="pcard duelo"><h3>⚔️ Duelo X1</h3>
+    <p>5 minutos, nave contra nave, mercado dividido. Vence quem tiver mais patrimônio; dá para <b>atacar e roubar a carga</b> do rival. Quem some por 60 s perde.</p>
+    <div class="carw"><button type="button" class="car-b" data-car="-1" aria-label="Sala anterior">‹</button><div class="car" id="car">${cards}</div><button type="button" class="car-b r" data-car="1" aria-label="Próxima sala">›</button></div>
+    <div class="car-dots">${GALAXIES.map((_, i) => `<i data-d="${i}" class="${i === ARENA_I ? 'on' : ''}${galLiberada(i) ? '' : ' lk'}"></i>`).join('')}</div>
+    <p class="err" id="d-err">${esc(duelMsg)}</p><p class="empty">A aposta sai dos créditos da carreira. A busca por um rival dura até 60 segundos; sem ninguém, ela volta para você.</p></div>`;
+}
+function carIr(i, suave) {
+  const car = $('#car'); if (!car) return; ARENA_I = Math.max(0, Math.min(GALAXIES.length - 1, i));
+  const cd = car.children[ARENA_I]; if (!cd) return;
+  car.scrollTo({ left: cd.offsetLeft - (car.clientWidth - cd.offsetWidth) / 2, behavior: suave ? 'smooth' : 'instant' });
+  carMarca();
+}
+function carMarca() {
+  document.querySelectorAll('#car .cd').forEach((c, i) => c.classList.toggle('on', i === ARENA_I));
+  document.querySelectorAll('.car-dots i').forEach((d, i) => d.classList.toggle('on', i === ARENA_I));
+}
+let carT = 0;
+document.addEventListener('scroll', e => {
+  if (!e.target || e.target.id !== 'car') return; const car = e.target, mid = car.scrollLeft + car.clientWidth / 2; let best = 0, bd = 1e9;
+  [...car.children].forEach((c, i) => { const d = Math.abs(c.offsetLeft + c.offsetWidth / 2 - mid); if (d < bd) { bd = d; best = i; } });
+  if (best !== ARENA_I) { ARENA_I = best; carMarca(); }
+}, true);
+$('#play').addEventListener('click', e => {
+  const b = e.target.closest('[data-car]'); if (b) return carIr(ARENA_I + +b.dataset.car, true);
+  const d = e.target.closest('[data-d]'); if (d) return carIr(+d.dataset.d, true);
+  const c = e.target.closest('.cd'); if (c && !e.target.closest('button') && +c.dataset.i !== ARENA_I) carIr(+c.dataset.i, true);
+});
+setInterval(salasPoll, 8000);
+
 /* ---------- menu ---------- */
 const resumo = c => `${c.duracao} min · saldo ${fmt(c.saldo).replace(',00', '')} Cr · ${c.galaxias.map(i => GALAXIES[i].nome).join(', ')}`
   + ` · ${c.jogadores} jogadores${c.bots ? ' (bots completam, ' + DIFIC[c.dific] + ')' : ''}${c.eventos ? '' : ' · sem eventos'}${c.piratas ? '' : ' · sem piratas'}${c.casco === false ? ' · sem desgaste de casco' + (c.taxa ? ' (prêmio −10%)' : '') : (c.taxa ? ' · com casco (1º pode levar até 70% do bolo)' : '')}`;
@@ -97,9 +150,7 @@ function renderPlay() {
   if (FORM) { el.innerHTML = formHtml(); return; }
   const um = location.search.match(/[?&]sala=([A-Za-z0-9]{6})/), pre = um ? um[1].toUpperCase() : '';
   const dano = MODE !== 'partida' && S.hull < 25;
-  el.innerHTML = (dano ? `<div class="pcard aviso"><h3>🔧 Nave danificada</h3><p>Seu casco está em <b>${Math.floor(S.hull)}%</b>, baixo demais para viajar (mínimo 25%). Repare a nave (botão <b>Reparar casco</b>) antes de entrar na Arena. A partida começa com 100% para todos.</p></div>` : '') + `<div class="pcard duelo"><h3>⚔️ Duelo X1</h3><p>Você contra outro piloto, 5 minutos, cada um com a própria nave. Há um modo por galáxia (a aposta cresce a cada uma). Vocês dividem o mesmo mercado e podem <b>atacar e roubar a carga</b> um do outro. Mais patrimônio leva o bolo (90%); quem some por 60 s perde.</p>
-    <div class="modos">${GALAXIES.map((g, i) => { const ok = galLiberada(i), ap = APOSTAS[i]; return `<button type="button" data-gal="${i}" ${!ok || dano || S.credits < ap ? 'disabled' : ''}><span class="mn">${ok ? '' : '🔒 '}${g.nome}</span><b>${fmt(ap).replace(',00', '')} Cr</b><small>${ok ? 'prêmio ' + fmt(Math.round(ap * 1.8)).replace(',00', '') : 'desbloqueie a galáxia'}</small></button>`; }).join('')}</div>
-    <p class="err" id="d-err">${esc(duelMsg)}</p><p class="empty">A aposta sai dos créditos da carreira. A busca por um rival dura até 60 segundos; sem ninguém, a aposta volta para você.</p></div>
+  el.innerHTML = (dano ? `<div class="pcard aviso"><h3>🔧 Nave danificada</h3><p>Seu casco está em <b>${Math.floor(S.hull)}%</b>, baixo demais para viajar (mínimo 25%). Repare a nave (botão <b>Reparar casco</b>) antes de entrar na Arena. A partida começa com 100% para todos.</p></div>` : '') + `${dueloHtml(dano)}
   <div class="pcards">
     <div class="pcard"><h3>🏆 Torneio</h3><p>Até 8 pilotos pagam uma taxa de entrada; os melhores levam o prêmio. Bots completam a sala.</p><button type="button" class="buy" data-p="novo-torneio" ${dano ? "disabled" : ""}>Criar torneio</button></div>
     <div class="pcard"><h3>🤝 Entre amigos</h3><p>Sala livre, sem taxa: escolha tempo, galáxias e regras e convide por código.</p><button type="button" class="buy" data-p="novo-amigos" ${dano ? "disabled" : ""}>Criar sala</button></div>
@@ -108,7 +159,8 @@ function renderPlay() {
   <p class="err" id="join-err">${esc(joinMsg)}</p>
   <p class="empty">Você só joga em galáxias que já desbloqueou. A partida usa sua nave atual (porão, motor e armamento), mas é um jogo à parte: seus créditos e itens da carreira não mudam, exceto a taxa e o prêmio do torneio.</p>`;
 
-  if (digitado) { $('#join-cod').value = digitado; if (tinhaFoco) $('#join-cod').focus(); }}
+  if (digitado) { $('#join-cod').value = digitado; if (tinhaFoco) $('#join-cod').focus(); }
+  carIr(ARENA_I, false); }
 function formHtml() {
   const f = FORM, t = f.modo === 'torneio';
   return `<h3>${t ? '🏆 Novo torneio' : '🤝 Nova sala entre amigos'}</h3>
@@ -175,7 +227,7 @@ async function pedir(btn, caminho, corpo, errId) {
 }
 $('#play').addEventListener('click', async e => {
   const b = e.target.closest('button'); if (!b) return;
-  if (b.dataset.gal != null && b.closest('.modos')) { duelMsg = ''; if (await pedir(b, '/duelo/fila', { gal:+b.dataset.gal }, '#d-err')) refrescar(true); else if ($('#d-err')) duelMsg = $('#d-err').textContent; return; }
+  if (b.dataset.gal != null && b.closest('.cd')) { duelMsg = ''; if (await pedir(b, '/duelo/fila', { gal:+b.dataset.gal }, '#d-err')) refrescar(true); else if ($('#d-err')) duelMsg = $('#d-err').textContent; return; }
   if (b.id === 'p-quit') return abandonar(b);
   if (b.id === 'l-inv') { if (typeof AV !== 'undefined') AV.tab = 'amigos'; return document.querySelector('.nav [data-view=amigos]').click(); }
   if (b.dataset.p === 'carreira') return document.querySelector('.nav [data-view=market]').click();
@@ -215,7 +267,7 @@ $('#play').addEventListener('submit', async e => {
   if (cod.length !== 6) { joinMsg = 'O código tem 6 caracteres.'; $('#join-err').textContent = joinMsg; return; }
   joinMsg = ''; if (await pedir(b, '/partida/entrar', { codigo:cod }, '#join-err')) { try { history.replaceState(null, '', location.pathname); } catch {} }
 });
-document.querySelector('.nav [data-view=play]').addEventListener('click', () => { renderPlay(); partidaPoll(true); });
+document.querySelector('.nav [data-view=play]').addEventListener('click', () => { ARENA_I = -1; renderPlay(); partidaPoll(true); setTimeout(() => carIr(ARENA_I, false), 60); setTimeout(salasPoll, 150); });
 $('#res').onclick = e => { if (e.target.id === 'res') $('#res').hidden = true; };
 { const boot = setInterval(() => { if (!CLOUD() || !TOK) { clearInterval(boot); renderPlay(); return; } if (READY) { clearInterval(boot); partidaPoll(true).then(() => { renderPlay(); if (/[?&]sala=/.test(location.search) && !PT) document.querySelector('.nav [data-view=play]').click(); }); } }, 300); }
 renderPlay();

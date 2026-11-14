@@ -635,6 +635,16 @@ async function dueloFila(env, id, corpo) {
   }
   throw new Erro(503, 'Muita gente na fila agora. Tente de novo.');
 }
+/** Painel do carrossel: quantos pilotos esperam e quantos duelos rolam em cada galáxia. */
+async function dueloSalas(env) {
+  await dueloInit(env);
+  const now = Date.now(), esp = GALAXIES.map(() => 0), jog = GALAXIES.map(() => 0);
+  for (const q of (await env.DB.prepare("SELECT cfg, estado, criada FROM partidas WHERE modo = 'duelo' AND estado IN ('espera','andamento') AND criada > ?").bind(now - 3600e3).all()).results || []) {
+    const g = JSON.parse(q.cfg).galaxias?.[0]; if (!(g >= 0 && g < GALAXIES.length)) continue;
+    if (q.estado === 'espera') { if (now - q.criada < DUELO.espera) esp[g]++; } else jog[g]++;
+  }
+  return { esp, jog, agora: now };
+}
 /** Mercado compartilhado: o que um piloto compra ou vende mexe no estoque que o rival enxerga. */
 async function dueloMercado(env, p, id, efeitos) {
   const o = await env.DB.prepare('SELECT usuario FROM partida_jog WHERE codigo = ? AND usuario <> ?').bind(p.codigo, id).first(); if (!o) return;
@@ -916,6 +926,7 @@ async function rota(req, env, url) {
   if (p === '/partida/entrar' && m === 'POST') return await partidaEntrar(env, eu.id, corpo);
   if (p === '/partida/iniciar' && m === 'POST') return await partidaIniciar(env, eu.id);
   if (p === '/partida/sair' && m === 'POST') return await partidaSair(env, eu.id);
+  if (p === '/duelo/salas' && m === 'GET') return await dueloSalas(env);
   if (p === '/partida/abandonar' && m === 'POST') return await partidaAbandonar(env, eu.id);
   if (p === '/partida/acao' && m === 'POST') return await partidaAcao(env, eu.id, String(corpo.acao || ''), corpo);
   if (p === '/conta' && m === 'DELETE') {

@@ -169,7 +169,7 @@ const overCost = (S) => Math.round((100 - S.maxHull) * porPct(S) * 10);   // rev
 function desgasteViagem(S, d, teto) { const x = (.8 + Math.random()) * d / 100 * (1 + (S.engLv - 1) * .04) * (S.hull < 40 ? 1.3 : 1), b = Math.floor(x); return Math.min(teto || 99, b + (Math.random() < x - b ? 1 : 0)); }
 const hops = (S, i) => Math.max(1, Math.round(Math.hypot(GALAXIES[i].wx - GALAXIES[S.gal].wx, GALAXIES[i].wy - GALAXIES[S.gal].wy) / HOP));
 const jumpCost = (S, i) => Math.round(150 * (1 + i) * hops(S, i) * (1 + .3 * (S.engLv - 1) + .25 * (S.capLv - 1)) * (1 + (100 - S.hull) / 150));
-const tripInfo = (S, to, now = Date.now()) => { const d = dist(planeta(S, S.loc), planeta(S, to)); const bq = situacao(S, to, now) === 'bloqueio'; return { d, cost: Math.round((bq ? 1.3 : 1) * d * .8 * COMBUSTIVEL * (1 + .3 * (S.engLv - 1) + .25 * (S.capLv - 1)) * (1 + (100 - S.hull) / 150)), secs: Math.max(3, Math.round((bq ? 1.5 : 1) * d / (18 + S.engLv * 7) * (S.hull < 40 ? 1.3 : 1))) }; };
+export const tripInfo = (S, to, now = Date.now()) => { const d = dist(planeta(S, S.loc), planeta(S, to)); const bq = situacao(S, to, now) === 'bloqueio'; return { d, cost: Math.round((bq ? 1.3 : 1) * d * .8 * COMBUSTIVEL * (1 + .3 * (S.engLv - 1) + .25 * (S.capLv - 1)) * (1 + (100 - S.hull) / 150)), secs: Math.max(3, Math.round((bq ? 1.5 : 1) * d / (18 + S.engLv * 7) * (S.hull < 40 ? 1.3 : 1))) }; };
 
 /* ---------- inimigos do mapa (piratas e monstros): patrulham por relógio, iguais para todos; o aparelho só desenha o que o servidor decide ---------- */
 const HH = (n) => { n = (n ^ 61) ^ (n >>> 16); n = Math.imul(n, 0x45d9f3b); n ^= n >>> 4; n = Math.imul(n, 0x45d9f3b); n ^= n >>> 15; return n >>> 0; };
@@ -186,6 +186,18 @@ export function ini(g, k) {
 export function iniAt(e, t) {
   const pl = GALAXIES[e.g].planetas, tt = t / e.T + e.ph, n = Math.floor(tt), u = tt - n, q = (i) => pl[HH(e.g * 977 + e.k * 131 + i * 7919 + 13) % pl.length], x = Math.min(1, u / .8);
   return { a: q(n - 1), b: q(n), f: x * x * (3 - 2 * x) };
+}
+/** Prevê se uma viagem de `secs` s saindo daqui a ~3 s cruzaria um inimigo (só para dar folga nos contratos; a luta real é sorteada em viajar). */
+function riscoRota(S, toId, secs, now) {
+  const A = planeta(S, S.loc), B = planeta(S, toId), t0 = now + 3000, t1 = t0 + secs * 1000;
+  for (let k = 0; k < nIni(S.gal); k++) {
+    const e = ini(S.gal, k);
+    for (let t = t0; t <= t1 - 800; t += 400) {
+      const u = (t - t0) / (t1 - t0), q = u * u * (3 - 2 * u), sx = A.x + (B.x - A.x) * q, sy = A.y + (B.y - A.y) * q, w = iniAt(e, t);
+      if (Math.hypot(w.a.x + (w.b.x - w.a.x) * w.f - sx, w.a.y + (w.b.y - w.a.y) * w.f - sy) <= e.R) return true;
+    }
+  }
+  return false;
 }
 function encontros(S, t0, t1) {
   if (S.partida && !S.partida.piratas) return [];
@@ -312,6 +324,11 @@ export function fechar(S, c, msgs) {   // missões e patente, sempre calculadas 
 /* ---------- ações ---------- */
 /* ---------- contratos de entrega: o planeta oferece 3 pedidos por janela de 20 min (determinísticos, sem estado); o jogador aceita até 3 e entrega no destino antes do prazo ---------- */
 export const CT_JANELA = 20 * 60000, CT_MAX = 3;
+/** Prazo do contrato: sorteado, nunca menor que a viagem + 5 s; se a rota direta cruza um inimigo ganha +5 s de folga (a luta atrasa a nave). `ap`=1 quando sobra pouco. */
+function prazo(rand, secs, risco, max, k = 1) {
+  const min = secs * k + 5 + (risco ? PAUSA / 1000 : 0), dur = Math.round(clamp(Math.max(rand, min), 12, Math.max(max, min)));
+  return { dur, ...(risco ? { risco: 1 } : {}), ...(k === 1 && dur - secs < 10 ? { ap: 1 } : {}) };
+}
 export function ofertas(S, c) {
   if (S.partida || S.trip) return [];
   const b = Math.floor(c.now / CT_JANELA), outros = planetas(S).filter((p) => p.id !== S.loc && p.t <= S.rank && situacao(S, p.id, c.now) !== 'quarentena'), prods = RES.filter((r) => (r.t || 0) <= S.rank);
@@ -325,7 +342,7 @@ export function ofertas(S, c) {
     if (faltas.length && (k === 0 || h % 2)) { const [pl, id] = faltas[(h >>> 7) % faltas.length]; dest = pl; r = RES_ID[id]; }
     else { r = prods[h % prods.length]; dest = outros[(h >>> 7) % outros.length]; }
     const t = tripInfo(S, dest.id, c.now), mult = 1.15 + .15 * f2;
-    push({ id: `${S.loc}:${b}:${k}`, r: r.id, q: clamp(Math.round(S.cap * (.25 + .5 * f1)), 1, S.cap), dest: dest.id, gal: S.gal, falta: escasso(S, dest.id, c.now) === r.id ? 1 : 0, comb: t.cost, mult: Math.round(mult * 100) / 100, dur: Math.round(clamp(Math.max(12 + 13 * (hash(`d:${S.gal}:${S.loc}:${b}:${k}`) % 1000 / 1000), t.secs + 5), 12, 25)) });
+    push({ id: `${S.loc}:${b}:${k}`, r: r.id, q: clamp(Math.round(S.cap * (.25 + .5 * f1)), 1, S.cap), dest: dest.id, gal: S.gal, falta: escasso(S, dest.id, c.now) === r.id ? 1 : 0, comb: t.cost, mult: Math.round(mult * 100) / 100, ...prazo(12 + 13 * (hash(`d:${S.gal}:${S.loc}:${b}:${k}`) % 1000 / 1000), t.secs, riscoRota(S, dest.id, t.secs, c.now), 25) });
   }
   // 1 pedido para outra galáxia que você já pode visitar: paga mais, devolve o custo do salto e dá um prazo um pouco maior
   const gs = GALAXIES.map((g, i) => i).filter((i) => i !== S.gal && S.rank >= GALAXIES[i].t && S.engLv >= GALAXIES[i].eng);
@@ -338,7 +355,7 @@ export function ofertas(S, c) {
   const hf = hash(`f:${S.gal}:${S.loc}:${b}`);
   if (hf % 100 < 45) {
     const r = prods[(hf >>> 5) % prods.length], dest = outros[(hf >>> 12) % outros.length], t = tripInfo(S, dest.id, c.now), f1 = (hf >>> 16) % 1000 / 1000, mult = 1.4 + .2 * ((hf >>> 3) % 1000 / 1000);
-    push({ id: `${S.loc}:${b}:f`, r: r.id, q: clamp(Math.round(S.cap * (.2 + .4 * f1)), 1, S.cap), dest: dest.id, gal: S.gal, falta: escasso(S, dest.id, c.now) === r.id ? 1 : 0, comb: t.cost, mult: Math.round(mult * 100) / 100, esp: 'fragil', dur: Math.round(clamp(Math.max(12 + 13 * (hash(`df:${S.gal}:${S.loc}:${b}`) % 1000 / 1000), t.secs * 1.6 + 5), 12, 32)) });   // folga para a rota segura (1,6× o tempo) caber no prazo
+    push({ id: `${S.loc}:${b}:f`, r: r.id, q: clamp(Math.round(S.cap * (.2 + .4 * f1)), 1, S.cap), dest: dest.id, gal: S.gal, falta: escasso(S, dest.id, c.now) === r.id ? 1 : 0, comb: t.cost, mult: Math.round(mult * 100) / 100, esp: 'fragil', ...prazo(12 + 13 * (hash(`df:${S.gal}:${S.loc}:${b}`) % 1000 / 1000), t.secs, false, 32, 1.6) });   // folga para a rota segura (1,6× o tempo) caber no prazo
   }
   return out;
 }

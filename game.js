@@ -685,14 +685,14 @@ function inimSprite(m, tier) {
   return e.c;
 }
 /** Monstro em camadas: respira, balança os membros (asas batem, tentáculos ondulam) e pisca o brilho. */
-function monstroAnim(L, sz, tm, t, k) {
-  const lay = (c, f) => { if (!c) return; cx.save(); f && f(); cx.drawImage(c, -sz / 2, -sz / 2, sz, sz); cx.restore(); };
+function monstroAnim(L, sz, tm, t, k, g = cx) {
+  const lay = (c, f) => { if (!c) return; g.save(); f && f(); g.drawImage(c, -sz / 2, -sz / 2, sz, sz); g.restore(); };
   const w = Math.sin(tm * 2.1 + k), w2 = Math.sin(tm * 1.3 + k * 2), resp = 1 + Math.sin(tm * 1.7) * .035;
   lay(L.sombra);
-  lay(L.membros, () => { if (t === 4) cx.scale(1 + w * .12, 1 - w * .04); else if (t === 5) cx.rotate(Math.sin(tm * .6) * .12); else { cx.rotate(w * .06); cx.scale(1 + w2 * .04, 1 - w2 * .04); } });
-  cx.save(); cx.translate(0, Math.sin(tm * 1.6 + k) * sz * .025); cx.scale(resp, resp);
+  lay(L.membros, () => { if (t === 4) g.scale(1 + w * .12, 1 - w * .04); else if (t === 5) g.rotate(Math.sin(tm * .6) * .12); else { g.rotate(w * .06); g.scale(1 + w2 * .04, 1 - w2 * .04); } });
+  g.save(); g.translate(0, Math.sin(tm * 1.6 + k) * sz * .025); g.scale(resp, resp);
   lay(L.corpo); lay(L.detalhes);
-  cx.globalCompositeOperation = 'lighter'; cx.globalAlpha = .55 + .45 * Math.sin(tm * 3 + k); lay(L.brilho); cx.restore();
+  g.globalCompositeOperation = 'lighter'; g.globalAlpha = .55 + .45 * Math.sin(tm * 3 + k); lay(L.brilho); g.restore();
 }
 function desenhaInimigo(p, e, ts, alvo, forca) {   // p: posição na tela; alvo: ângulo para onde olha (só os piratas giram)
   const k = p.sc * (cam.z < .5 ? .7 : 1), tm = ts / 1000 + e.k * 1.7, tier = e.tier || (e.tier || tierDe(e.lv)), im = inimSprite(e.m, tier), sz = (e.m ? 26 + tier * 5 : 22 + tier * 3) * k * (tier >= 4 ? .85 : 1);
@@ -964,6 +964,7 @@ document.querySelectorAll('.nav [data-view]').forEach(b => b.onclick = () => {
 
 /* ---------- Loop principal ---------- */
 /* ---------- Cena de fundo da tela de login: planetas, parallax e uma nave viajando ---------- */
+const REDUZ = matchMedia('(prefers-reduced-motion: reduce)').matches;
 let introOn = false, introCv = null, introCx = null, introPl = null, introRun = null;
 function introSetup() {
   const all = GALAXIES.flatMap(g => g.planetas), pick = [0, 3, 6, 9, 12, 15, 19, 23, 27, 31, 36, 41, 47, 52].map(i => all[i % all.length]);
@@ -973,13 +974,119 @@ function introSetup() {
   introRun = { a:0, b:1, t0:performance.now(), dur:7000, wait:0, trail:[] };
 }
 const introXY = (o, ts, W, H) => { const sp = .004 * o.d; let x = ((o.x - ts / 1000 * sp) % 1.15 + 1.15) % 1.15 - .075; return { x:x * W, y:o.y * H + Math.sin(ts / 2200 + o.ph) * 8 * o.d, r:(16 + 48 * o.d) * Math.min(W, H) / 800 }; };
+/* ---- Eventos da tela de login: piratas, monstros, batalhas, chuva de asteroides e tempestade solar (só visual; nada aqui toca no jogo) ---- */
+let introCv2 = null, introCx2 = null, introEv = null, introNext = 0, introLast = 0, introFx = [], introLastTipo = '';
+const rng = (a, b) => a + Math.random() * (b - a), easeIO = u => u * u * (3 - 2 * u);
+const INTRO_TXT = { pirata:['fa-skull-crossbones', 'Piratas na rota', 'Combate de naves'], monstro:['fa-dragon', 'Monstro do vazio', 'Criatura gigante à vista'], ast:['fa-meteor', 'Chuva de asteroides', 'Desvie ou aguente o casco'], sol:['fa-sun', 'Tempestade solar', 'Radiação alta no setor'] };
+function introCaption(tipo) {
+  const el = $('#lp-evt'); if (!el) return;
+  if (!tipo) { el.classList.remove('on'); return; }
+  const L = INTRO_TXT[tipo]; el.className = 'lp-evt on lp-' + tipo; el.innerHTML = `<i class="fa-solid ${L[0]}"></i><span><b>${L[1]}</b><small>${L[2]}</small></span>`;
+}
+function introNovoEvento(ts, W, H, voando, forca) {
+  const opc = ['pirata', 'monstro', 'ast', 'sol'].filter(t => t !== introLastTipo && (voando || t === 'ast' || t === 'sol')), tipo = forca || opc[Math.floor(Math.random() * opc.length)]; introLastTipo = tipo;
+  introFx.length = 0;
+  const base = { tipo, t0: ts, ang: rng(0, 6.28), tier: 1 + Math.floor(Math.random() * 4), foge: Math.random() < .25, shots: [], rocks: [], seed: Math.random() * 99 };
+  introEv = tipo === 'pirata' ? { ...base, dur: 7000, lutaIni: 1900, lutaFim: 5200 } : tipo === 'monstro' ? { ...base, tier: 1 + Math.floor(Math.random() * 5), dur: 8200, lutaIni: 2200, lutaFim: 6200 } : tipo === 'ast' ? { ...base, dur: 7000 } : { ...base, dur: 6500 };
+  introCaption(tipo);
+}
+function introFaisca(x, y, n, cor, v = 90) { for (let i = 0; i < n && introFx.length < 160; i++) { const a = rng(0, 6.28), s = rng(.3, 1) * v; introFx.push({ x, y, vx: Math.cos(a) * s, vy: Math.sin(a) * s, life: rng(.35, .8), t: 0, cor, r: rng(1, 2.6) }); } }
+function introRocha(W, H, big) {
+  const a = rng(2.55, 2.85), s = rng(380, 820) * (big ? .7 : 1), r = big ? rng(9, 17) : rng(3, 8), n = 7, forma = [];
+  for (let i = 0; i < n; i++) forma.push(.72 + Math.random() * .4);
+  return { x: rng(W * .15, W * 1.25), y: -30, vx: Math.cos(a) * s, vy: Math.sin(a) * s, r, rot: rng(0, 6.28), vr: rng(-3, 3), forma };
+}
+function introEvento(c, f, ts, dt, W, H, sx, sy, ang, run) {   // c: canvas de fundo (asteroides, tempestade); f: canvas por cima da tela (inimigos, tiros, faíscas)
+  const ev = introEv; if (!ev) return { shake: 0 };
+  const e = ts - ev.t0; let shake = 0;
+  if (e > ev.dur) { introEv = null; introCaption(null); introNext = ts + rng(3200, 5200); return { shake: 0 }; }
+  const dts = dt / 1000, env = Math.sin(Math.PI * clamp(e / ev.dur, 0, 1));
+  if (ev.tipo === 'pirata' || ev.tipo === 'monstro') {
+    const m = ev.tipo === 'monstro', D = Math.min(W, H) * (m ? .22 : .19) + 90;
+    if (!ev.posto) {   // o inimigo escolhe o lado com tela livre: dentro da janela e longe do cartão de login
+      ev.posto = 1; const cr = $('.lp-card')?.getBoundingClientRect(); let melhor = -1;
+      for (let i = 0; i < 16; i++) {
+        const an = i / 16 * 6.283 + rng(0, .3), x = sx + Math.cos(an) * D, y = sy + Math.sin(an) * D;
+        const dentro = x > 70 && x < W - 70 && y > 100 && y < H - 60, dc = cr ? Math.hypot(Math.max(cr.left - x, 0, x - cr.right), Math.max(cr.top - y, 0, y - cr.bottom)) : 300, sc = (dentro ? 1000 : 0) + Math.min(dc, 260);
+        if (sc > melhor) { melhor = sc; ev.ang = an; }
+      }
+    }
+    const luta = e >= ev.lutaIni && e < ev.lutaFim;
+    if (luta) run.t0 += dt;   // a nave para durante a luta
+    const chega = easeIO(clamp(e / ev.lutaIni, 0, 1)), sai = ev.foge ? easeIO(clamp((e - ev.lutaFim) / 1100, 0, 1)) : 0, morre = !ev.foge && e >= ev.lutaFim ? clamp((e - ev.lutaFim) / 700, 0, 1) : 0;
+    const dist = D + (1 - chega) * Math.max(W, H) * .65 + sai * Math.max(W, H) * .8, wob = Math.sin(ts / 420 + ev.seed) * 7, rx = sx + Math.cos(ev.ang) * D, ry = sy + Math.sin(ev.ang) * D, w = chega * (1 - sai);
+    const ex = sx + Math.cos(ev.ang) * dist + Math.cos(ev.ang + 1.57) * wob + (clamp(rx, 60, W - 60) - rx) * w, ey = sy + Math.sin(ev.ang) * dist + Math.sin(ev.ang + 1.57) * wob + (clamp(ry, 90, H - 60) - ry) * w;
+    const alvoAng = Math.atan2(sy - ey, sx - ex), sz = (m ? 90 + ev.tier * 20 : 62 + ev.tier * 10) * Math.min(1.25, Math.min(W, H) / 560 + .55);
+    // disparos: nave (ciano) e inimigo (vermelho ou roxo), um a cada ~230 ms, em lados alternados
+    if (luta) {
+      ev.prox = ev.prox ?? ts; while (ts >= ev.prox) { const meu = ev.shots.length % 2 === 0; ev.shots.push({ t: ts, meu }); ev.prox += 230; }
+    }
+    ev.shots = ev.shots.filter(s => ts - s.t < 340);
+    f.save(); f.globalCompositeOperation = 'lighter';
+    for (const s of ev.shots) {
+      const u = (ts - s.t) / 320, ax = s.meu ? sx : ex, ay = s.meu ? sy : ey, bx = s.meu ? ex : sx, by = s.meu ? ey : sy, px = ax + (bx - ax) * u, py = ay + (by - ay) * u, qx = ax + (bx - ax) * Math.max(0, u - .16), qy = ay + (by - ay) * Math.max(0, u - .16);
+      const g = f.createLinearGradient(qx, qy, px, py), cor = s.meu ? '110,240,255' : m ? '200,110,255' : '255,90,80'; g.addColorStop(0, `rgba(${cor},0)`); g.addColorStop(1, `rgba(${cor},.95)`);
+      f.strokeStyle = g; f.lineWidth = 3; f.lineCap = 'round'; f.beginPath(); f.moveTo(qx, qy); f.lineTo(px, py); f.stroke();
+      if (u > .9 && !s.hit) { s.hit = 1; introFaisca(bx, by, 9, s.meu ? (m ? '#d9a0ff' : '#ffb070') : '#8ff3ff', 110); if (!s.meu) shake = 1; }
+    }
+    f.restore();
+    if (luta) {   // escudo da nave pisca quando leva tiro
+      const hit = ev.shots.find(s => !s.meu && ts - s.t > 250 && ts - s.t < 340); if (hit) { f.save(); f.strokeStyle = 'rgba(110,240,255,.55)'; f.lineWidth = 2; f.beginPath(); f.arc(sx, sy, 34, 0, 7); f.stroke(); f.restore(); }
+    }
+    // sprite do inimigo
+    const im = inimSprite(m, ev.tier), st = INIM[(m ? 'monstro_' : 'pirata_') + ev.tier], tm = ts / 1000;
+    if (morre < 1) {
+      if (!ev.boom && morre > 0) { ev.boom = 1; introFaisca(ex, ey, 46, m ? '#c88bff' : '#ffb36b', 220); introFaisca(ex, ey, 18, '#ffffff', 120); }
+      f.save(); f.translate(ex, ey); f.globalAlpha = 1 - morre; const fz = 1 - morre * .5; f.scale(fz, fz);
+      f.fillStyle = m ? 'rgba(178,75,255,.10)' : 'rgba(255,50,50,.11)'; f.beginPath(); f.arc(0, 0, sz * .62, 0, 7); f.fill();
+      if (im) { if (m && st && st.L) { f.translate(0, Math.sin(tm * 1.1) * sz * .04); f.rotate(Math.sin(tm * .9) * .05); monstroAnim(st.L, sz, tm, ev.tier, ev.seed, f); } else { f.rotate(m ? 0 : alvoAng - Math.PI / 2); f.drawImage(im, -sz / 2, -sz / 2, sz, sz); } }
+      else { f.fillStyle = m ? '#8a3bd1' : '#d24545'; f.beginPath(); f.arc(0, 0, sz * .3, 0, 7); f.fill(); }
+      if (luta && ev.shots.length && ts - ev.shots[ev.shots.length - 1].t < 120 && ev.shots[ev.shots.length - 1].meu === false) { f.globalCompositeOperation = 'lighter'; f.fillStyle = m ? 'rgba(220,160,255,.5)' : 'rgba(255,120,90,.5)'; f.beginPath(); f.arc(0, 0, sz * .3, 0, 7); f.fill(); }
+      f.restore();
+      // nível de poder, igual ao do mapa
+      f.save(); f.font = '700 11px Chakra Petch, sans-serif'; f.textAlign = 'center'; f.fillStyle = m ? '#d9a0ff' : '#ff8a8a'; f.globalAlpha = (1 - morre) * .9; f.fillText((m ? '☣ ' : '☠ ') + (ev.tier * 1.7 + 1).toFixed(1), ex, ey - sz * .62); f.restore();
+    } else if (morre >= 1 && !ev.boom2) ev.boom2 = 1;
+    if (ev.boom && morre < 1) { f.save(); f.strokeStyle = m ? `rgba(200,140,255,${.8 - morre})` : `rgba(255,190,110,${.8 - morre})`; f.lineWidth = 3; f.beginPath(); f.arc(ex, ey, 10 + morre * sz * 1.3, 0, 7); f.stroke(); f.restore(); }
+  } else if (ev.tipo === 'ast') {
+    ev.acum = (ev.acum || 0) + dts * 22 * env; while (ev.acum >= 1) { ev.acum--; ev.rocks.push(introRocha(W, H, Math.random() < .12)); }
+    c.save();
+    for (let i = ev.rocks.length - 1; i >= 0; i--) {
+      const r = ev.rocks[i]; r.x += r.vx * dts; r.y += r.vy * dts; r.rot += r.vr * dts;
+      if (r.y > H + 40 || r.x < -60) { ev.rocks.splice(i, 1); continue; }
+      const L = Math.hypot(r.vx, r.vy), tx = r.x - r.vx / L * (r.r * 9), ty = r.y - r.vy / L * (r.r * 9), g = c.createLinearGradient(tx, ty, r.x, r.y);
+      g.addColorStop(0, 'rgba(255,140,60,0)'); g.addColorStop(1, 'rgba(255,170,90,.7)'); c.globalCompositeOperation = 'lighter'; c.strokeStyle = g; c.lineWidth = r.r * .9; c.lineCap = 'round'; c.beginPath(); c.moveTo(tx, ty); c.lineTo(r.x, r.y); c.stroke();
+      c.globalCompositeOperation = 'source-over'; c.save(); c.translate(r.x, r.y); c.rotate(r.rot); c.fillStyle = '#6c5a4c'; c.strokeStyle = '#b59478'; c.lineWidth = 1; c.beginPath();
+      r.forma.forEach((k, j) => { const a = j / r.forma.length * 6.283; c[j ? 'lineTo' : 'moveTo'](Math.cos(a) * r.r * k, Math.sin(a) * r.r * k); }); c.closePath(); c.fill(); c.stroke();
+      c.fillStyle = 'rgba(0,0,0,.28)'; c.beginPath(); c.arc(r.r * .25, -r.r * .15, r.r * .28, 0, 7); c.fill(); c.restore();
+      if (Math.hypot(r.x - sx, r.y - sy) < 22 && !r.hit) { r.hit = 1; introFaisca(sx, sy, 12, '#ffb070', 120); shake = 1; }
+    }
+    c.restore();
+  } else {   // tempestade solar: clarão no canto, filetes de plasma varrendo a tela e arcos elétricos em volta da nave
+    const gx = ev.ang < 3.14 ? W * .05 : W * .95, gy = H * .02, R = Math.max(W, H) * (.75 + .25 * env);
+    c.save(); const g = c.createRadialGradient(gx, gy, 0, gx, gy, R); g.addColorStop(0, `rgba(255,214,120,${.55 * env})`); g.addColorStop(.25, `rgba(255,140,50,${.28 * env})`); g.addColorStop(1, 'rgba(255,90,20,0)');
+    c.fillStyle = g; c.fillRect(0, 0, W, H);
+    c.globalCompositeOperation = 'lighter'; ev.acum = (ev.acum || 0) + dts * 26 * env;
+    while (ev.acum >= 1) { ev.acum--; const a = Math.atan2(H * .6, (ev.ang < 3.14 ? 1 : -1) * W * .8) + rng(-.35, .35); ev.rocks.push({ x: gx, y: gy, a, s: rng(500, 1100), l: rng(40, 130) }); }
+    for (let i = ev.rocks.length - 1; i >= 0; i--) { const p = ev.rocks[i]; p.x += Math.cos(p.a) * p.s * dts; p.y += Math.sin(p.a) * p.s * dts; if (p.x < -150 || p.x > W + 150 || p.y > H + 150) { ev.rocks.splice(i, 1); continue; }
+      const gg = c.createLinearGradient(p.x - Math.cos(p.a) * p.l, p.y - Math.sin(p.a) * p.l, p.x, p.y); gg.addColorStop(0, 'rgba(255,150,60,0)'); gg.addColorStop(1, 'rgba(255,225,150,.75)'); c.strokeStyle = gg; c.lineWidth = 2; c.lineCap = 'round'; c.beginPath(); c.moveTo(p.x - Math.cos(p.a) * p.l, p.y - Math.sin(p.a) * p.l); c.lineTo(p.x, p.y); c.stroke(); }
+    if (env > .25) for (let k = 0; k < 2; k++) { c.strokeStyle = `rgba(150,235,255,${.35 + Math.random() * .4})`; c.lineWidth = 1.2; c.beginPath(); let px = sx + rng(-8, 8), py = sy + rng(-8, 8); c.moveTo(px, py); const a0 = rng(0, 6.28); for (let j = 0; j < 5; j++) { px += Math.cos(a0 + rng(-.9, .9)) * rng(5, 11); py += Math.sin(a0 + rng(-.9, .9)) * rng(5, 11); c.lineTo(px, py); } c.stroke(); }
+    if (Math.random() < .035 * env) { c.fillStyle = 'rgba(255,240,200,.10)'; c.fillRect(0, 0, W, H); }
+    c.restore(); shake = env > .35 ? .5 : 0;
+  }
+  // faíscas e explosões
+  f.save(); f.globalCompositeOperation = 'lighter';
+  for (let i = introFx.length - 1; i >= 0; i--) { const p = introFx[i]; p.t += dts; if (p.t > p.life) { introFx.splice(i, 1); continue; } p.x += p.vx * dts; p.y += p.vy * dts; p.vx *= .96; p.vy *= .96; f.globalAlpha = 1 - p.t / p.life; f.fillStyle = p.cor; f.beginPath(); f.arc(p.x, p.y, p.r, 0, 7); f.fill(); }
+  f.restore();
+  return { shake };
+}
 function introFrame(ts) {
   if (!introOn) return; requestAnimationFrame(introFrame);
-  const W = introCv.clientWidth, H = introCv.clientHeight; if (!W) return; const dpr = Math.min(devicePixelRatio || 1, 2);
+  const W = introCv.clientWidth, H = introCv.clientHeight; if (!W) return; const dpr = Math.min(devicePixelRatio || 1, 2), dt = Math.min(64, introLast ? ts - introLast : 16); introLast = ts;
   if (introCv.width !== Math.round(W * dpr)) { introCv.width = Math.round(W * dpr); introCv.height = Math.round(H * dpr); }
   const c = introCx; c.setTransform(dpr, 0, 0, dpr, 0, 0); c.clearRect(0, 0, W, H);
+  if (introCv2.width !== introCv.width) { introCv2.width = introCv.width; introCv2.height = introCv.height; }
+  introCx2.setTransform(dpr, 0, 0, dpr, 0, 0); introCx2.clearRect(0, 0, W, H);
   const pos = introPl.map(o => introXY(o, ts, W, H));
-  // rota atual da nave
   const ru = introRun; let a = pos[ru.a], b = pos[ru.b], u = Math.min(1, (ts - ru.t0) / ru.dur);
   if (ru.wait) { if (ts > ru.wait) { ru.wait = 0; ru.a = ru.b; do { ru.b = Math.floor(Math.random() * introPl.length); } while (ru.b === ru.a || Math.abs(pos[ru.b].x - pos[ru.a].x) < W * .15); ru.t0 = ts; ru.dur = 6500 + Math.random() * 3000; ru.trail.length = 0; } u = 1; }
   else if (u >= 1) ru.wait = ts + 1800;
@@ -993,19 +1100,23 @@ function introFrame(ts) {
     else { c.fillStyle = o.p.c || '#456'; c.beginPath(); c.arc(q.x, q.y, q.r, 0, 7); c.fill(); }
     c.globalAlpha = 1;
   });
-  if (!ru.wait && u < 1) { ru.trail.push({ x:sx, y:sy }); if (ru.trail.length > 46) ru.trail.shift(); } else if (ru.trail.length) ru.trail.shift();
+  if (!ru.wait && u < 1) { ru.trail.push({ x: sx, y: sy }); if (ru.trail.length > 46) ru.trail.shift(); } else if (ru.trail.length) ru.trail.shift();
   c.globalCompositeOperation = 'lighter';
   ru.trail.forEach((t, i) => { const k = i / ru.trail.length; c.fillStyle = `rgba(${k > .6 ? '255,190,90' : '255,120,60'},${k * .55})`; c.beginPath(); c.arc(t.x, t.y, 1.5 + k * 4, 0, 7); c.fill(); });
   c.globalCompositeOperation = 'source-over';
   const fade = ru.wait ? 0 : Math.min(1, Math.min(u, 1 - u) * 12 + .15);
-  c.save(); c.globalAlpha = Math.max(0, fade); c.translate(sx, sy); c.rotate(ang + Math.PI / 2); c.scale(2.4, 2.4);
+  // sorteia o próximo evento (batalhas só com a nave em voo)
+  if (!introEv && !REDUZ && ts > introNext && (introNext || (introNext = ts + 2500, false))) { const voando = !ru.wait && u > .12 && u < .55; if (voando || Math.random() < .5) introNovoEvento(ts, W, H, voando); else introNext = ts + 900; }
+  const fx = introEvento(c, introCx2, ts, dt, W, H, sx, sy, ang, ru), sk = fx.shake ? (Math.random() - .5) * 3 * fx.shake : 0;
+  c.save(); c.globalAlpha = Math.max(0, fade); c.translate(sx + sk, sy + sk); c.rotate(ang + Math.PI / 2); c.scale(2.4, 2.4);
   paintShip(c, shipLv(), ts, 46 - (shipLv().id - 1) * .2); c.restore();
 }
 function introToggle(on) {
   if (on === introOn) return; introOn = on;
-  if (!on) return;
-  introCv = introCv || $('#intro'); introCx = introCx || introCv.getContext('2d'); if (!introPl) introSetup();
-  requestAnimationFrame(introFrame);
+  if (!on) { introCaption(null); introEv = null; if (introCx2) introCx2.clearRect(0, 0, 9999, 9999); return; }
+  introCv = introCv || $('#intro'); introCx = introCx || introCv.getContext('2d'); introCv2 = introCv2 || $('#intro-fx'); introCx2 = introCx2 || introCv2.getContext('2d'); if (!introPl) introSetup();
+  for (const t of [1, 2, 3, 4]) { inimSprite(false, t); inimSprite(true, t); }   // aquece os sprites dos inimigos
+  introLast = 0; introNext = 0; requestAnimationFrame(introFrame);
 }
 
 /* ---------- Conta e nuvem ---------- */
@@ -1174,6 +1285,8 @@ $('#acct').onclick = () => TOK ? document.querySelector('.nav [data-view=setting
 $('#acct-btn').onclick = () => openAuth('in'); $('#acct-out').onclick = logout; $('#acct-del').onclick = deleteAccount; $('#acct-now').onclick = () => refrescar(true);
 $('#tab-in').onclick = () => openAuth('in'); $('#tab-up').onclick = () => openAuth('up'); $('#au-forgot').onclick = () => openAuth('forgot'); $('#au-resend').onclick = resendCode;
 $('#au-form').onsubmit = submitAuth;
+$('#auth').addEventListener('scroll', () => document.body.classList.toggle('lp-rolou', $('#auth').scrollTop > 140), { passive:true });
+$('#lp-down').onclick = () => $('#lp-info').scrollIntoView({ behavior:'smooth', block:'start' });
 $('#auth').onclick = e => { if (e.target.id === 'auth') closeAuth(); };
 document.addEventListener('keydown', e => { if (e.key === 'Escape') closeAuth(); });
 renderAccount();

@@ -20,6 +20,8 @@
 <div id="skel" aria-hidden="true"><div class="sk sk-h"></div><div class="sk sk-map"></div><div class="sk sk-r"></div><div class="sk sk-r"></div><div class="sk sk-r"></div>
   <p id="skel-msg">Conectando ao servidor… <button type="button" onclick="location.reload()">Recarregar</button></p></div>
 <canvas id="intro" class="intro" aria-hidden="true"></canvas>
+<canvas id="intro-fx" class="intro intro-fx" aria-hidden="true"></canvas>
+<div id="lp-evt" class="lp-evt" aria-hidden="true"></div>
 <div class="space" aria-hidden="true">
   <div class="sl sl-neb"></div>
   <div class="sl sl-mid"></div>
@@ -136,7 +138,21 @@
   <button data-view="settings" id="nav-set" hidden><i class="fa-solid fa-gear"></i>Config.</button>
 </nav>
 
-<div class="modal" id="auth" hidden><div class="card-panel">
+<div class="modal" id="auth" hidden><div class="lp">
+<section class="lp-top">
+  <div class="lp-hero">
+    <div class="lp-logo"><i class="fa-solid fa-satellite"></i></div>
+    <h1>ASTROMERCANTE</h1>
+    <p class="lp-tag">Compre barato, venda caro e cruze o espaço num mercado interplanetário cujos preços <b>seguem o mundo real</b>.</p>
+    <ul class="lp-chips"><li><b>11</b>galáxias</li><li><b>200</b>planetas</li><li><b>27</b>produtos</li><li><b>5</b>naves</li></ul>
+    <ul class="lp-pts">
+      <li><i class="fa-solid fa-chart-line"></i>Preços ligados a Bitcoin, ouro, Ethereum, dólar e outros 20+ ativos reais</li>
+      <li><i class="fa-solid fa-skull-crossbones"></i>Piratas, monstros, asteroides e tempestades solares no caminho</li>
+      <li><i class="fa-solid fa-trophy"></i>Torneios com ranking, contratos, conquistas e amigos</li>
+    </ul>
+    <button type="button" class="lp-down" id="lp-down">Como funciona <i class="fa-solid fa-chevron-down"></i></button>
+  </div>
+<div class="card-panel lp-card">
   <div class="au-brand">ASTROMERCANTE</div>
   <h2 id="au-t">Entrar</h2>
   <div class="tabs" id="au-tabs"><button id="tab-in" class="on" type="button">Entrar</button><button id="tab-up" type="button">Criar conta</button></div>
@@ -155,6 +171,65 @@
     <div id="au-google" class="au-google" hidden></div>
   </form>
   <p class="au-hint">Sua conta guarda o progresso na nuvem para jogar em qualquer aparelho. Usamos seu e-mail só para confirmar a conta e recuperar a senha.</p>
+</div></section>
+<main class="lp-info" id="lp-info">
+  <section class="lp-sec">
+    <h2><i class="fa-solid fa-route"></i> Como funciona</h2>
+    <p class="lp-lead">Você é um comerciante espacial. Começa com poucos créditos, uma nave e um planeta. O resto é decisão sua.</p>
+    <div class="lp-grid g4">
+      <article class="lp-c"><span class="lp-n">1</span><h3>Compre barato</h3><p>Cada planeta tem seus preços. Procure o produto que está em baixa (▼) e compre. Quanto mais você compra, mais o preço sobe naquele planeta.</p></article>
+      <article class="lp-c"><span class="lp-n">2</span><h3>Viaje</h3><p>Escolha o destino no mapa. A viagem gasta combustível e tempo. Escolha a rota direta (rápida, com riscos) ou a segura (mais lenta, sem inimigos).</p></article>
+      <article class="lp-c"><span class="lp-n">3</span><h3>Venda caro</h3><p>No destino o mesmo produto pode valer bem mais. Venda e embolse a diferença, já descontados combustível e a taxa de 3%.</p></article>
+      <article class="lp-c"><span class="lp-n">4</span><h3>Evolua</h3><p>Suba de patente, melhore casco, motor e armas, compre naves melhores e abra novas galáxias, cada uma com produtos exclusivos.</p></article>
+    </div>
+    <p class="lp-note"><i class="fa-solid fa-circle-info"></i> Os créditos do jogo são fictícios. Nada aqui envolve dinheiro real nem investimento.</p>
+  </section>
+
+  <section class="lp-sec lp-real">
+    <h2><i class="fa-solid fa-chart-line"></i> O mercado real move o jogo</h2>
+    <p class="lp-lead">A cada poucos minutos o servidor consulta a <b>variação real das últimas 24 horas</b> de ativos como Bitcoin, ouro e dólar. Quando o ativo real sobe, o produto espacial correspondente fica mais caro no jogo; quando cai, fica mais barato.</p>
+    <div class="lp-pairs">
+      <div class="lp-p"><i class="fa-solid fa-gem"></i><b>Cristais de Neutrônio</b><span>Bitcoin</span></div>
+      <div class="lp-p"><i class="fa-solid fa-cubes"></i><b>Minério de Titânio</b><span>Ouro</span></div>
+      <div class="lp-p"><i class="fa-solid fa-cloud"></i><b>Gás Hélio-3</b><span>Ethereum</span></div>
+      <div class="lp-p"><i class="fa-solid fa-pepper-hot"></i><b>Especiarias de Júpiter</b><span>Dólar x real</span></div>
+      <div class="lp-p"><i class="fa-solid fa-moon"></i><b>Plasma Sombrio</b><span>Monero</span></div>
+      <div class="lp-p"><i class="fa-solid fa-atom"></i><b>Antimatéria</b><span>Solana</span></div>
+      <div class="lp-p"><i class="fa-solid fa-hourglass-half"></i><b>Cristal Temporal</b><span>Ouro tokenizado</span></div>
+      <div class="lp-p more"><i class="fa-solid fa-plus"></i><b>+ 20 minerais</b><span>Cardano, Dogecoin, Chainlink, Polkadot…</span></div>
+    </div>
+    <div class="lp-grid g3">
+      <article class="lp-c"><h3>Variação dentro de limites</h3><p>O movimento real é amplificado, mas limitado a ±30% para o jogo continuar jogável.</p></article>
+      <article class="lp-c"><h3>Oferta e demanda</h3><p>O que você compra e vende muda o preço do planeta e se recupera com o tempo. Cada planeta tem seu perfil.</p></article>
+      <article class="lp-c"><h3>Notícias e eventos</h3><p>O Noticiário Interplanetário (ficção inspirada no mundo real), escassez, greves, feiras e quarentenas mexem nos preços e nas rotas.</p></article>
+    </div>
+    <p class="lp-note"><i class="fa-solid fa-circle-info"></i> Você não compra nem vende ativos reais: o jogo só usa a variação deles como inspiração. Não é recomendação de investimento.</p>
+  </section>
+
+  <section class="lp-sec lp-danger">
+    <h2><i class="fa-solid fa-triangle-exclamation"></i> Os perigos do espaço</h2>
+    <p class="lp-lead">Lucro nunca vem de graça. Cada viagem pode ter encontros, e o casco da sua nave é o seu seguro.</p>
+    <div class="lp-grid g3">
+      <article class="lp-c d-pir"><i class="fa-solid fa-skull-crossbones"></i><h3>Piratas</h3><p>Patrulham as rotas de cada galáxia. O número ao lado deles é o poder de fogo: compare com o da sua nave antes de cruzar o caminho.</p></article>
+      <article class="lp-c d-mon"><i class="fa-solid fa-dragon"></i><h3>Monstros do vazio</h3><p>Aparecem a partir da segunda galáxia. São maiores, mais fortes e carregam um saque melhor para quem vence.</p></article>
+      <article class="lp-c d-bat"><i class="fa-solid fa-crosshairs"></i><h3>Batalhas</h3><p>Ao cruzar um inimigo, a nave para por alguns segundos e troca tiros. Vencer rende saque, empatar custa casco e perder custa casco e parte da carga.</p></article>
+      <article class="lp-c d-ast"><i class="fa-solid fa-meteor"></i><h3>Chuva de asteroides</h3><p>Pode surgir sem aviso na rota direta e danificar o casco. Quanto mais longa a viagem e mais cheio o porão, maior o risco.</p></article>
+      <article class="lp-c d-sol"><i class="fa-solid fa-sun"></i><h3>Tempestade solar</h3><p>Radiação que desgasta o casco no meio do caminho. Casco baixo deixa a nave mais fraca nas lutas seguintes.</p></article>
+      <article class="lp-c d-seg"><i class="fa-solid fa-shield-halved"></i><h3>Rota segura</h3><p>Evita inimigos e imprevistos, com metade do desgaste. Em troca, a viagem dura mais e o combustível custa mais.</p></article>
+    </div>
+  </section>
+
+  <section class="lp-sec">
+    <h2><i class="fa-solid fa-rocket"></i> E tem muito mais</h2>
+    <div class="lp-grid g3">
+      <article class="lp-c"><i class="fa-solid fa-file-contract"></i><h3>Contratos</h3><p>Entregas com prazo curto e pagamento acima do mercado, até para outras galáxias. Entregue a tempo para receber de volta a caução.</p></article>
+      <article class="lp-c"><i class="fa-solid fa-trophy"></i><h3>Torneios e amigos</h3><p>Todos começam com o mesmo saldo e o mesmo tempo. Vence quem negocia melhor. Convide amigos para salas privadas.</p></article>
+      <article class="lp-c"><i class="fa-solid fa-medal"></i><h3>Patentes e conquistas</h3><p>De Recruta a Arquiteto do universo, com mais de 110 conquistas, molduras e avatares para o seu perfil.</p></article>
+    </div>
+  </section>
+
+  <footer class="lp-foot">Astromercante é um jogo de ficção. Para maiores de 13 anos. <a href="termos.html" target="_blank" rel="noopener">Termos de uso</a></footer>
+</main>
 </div></div>
 <div class="modal" id="jogador" hidden><div class="card-panel pj" role="dialog" aria-label="Perfil do piloto">
   <button type="button" class="ghost pj-x" id="pj-x" aria-label="Fechar">✕</button>

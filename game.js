@@ -128,6 +128,7 @@ function trade(id, side) {
   const LIQ = .4 / (1 + .4 * S.gal), r = RES.find(x => x.id === id), n = qty(), s0 = stk(id), p = pxAt(id, side === 'buy' ? s0 - n * LIQ / 2 : s0 + n * LIQ / 2) * (side === 'buy' ? 1 : .97), h = S.inv[id], total = n * p;
   if (S.trip) return say('Nave em trânsito.', 'err');
   if (side === 'buy') {
+    if (escasso(S.loc, NOW()) === id) return say(`${r.nome} está em falta neste planeta: não há estoque para comprar. Traga de outro lugar — aqui ele paga mais caro.`, 'err');
     if (n > (s0 - 1) / LIQ) return say(`Este planeta só tem ${Math.floor((s0 - 1) / LIQ)} un. em oferta. Procure outro mercado.`, 'err');
     if (total > S.credits) return say(`Créditos insuficientes: faltam ${fmt(total - S.credits)}.`, 'err');
     if (used() + n > S.cap) return say(`Porão cheio (${used()}/${S.cap}). Venda ou faça upgrade.`, 'err');
@@ -208,13 +209,13 @@ function render() {
   $('#hud-networth').textContent = fmt(patTotal());
   RES.forEach(r => {
     const el = $(`[data-id="${r.id}"]`), g = S.price[r.id], p = px(r.id), pct = (g / S.prev[r.id] - 1) * 100;
-    el.hidden = r.t > S.rank; el.classList.toggle('falta', !S.trip && escasso(S.loc, NOW()) === r.id); const su = $('[data-f=sup]', el); su.textContent = Math.round(stk(r.id)) + '%'; su.className = stk(r.id) < 50 ? 'down' : '';
+    el.hidden = r.t > S.rank; const fl = !S.trip && escasso(S.loc, NOW()) === r.id; el.classList.toggle('falta', fl); const bb = $('[data-act=buy]', el); if (bb) bb.title = fl ? 'Em falta: sem estoque neste planeta' : ''; const su = $('[data-f=sup]', el); su.textContent = Math.round(stk(r.id)) + '%'; su.className = stk(r.id) < 50 ? 'down' : '';
     $('[data-f=price]', el).textContent = fmt(p) + ' Cr';
     const c = $('[data-f=chg]', el);
     c.textContent = `${pct >= 0 ? '▲ +' : '▼ '}${fmt(pct)}%`; c.className = 'mono ' + (pct >= 0 ? 'up' : 'down');
     const hh = S.inv[r.id], ps = $('[data-f=pos]', el); ps.hidden = !hh.qty;
     if (hh.qty) { const pnl = hh.qty * (p - hh.avg); ps.innerHTML = `Você tem <b>${hh.qty}</b> · pago em média ${fmt(hh.avg)} · <span class="mono ${pnl >= 0 ? 'up' : 'down'}">${pnl >= 0 ? '+' : ''}${fmt(pnl)} Cr</span>`; }
-    el.querySelectorAll('.trade button').forEach(b => b.disabled = !!S.trip);
+    el.querySelectorAll('.trade button').forEach(b => b.disabled = !!S.trip || (b.dataset.act === 'buy' && fl));
     const h = S.hist[r.id], mn = Math.min(...h), mx = Math.max(...h), sp = $('.spark', el);
     sp.firstChild.setAttribute('points', h.map((v, i) => `${i / Math.max(h.length - 1, 1) * 60},${18 - (v - mn) / ((mx - mn) || 1) * 16}`).join(' '));
     sp.className.baseVal = 'spark ' + (h[h.length - 1] >= h[0] ? 'up' : 'down');

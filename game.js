@@ -664,14 +664,14 @@ function iniTela(e, t) {
   let k = dw > 1 ? ds / dw : (ref ? ref.sc * 1.5 : 1.5); if (!(k > 0)) k = 1.5;
   return { x:a._s.x + (b._s.x - a._s.x) * w.f, y:a._s.y + (b._s.y - a._s.y) * w.f, sc:a._s.sc + (b._s.sc - a._s.sc) * w.f, k };
 }
-const INIM = {};   // sprites dos inimigos (SVG em assets/inimigos), rasterizados uma vez em 128px
+const INIM = {};   // sprites dos inimigos (SVG em assets/inimigos), rasterizados uma vez em 256px
 const tierDe = lv => lv <= 2 ? 1 : lv === 3 ? 2 : lv <= 5 ? 3 : lv <= 7 ? 4 : 5;
 const CAM = ['sombra', 'membros', 'corpo', 'detalhes', 'brilho'];
 function inimSprite(m, tier) {
   const key = (m ? 'monstro_' : 'pirata_') + tier, o = INIM[key];
   if (o) return o.c || null;
   const e = INIM[key] = { c:null, L:null }, url = `assets/inimigos/${key}.svg`;
-  const rast = u => new Promise(ok => { const im = new Image(); im.onload = () => { const c = document.createElement('canvas'); c.width = c.height = 128; c.getContext('2d').drawImage(im, 0, 0, 128, 128); ok(c); }; im.onerror = () => ok(null); im.src = u; });
+  const rast = u => new Promise(ok => { const im = new Image(); im.onload = () => { const c = document.createElement('canvas'); c.width = c.height = 256; c.getContext('2d').drawImage(im, 0, 0, 256, 256); ok(c); }; im.onerror = () => ok(null); im.src = u; });
   if (!m) { rast(url).then(c => { e.c = c; }); return null; }
   // monstros: cada camada (sombra, membros, corpo, detalhes, brilho) vira um sprite próprio, para o corpo e os membros se mexerem separados
   fetch(url).then(r => r.text()).then(async txt => {
@@ -975,7 +975,8 @@ function introSetup() {
 }
 const introXY = (o, ts, W, H) => { const sp = .004 * o.d; let x = ((o.x - ts / 1000 * sp) % 1.15 + 1.15) % 1.15 - .075; return { x:x * W, y:o.y * H + Math.sin(ts / 2200 + o.ph) * 8 * o.d, r:(16 + 48 * o.d) * Math.min(W, H) / 800 }; };
 /* ---- Eventos da tela de login: piratas, monstros, batalhas, chuva de asteroides e tempestade solar (só visual; nada aqui toca no jogo) ---- */
-let introEv = null, introNext = 0, introLast = 0, introFx = [], introLastTipo = '';
+const INTRO_ORDEM = ['ast', 'sol', 'pirata', 'monstro'];   // ordem fixa: asteroides, tempestade solar, piratas e, por último, monstros
+let introSeq = 0, introEv = null, introNext = 0, introLast = 0, introFx = [], introLastTipo = '';
 const rng = (a, b) => a + Math.random() * (b - a), easeIO = u => u * u * (3 - 2 * u);
 const INTRO_TXT = { pirata:['fa-skull-crossbones', 'Piratas na rota', 'Combate de naves'], monstro:['fa-dragon', 'Monstro do vazio', 'Criatura gigante à vista'], ast:['fa-meteor', 'Chuva de asteroides', 'Desvie ou aguente o casco'], sol:['fa-sun', 'Tempestade solar', 'Radiação alta no setor'] };
 function introCaption(tipo) {
@@ -984,7 +985,7 @@ function introCaption(tipo) {
   const L = INTRO_TXT[tipo]; el.className = 'lp-evt on lp-' + tipo; el.innerHTML = `<i class="fa-solid ${L[0]}"></i><span><b>${L[1]}</b><small>${L[2]}</small></span>`;
 }
 function introNovoEvento(ts, W, H, voando, forca) {
-  const opc = ['pirata', 'monstro', 'ast', 'sol'].filter(t => t !== introLastTipo && (voando || t === 'ast' || t === 'sol')), tipo = forca || opc[Math.floor(Math.random() * opc.length)]; introLastTipo = tipo;
+  const tipo = forca || INTRO_ORDEM[introSeq % INTRO_ORDEM.length]; if (!forca) introSeq++; introLastTipo = tipo;
   introFx.length = 0;
   const base = { tipo, t0: ts, ang: rng(0, 6.28), tier: 1 + Math.floor(Math.random() * 4), foge: Math.random() < .25, shots: [], rocks: [], seed: Math.random() * 99 };
   introEv = tipo === 'pirata' ? { ...base, dur: 7000, lutaIni: 1900, lutaFim: 5200 } : tipo === 'monstro' ? { ...base, tier: 1 + Math.floor(Math.random() * 5), dur: 8200, lutaIni: 2200, lutaFim: 6200 } : tipo === 'ast' ? { ...base, dur: 7000 } : { ...base, dur: 6500 };
@@ -1104,7 +1105,7 @@ function introFrame(ts) {
   c.globalCompositeOperation = 'source-over';
   const fade = ru.wait ? 0 : Math.min(1, Math.min(u, 1 - u) * 12 + .15);
   // sorteia o próximo evento (batalhas só com a nave em voo)
-  if (!introEv && !REDUZ && ts > introNext && (introNext || (introNext = ts + 2500, false))) { const voando = !ru.wait && u > .12 && u < .55; if (voando || Math.random() < .5) introNovoEvento(ts, W, H, voando); else introNext = ts + 900; }
+  if (!introEv && !REDUZ && ts > introNext && (introNext || (introNext = ts + 2500, false))) { const voando = !ru.wait && u > .12 && u < .55, luta = INTRO_ORDEM[introSeq % INTRO_ORDEM.length] === 'pirata' || INTRO_ORDEM[introSeq % INTRO_ORDEM.length] === 'monstro'; if (voando || !luta) introNovoEvento(ts, W, H, voando); else introNext = ts + 700; }
   const fx = introEvento(c, c, ts, dt, W, H, sx, sy, ang, ru), sk = fx.shake ? (Math.random() - .5) * 3 * fx.shake : 0;
   c.save(); c.globalAlpha = Math.max(0, fade); c.translate(sx + sk, sy + sk); c.rotate(ang + Math.PI / 2); c.scale(2.4, 2.4);
   paintShip(c, shipLv(), ts, 46 - (shipLv().id - 1) * .2); c.restore();
@@ -1114,7 +1115,7 @@ function introToggle(on) {
   if (!on) { introCaption(null); introEv = null; return; }
   introCv = introCv || $('#intro'); introCx = introCx || introCv.getContext('2d'); if (!introPl) introSetup();
   for (const t of [1, 2, 3, 4]) { inimSprite(false, t); inimSprite(true, t); }   // aquece os sprites dos inimigos
-  introLast = 0; introNext = 0; requestAnimationFrame(introFrame);
+  introLast = 0; introNext = 0; introSeq = 0; requestAnimationFrame(introFrame);
 }
 
 /* ---------- Conta e nuvem ---------- */

@@ -497,8 +497,9 @@ async function partidaVer(env, id, url) {
   if (p.estado === 'fim') await pagarPremios(env, p.codigo);
   return await vista(env, p, id, Number(url.searchParams.get('v')));
 }
-const avariada = (S) => S.hull < 99.99;
-const MSG_REPARO = (S) => `Sua nave está com ${Math.floor(S.hull)}% de casco. Repare-a (Reparar casco) antes de jogar na Arena: todos começam com 100%.`;
+const HULL_MIN = 25;   // abaixo disso a nave não viaja (planetas: 15%, galáxias: 25%)
+const avariada = (S) => S.hull < HULL_MIN;
+const MSG_REPARO = (S) => `Seu casco está em ${Math.floor(S.hull)}%: com menos de ${HULL_MIN}% a nave não viaja. Repare-a (Reparar casco) antes de jogar na Arena. A partida começa com 100% para todos.`;
 async function entrarNaSala(env, p, id, cfg) {
   if (await ativa(env, id)) throw new Erro(409, 'Você já está em uma partida. Termine ou saia dela antes.');
   const carr = (await carregarJogo(env, id, Date.now())).S;

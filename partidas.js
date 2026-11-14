@@ -87,8 +87,8 @@ function renderPlay() {
   if (noAr()) { el.innerHTML = emAndamentoHtml(); return; }
   if (FORM) { el.innerHTML = formHtml(); return; }
   const um = location.search.match(/[?&]sala=([A-Za-z0-9]{6})/), pre = um ? um[1].toUpperCase() : '';
-  const dano = MODE !== 'partida' && S.hull < 99.99;
-  el.innerHTML = (dano ? `<div class="pcard aviso"><h3>🔧 Nave danificada</h3><p>Seu casco está em <b>${Math.floor(S.hull)}%</b>. Na Arena todos começam com 100%: repare a nave (botão <b>Reparar casco</b>) antes de entrar em qualquer modo.</p></div>` : '') + `<div class="pcard duelo"><h3>⚔️ Duelo X1</h3><p>Você contra outro piloto, 5 minutos e saldo de 5.000 Cr. Cada um usa a nave que tem equipada na carreira. Os dois dividem o mesmo mercado (o que um compra encarece para o outro), se enxergam o tempo todo e podem <b>atacar e roubar a carga</b> um do outro. Quem tiver mais patrimônio leva o bolo (90%; 10% fica com a casa). Se um sumir por 60 s, perde a aposta.</p>
+  const dano = MODE !== 'partida' && S.hull < 25;
+  el.innerHTML = (dano ? `<div class="pcard aviso"><h3>🔧 Nave danificada</h3><p>Seu casco está em <b>${Math.floor(S.hull)}%</b>, baixo demais para viajar (mínimo 25%). Repare a nave (botão <b>Reparar casco</b>) antes de entrar na Arena. A partida começa com 100% para todos.</p></div>` : '') + `<div class="pcard duelo"><h3>⚔️ Duelo X1</h3><p>Você contra outro piloto, 5 minutos e saldo de 5.000 Cr. Cada um usa a nave que tem equipada na carreira. Os dois dividem o mesmo mercado (o que um compra encarece para o outro), se enxergam o tempo todo e podem <b>atacar e roubar a carga</b> um do outro. Quem tiver mais patrimônio leva o bolo (90%; 10% fica com a casa). Se um sumir por 60 s, perde a aposta.</p>
     <div class="apostas">${APOSTAS.map(a => `<button type="button" data-aposta="${a}" ${S.credits < a || dano ? 'disabled' : ''}>${a >= 1000 ? a / 1000 + ' mil' : a}<small>Cr</small></button>`).join('')}</div>
     <p class="err" id="d-err">${esc(duelMsg)}</p><p class="empty">A aposta sai dos créditos da carreira. A busca por um rival dura até 60 segundos; sem ninguém, a aposta volta para você.</p></div>
   <div class="pcards">

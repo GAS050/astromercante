@@ -741,3 +741,25 @@ body.gated .lp-evt{display:flex}.lp-evt.on{opacity:1;transform:translate(-50%,0)
 
 .intro-fx{z-index:21}
 body.lp-rolou .lp-evt{opacity:0!important}
+
+/* chips e destaques do topo: sempre numa linha só */
+.lp-chips{flex-wrap:nowrap;gap:5px}
+.lp-chips li{padding:5px 9px;font-size:.7rem;gap:4px;white-space:nowrap;flex:0 1 auto}
+.lp-chips b{font-size:.9rem}
+.lp-pts li{font-size:.82rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;align-items:center}
+.lp-pts li i{flex:none}
+@media(max-width:350px){.lp-chips li{padding:4px 6px;font-size:.64rem}.lp-chips b{font-size:.8rem}.lp-pts li{font-size:.74rem;gap:7px}}
+@media(min-width:520px){.lp-chips li{padding:6px 12px;font-size:.78rem;gap:6px}.lp-chips b{font-size:1rem}.lp-pts li{font-size:.88rem}}
+/* perguntas frequentes */
+.lp-faq::before{background:linear-gradient(180deg,var(--amber),transparent)}.lp-faq h2 i{color:var(--amber)}
+.lp-qs{display:flex;flex-direction:column;gap:8px}
+.lp-qs details{border:1px solid var(--line);border-radius:10px;background:linear-gradient(160deg,rgba(14,32,56,.85),rgba(8,17,31,.85));overflow:hidden}
+.lp-qs details[open]{border-color:rgba(62,230,255,.45)}
+.lp-qs summary{list-style:none;cursor:pointer;display:flex;justify-content:space-between;align-items:center;gap:12px;padding:13px 14px;font-weight:600;font-size:.92rem;color:var(--tx);min-height:48px}
+.lp-qs summary::-webkit-details-marker{display:none}
+.lp-qs summary::after{content:"+";flex:none;width:24px;height:24px;display:grid;place-items:center;border-radius:50%;border:1px solid var(--line);color:var(--cyan);font:600 1.05rem 'IBM Plex Mono',monospace;transition:transform .2s}
+.lp-qs details[open] summary::after{content:"–";background:rgba(62,230,255,.12)}
+.lp-qs details p{padding:0 14px 14px;font-size:.85rem;line-height:1.55;color:var(--mt)}.lp-qs details p b{color:var(--neon)}
+@media(min-width:900px){.lp-qs{display:grid;grid-template-columns:1fr 1fr;align-items:start}}
+@media(max-width:519px){.lp-chips{gap:4px}.lp-chips li{padding:5px 6px;font-size:.66rem;gap:3px;flex:1 1 auto;justify-content:center;min-width:0}.lp-chips b{font-size:.86rem}}
+@media(max-width:350px){.lp-chips li{padding:4px 4px;font-size:.58rem}.lp-chips b{font-size:.76rem}}

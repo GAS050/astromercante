@@ -1002,7 +1002,7 @@ function introEvento(c, f, ts, dt, W, H, sx, sy, ang, run) {   // c: canvas de f
   if (e > ev.dur) { introEv = null; introCaption(null); introNext = ts + rng(3200, 5200); return { shake: 0 }; }
   const dts = dt / 1000, env = Math.sin(Math.PI * clamp(e / ev.dur, 0, 1));
   if (ev.tipo === 'pirata' || ev.tipo === 'monstro') {
-    const m = ev.tipo === 'monstro', D = Math.min(W, H) * (m ? .22 : .19) + 90;
+    const m = ev.tipo === 'monstro', D = Math.min(W, H) * (m ? .3 : .19) + (m ? 130 : 90);
     if (!ev.posto) {   // o inimigo escolhe o lado com tela livre: dentro da janela e longe do cartão de login
       ev.posto = 1; const cr = $('.lp-card')?.getBoundingClientRect(); let melhor = -1;
       for (let i = 0; i < 16; i++) {
@@ -1016,7 +1016,7 @@ function introEvento(c, f, ts, dt, W, H, sx, sy, ang, run) {   // c: canvas de f
     const chega = easeIO(clamp(e / ev.lutaIni, 0, 1)), sai = ev.foge ? easeIO(clamp((e - ev.lutaFim) / 1100, 0, 1)) : 0, morre = !ev.foge && e >= ev.lutaFim ? clamp((e - ev.lutaFim) / 700, 0, 1) : 0;
     const dist = D + (1 - chega) * Math.max(W, H) * .65 + sai * Math.max(W, H) * .8, wob = Math.sin(ts / 420 + ev.seed) * 7, rx = sx + Math.cos(ev.ang) * D, ry = sy + Math.sin(ev.ang) * D, w = chega * (1 - sai);
     const ex = sx + Math.cos(ev.ang) * dist + Math.cos(ev.ang + 1.57) * wob + (clamp(rx, 60, W - 60) - rx) * w, ey = sy + Math.sin(ev.ang) * dist + Math.sin(ev.ang + 1.57) * wob + (clamp(ry, 90, H - 60) - ry) * w;
-    const alvoAng = Math.atan2(sy - ey, sx - ex), sz = (m ? 90 + ev.tier * 20 : 62 + ev.tier * 10) * Math.min(1.25, Math.min(W, H) / 560 + .55);
+    const alvoAng = Math.atan2(sy - ey, sx - ex), sz = (m ? 74 + ev.tier * 15 : 62 + ev.tier * 10) * Math.min(1.25, Math.min(W, H) / 560 + .55);
     // disparos: nave (ciano) e inimigo (vermelho ou roxo), um a cada ~230 ms, em lados alternados
     if (luta) {
       ev.prox = ev.prox ?? ts; while (ts >= ev.prox) { const meu = ev.shots.length % 2 === 0; ev.shots.push({ t: ts, meu }); ev.prox += 230; }

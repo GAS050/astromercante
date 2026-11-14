@@ -128,6 +128,14 @@ export const LIQ = .4, TAXA_VENDA = .97, COMBUSTIVEL = .8;
 export const GALK = .4;   // profundidade de mercado por galáxia (calibrado por simulação: bot esperto chega a 100M em ~25 h)
 export const liq = (S) => LIQ / (1 + GALK * S.gal);
 const setStk = (S, id, v, now) => { (S.stock[S.loc] ??= {})[id] = { v: Math.max(1, v / escFator(S, id, now)), t: now }; };
+/** Situações de planeta (carreira): a cada 15 min, ~21% dos planetas entram em quarentena, greve, feira ou bloqueio. Iguais para todos; o aparelho só mostra o selo. */
+export const SIT_JAN = 900000;
+export const SITS = { quarentena: { nome: 'Quarentena', d: 'ninguém pousa aqui' }, greve: { nome: 'Greve', d: 'vendas rendem 10% menos' }, feira: { nome: 'Feira', d: 'vendas rendem 8% mais' }, bloqueio: { nome: 'Bloqueio', d: 'viagens até aqui: +50% de tempo e +30% de combustível' } };
+export function situacao(S, planId, now) {
+  if (S.partida) return null;
+  const h = hash(`sit:${S.gal}:${planId}:${Math.floor(now / SIT_JAN)}`) % 100;
+  return h < 4 ? 'quarentena' : h < 10 ? 'greve' : h < 16 ? 'feira' : h < 21 ? 'bloqueio' : null;
+}
 /** Escassez natural: a cada 10 min, ~35% dos planetas ficam sem um produto. Não dá para comprá-lo lá; o estoque baixo encarece o produto no começo (~+15%) e a alta some em linha reta até o fim da janela ou antes, se você vender ali. Só na carreira. */
 export const ESC_JAN = 600000;
 export function escasso(S, planId, now) {
@@ -161,7 +169,7 @@ const overCost = (S) => Math.round((100 - S.maxHull) * porPct(S) * 10);   // rev
 function desgasteViagem(S, d, teto) { const x = (.8 + Math.random()) * d / 100 * (1 + (S.engLv - 1) * .04) * (S.hull < 40 ? 1.3 : 1), b = Math.floor(x); return Math.min(teto || 99, b + (Math.random() < x - b ? 1 : 0)); }
 const hops = (S, i) => Math.max(1, Math.round(Math.hypot(GALAXIES[i].wx - GALAXIES[S.gal].wx, GALAXIES[i].wy - GALAXIES[S.gal].wy) / HOP));
 const jumpCost = (S, i) => Math.round(150 * (1 + i) * hops(S, i) * (1 + .3 * (S.engLv - 1) + .25 * (S.capLv - 1)) * (1 + (100 - S.hull) / 150));
-const tripInfo = (S, to) => { const d = dist(planeta(S, S.loc), planeta(S, to)); return { d, cost: Math.round(d * .8 * COMBUSTIVEL * (1 + .3 * (S.engLv - 1) + .25 * (S.capLv - 1)) * (1 + (100 - S.hull) / 150)), secs: Math.max(3, Math.round(d / (18 + S.engLv * 7) * (S.hull < 40 ? 1.3 : 1))) }; };
+const tripInfo = (S, to, now = Date.now()) => { const d = dist(planeta(S, S.loc), planeta(S, to)); const bq = situacao(S, to, now) === 'bloqueio'; return { d, cost: Math.round((bq ? 1.3 : 1) * d * .8 * COMBUSTIVEL * (1 + .3 * (S.engLv - 1) + .25 * (S.capLv - 1)) * (1 + (100 - S.hull) / 150)), secs: Math.max(3, Math.round((bq ? 1.5 : 1) * d / (18 + S.engLv * 7) * (S.hull < 40 ? 1.3 : 1))) }; };
 
 /* ---------- inimigos do mapa (piratas e monstros): patrulham por relógio, iguais para todos; o aparelho só desenha o que o servidor decide ---------- */
 const HH = (n) => { n = (n ^ 61) ^ (n >>> 16); n = Math.imul(n, 0x45d9f3b); n ^= n >>> 4; n = Math.imul(n, 0x45d9f3b); n ^= n >>> 15; return n >>> 0; };
@@ -243,6 +251,7 @@ function chegada(S, d, msgs, enc) {
       say(msgs, m.trim(), 'err');
     }
   }
+  if (enc?.length && S.ct?.some((x) => x.esp === 'fragil')) { for (const x of S.ct.filter((x) => x.esp === 'fragil')) say(msgs, `Carga frágil danificada na luta: contrato de ${x.q} × ${RES_ID[x.r].nome} perdido. Caução perdida (${fmt(x.cau)} Cr).`, 'err'); S.ct = S.ct.filter((x) => x.esp !== 'fragil'); }
   if (sc) return;   // partida sem desgaste de casco: nada a descontar nem a reparar
   const h0 = S.hull;
   S.hull = enc?.length ? Math.max(Math.min(S.hull, 5), S.hull - dmg) : Math.max(0, S.hull - dmg);
@@ -296,9 +305,9 @@ export function fechar(S, c, msgs) {   // missões e patente, sempre calculadas 
 export const CT_JANELA = 20 * 60000, CT_MAX = 3;
 export function ofertas(S, c) {
   if (S.partida || S.trip) return [];
-  const b = Math.floor(c.now / CT_JANELA), outros = planetas(S).filter((p) => p.id !== S.loc && p.t <= S.rank), prods = RES.filter((r) => (r.t || 0) <= S.rank);
+  const b = Math.floor(c.now / CT_JANELA), outros = planetas(S).filter((p) => p.id !== S.loc && p.t <= S.rank && situacao(S, p.id, c.now) !== 'quarentena'), prods = RES.filter((r) => (r.t || 0) <= S.rank);
   if (!outros.length || !prods.length) return [];
-  const out = [], push = (o) => out.push({ ...o, cau: Math.round(CAUCAO * o.q * unitDest(S, o.dest, o.r, c, o.gal)) });
+  const out = [], push = (o) => out.push({ ...o, cau: Math.round(CAUCAO * (o.esp ? 1.5 : 1) * o.q * unitDest(S, o.dest, o.r, c, o.gal)) });
   // 2 pedidos na galáxia atual, de preferência para planetas em falta; prazo sorteado de 12 a 25 s (nunca menos que a viagem + 5 s)
   const faltas = outros.map((p) => [p, escasso(S, p.id, c.now)]).filter((x) => x[1]);
   for (let k = 0; k < 2; k++) {
@@ -306,15 +315,21 @@ export function ofertas(S, c) {
     let r, dest;
     if (faltas.length && (k === 0 || h % 2)) { const [pl, id] = faltas[(h >>> 7) % faltas.length]; dest = pl; r = RES_ID[id]; }
     else { r = prods[h % prods.length]; dest = outros[(h >>> 7) % outros.length]; }
-    const t = tripInfo(S, dest.id), mult = 1.15 + .15 * f2;
+    const t = tripInfo(S, dest.id, c.now), mult = 1.15 + .15 * f2;
     push({ id: `${S.loc}:${b}:${k}`, r: r.id, q: clamp(Math.round(S.cap * (.25 + .5 * f1)), 1, S.cap), dest: dest.id, gal: S.gal, falta: escasso(S, dest.id, c.now) === r.id ? 1 : 0, comb: t.cost, mult: Math.round(mult * 100) / 100, dur: Math.round(clamp(Math.max(12 + 13 * (hash(`d:${S.gal}:${S.loc}:${b}:${k}`) % 1000 / 1000), t.secs + 5), 12, 25)) });
   }
   // 1 pedido para outra galáxia que você já pode visitar: paga mais, devolve o custo do salto e dá um prazo um pouco maior
   const gs = GALAXIES.map((g, i) => i).filter((i) => i !== S.gal && S.rank >= GALAXIES[i].t && S.engLv >= GALAXIES[i].eng);
   if (gs.length && S.hull >= 25) {
-    const h = hash(`x:${S.gal}:${S.loc}:${b}`), gi = gs[h % gs.length], ps = GALAXIES[gi].planetas.filter((p) => p.t <= S.rank), dest = ps[(h >>> 7) % ps.length], r = prods[(h >>> 11) % prods.length], f1 = (h >>> 14) % 1000 / 1000;
+    const h = hash(`x:${S.gal}:${S.loc}:${b}`), gi = gs[h % gs.length], ps = ((g0) => { S.gal = gi; try { return GALAXIES[gi].planetas.filter((p) => p.t <= S.rank && situacao(S, p.id, c.now) !== 'quarentena'); } finally { S.gal = g0; } })(S.gal), dest = ps[(h >>> 7) % ps.length], r = prods[(h >>> 11) % prods.length], f1 = (h >>> 14) % 1000 / 1000;
     const salto = jumpCost(S, gi), mult = 1.25 + .15 * ((h >>> 3) % 1000 / 1000);
     push({ id: `${S.loc}:${b}:x`, r: r.id, q: clamp(Math.round(S.cap * (.25 + .5 * f1)), 1, S.cap), dest: dest.id, gal: gi, falta: 0, comb: salto, mult: Math.round(mult * 100) / 100, dur: 45 });
+  }
+  // carga frágil (ocasional): paga bem mais, mas se houver luta no caminho o contrato é perdido (a rota segura evita lutas, só que é mais longa)
+  const hf = hash(`f:${S.gal}:${S.loc}:${b}`);
+  if (hf % 100 < 45) {
+    const r = prods[(hf >>> 5) % prods.length], dest = outros[(hf >>> 12) % outros.length], t = tripInfo(S, dest.id, c.now), f1 = (hf >>> 16) % 1000 / 1000, mult = 1.4 + .2 * ((hf >>> 3) % 1000 / 1000);
+    push({ id: `${S.loc}:${b}:f`, r: r.id, q: clamp(Math.round(S.cap * (.2 + .4 * f1)), 1, S.cap), dest: dest.id, gal: S.gal, falta: escasso(S, dest.id, c.now) === r.id ? 1 : 0, comb: t.cost, mult: Math.round(mult * 100) / 100, esp: 'fragil', dur: Math.round(clamp(Math.max(12 + 13 * (hash(`df:${S.gal}:${S.loc}:${b}`) % 1000 / 1000), t.secs + 5), 12, 25)) });
   }
   return out;
 }
@@ -335,7 +350,7 @@ const acoes = {
     if (S.trip) throw new Regra('Nave em trânsito.');
     const s0 = stk(S, a.id, c.now), esperado = Number(a.esperado), vitrine = preco(S, a.id, s0, c);
     if (esperado > 0 && Math.abs(vitrine / esperado - 1) > .08) throw new Regra('O preço mudou. Confira o mercado e tente de novo.');
-    const p = preco(S, a.id, lado === 'buy' ? s0 - n * liq(S) / 2 : s0 + n * liq(S) / 2, c) * (lado === 'buy' ? 1 : TAXA_VENDA), total = n * p, h = (S.inv[a.id] ??= { qty: 0, avg: 0 });
+    const p = preco(S, a.id, lado === 'buy' ? s0 - n * liq(S) / 2 : s0 + n * liq(S) / 2, c) * (lado === 'buy' ? 1 : TAXA_VENDA * ({ greve: .9, feira: 1.08 }[situacao(S, S.loc, c.now)] || 1)), total = n * p, h = (S.inv[a.id] ??= { qty: 0, avg: 0 });
     if (lado === 'buy') {
       if (escasso(S, S.loc, c.now) === a.id) throw new Regra(`${r.nome} está em falta neste planeta: não há estoque para comprar. Traga de outro lugar: aqui ele paga mais caro.`);
       if (n > (s0 - 1) / liq(S)) throw new Regra(`Este planeta só tem ${Math.floor((s0 - 1) / liq(S))} un. em oferta. Procure outro mercado.`);
@@ -375,7 +390,7 @@ const acoes = {
     S.credits += pay + dev; S.lt = (S.lt || 0) + lucro; S.daily.p.profit += lucro; mais(S, 'ctn');
     if (ultimo) {
       S.ct.splice(i, 1); (S.cf ??= []).push(x.id); if (S.cf.length > 40) S.cf.shift();
-      mais(S, 'ct'); maxi(S, 'cg', x.lc); if (x.ate - c.now < 60000) mais(S, 'cz'); if (x.falta) mais(S, 'cs');
+      mais(S, 'ct'); if (x.esp) mais(S, 'cq'); maxi(S, 'cg', x.lc); if (x.ate - c.now < 60000) mais(S, 'cz'); if (x.falta) mais(S, 'cs');
       say(msgs, `Contrato cumprido! +${fmt(pay)} Cr e caução de ${fmt(dev)} Cr devolvida.`, 'win');
     } else say(msgs, `Entregou ${n} × ${RES_ID[x.r].nome}: +${fmt(pay)} Cr. Faltam ${x.q}.`, 'win');
   },
@@ -389,7 +404,8 @@ const acoes = {
     const seg = a.rota === 'segura';   // rota segura: contorna os inimigos do mapa, mas é 60% mais longa e gasta 25% mais combustível
     if (seg && S.partida) throw new Regra('A rota segura existe só na carreira.');
     if (seg && S.tv !== undefined && S.tv <= 1) throw new Regra('A rota segura é liberada depois do tutorial.');
-    const t0 = tripInfo(S, to.id), t = seg ? { ...t0, cost: Math.round(t0.cost * 1.25), secs: Math.round(t0.secs * 1.6) } : t0;
+    if (situacao(S, to.id, c.now) === 'quarentena') throw new Regra(`${to.nome} está em quarentena: ninguém pousa lá agora. Tente de novo em alguns minutos.`);
+    const t0 = tripInfo(S, to.id, c.now), t = seg ? { ...t0, cost: Math.round(t0.cost * 1.25), secs: Math.round(t0.secs * 1.6) } : t0;
     if (t.cost > S.credits) throw new Regra(`Combustível custa ${fmt(t.cost)} Cr. Créditos insuficientes.`);
     S.credits -= t.cost; S.trip = { from: S.loc, to: to.id, start: c.now, end: c.now + t.secs * 1000 }; if (seg) S.trip.seg = 1; const enc = seg ? [] : (viagemTutorial(S) ?? encontros(S, S.trip.start, S.trip.end)); if (S.tv !== undefined && !S.partida) S.tv++; if (enc.length) { S.trip.enc = enc; S.trip.end += PAUSA; }
     say(msgs, `Rumo a ${to.nome}${seg ? ' pela rota segura' : ''}: ${t.secs}s, combustível ${fmt(t.cost)} Cr.`, '');

@@ -659,3 +659,6 @@ body[data-view=loja] #p-loja{display:flex}
 .ctc__tags{margin-bottom:4px}
 .rotas{display:flex;gap:8px}.rotas button{flex:1;margin-top:6px}.rotas button small{font-size:.72rem;margin-top:3px}
 .mapinfo .rt-seg{border:1px solid var(--cyan);color:var(--cyan)}.mapinfo .rt-seg:hover{background:rgba(62,230,255,.12)}
+.sit{display:inline-block;font-size:.62rem;font-weight:700;letter-spacing:.05em;padding:1px 6px;border-radius:3px;border:1px solid;margin-left:4px;vertical-align:middle}
+.sit-quarentena{color:#ff4d6d}.sit-greve{color:#ffb347}.sit-feira{color:#39ff88}.sit-bloqueio{color:#ff9f43}
+.ctc__fr{display:inline-block;border:1px solid var(--red);color:var(--red);font-size:.62rem;padding:1px 5px;border-radius:3px;margin-right:6px;letter-spacing:.04em}

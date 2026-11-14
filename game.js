@@ -188,11 +188,11 @@ function renderContratos() {
   const card = (x, atv) => {
     const aqui = !S.trip && S.gal === x.gal && S.loc === x.dest, h = S.inv[x.r]?.qty || 0, pct = Math.round(100 * (x.q0 ? 1 - x.q / x.q0 : 0)), pr = Math.round((x.mult - 1) * 100);
     return `<li class="ctc ${atv ? 'on' : ''}${x.gal !== S.gal ? ' ig' : ''}"><div class="ctc__ic"><img src="${resIcon(x.r)}" alt="" onerror="this.style.visibility='hidden'"></div>
-      <div class="ctc__b">${(x.gal !== S.gal || atv || x.falta) ? `<div class="ctc__tags">${x.gal !== S.gal ? '<span class="ctc__ig">INTERGALÁCTICO</span>' : ''}${atv ? '<span class="ctc__tag">ATIVO</span>' : ''}${x.falta ? '<span class="ctc__fl">EM FALTA NO DESTINO</span>' : ''}</div>` : ''}
+      <div class="ctc__b">${(x.gal !== S.gal || atv || x.falta || x.esp) ? `<div class="ctc__tags">${x.gal !== S.gal ? '<span class="ctc__ig">INTERGALÁCTICO</span>' : ''}${atv ? '<span class="ctc__tag">ATIVO</span>' : ''}${x.esp ? '<span class="ctc__fr">FRÁGIL · NÃO LUTE</span>' : ''}${x.falta ? '<span class="ctc__fl">EM FALTA NO DESTINO</span>' : ''}</div>` : ''}
       <div class="ctc__t"><b>${x.q} × ${resNome(x.r)}</b></div>
       <div class="ctc__s">${x.gal !== S.gal ? `Galáxia <b>${GALAXIES[x.gal].nome}</b><br>Planeta <b>${destNome(x.gal, x.dest)}</b>` : `Planeta <b>${destNome(x.gal, x.dest)}</b>`}</div>
       ${atv ? `<div class="ctc__s"><span class="ctc__time" data-ate="${x.ate}">⏱ ${ctTempo(x.ate - now)}</span> · porão ${Math.min(h, x.q)}/${x.q}${x.q0 > x.q ? ` · entregue ${pct}%` : ''}</div><div class="ctc__s">Caução retida: ${fmt(x.cau)} Cr</div><div class="ctc__bar"><i style="width:${pct}%"></i></div>`
-        : `<div class="ctc__s">Mercado <b>+${pr}%</b> + combustível · ⏱ ${x.dur} s${x.gal !== S.gal ? ' · salto custa ' + fmt(x.comb).replace(',00', '') + ' Cr (60% volta)' : ''}</div><div class="ctc__s">Caução ${fmt(x.cau)} Cr (volta na entrega)</div>`}</div>
+        : `<div class="ctc__s">Mercado <b>+${pr}%</b> + combustível · ⏱ ${x.dur} s${x.gal !== S.gal ? ' · salto custa ' + fmt(x.comb).replace(',00', '') + ' Cr (60% volta)' : ''}</div><div class="ctc__s">Caução ${fmt(x.cau)} Cr (volta na entrega)</div>${x.esp ? '<div class="ctc__s">Se houver luta no caminho, o contrato é perdido. A rota segura evita lutas.</div>' : ''}`}</div>
       ${atv ? `<button class="ctb" data-ce="${x.id}" ${aqui && h ? '' : 'disabled'}>${aqui ? (h ? 'Entregar carga' : 'Sem carga') : (S.trip ? 'Em viagem' : 'Vá até lá')}</button>`
         : `<button class="ctb" data-ca="${x.id}" ${ativos.length >= 3 || S.trip || x.cau > S.credits ? 'disabled' : ''}>Aceitar contrato</button>`}</li>`; };
   const ofs = S.trip ? [] : OF.filter(o => !feitos.has(o.id));
@@ -256,11 +256,18 @@ const RANKS = [[0,'Recruta'],[12000,'Contrabandista'],[30000,'Mercador estelar']
 const plan = id => PL.find(p => p.id === id);
 const used = () => RES.reduce((s, r) => s + S.inv[r.id].qty, 0);
 const dist = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
-const trip = to => { const d = dist(plan(S.loc), plan(to)); return { d, cost:Math.round(d * .8 * .8 * (1 + .3 * (S.engLv - 1) + .25 * (S.capLv - 1)) * (1 + (100 - S.hull) / 150)), secs:Math.max(3, Math.round(d / (18 + S.engLv * 7) * (S.hull < 40 ? 1.3 : 1))) }; };
+const trip = to => { const d = dist(plan(S.loc), plan(to)), bq = situacao(to, NOW()) === 'bloqueio' ? 1 : 0; return { d, cost:Math.round((bq ? 1.3 : 1) * d * .8 * .8 * (1 + .3 * (S.engLv - 1) + .25 * (S.capLv - 1)) * (1 + (100 - S.hull) / 150)), secs:Math.max(3, Math.round((bq ? 1.5 : 1) * d / (18 + S.engLv * 7) * (S.hull < 40 ? 1.3 : 1))) }; };
 const recov = (o, now = NOW()) => 100 - (100 - o.v) * Math.pow(.94, (now - o.t) / 30000);   // a oferta volta a 100% com o tempo: função do relógio, igual em qualquer aparelho
 const escFator = id => (escasso(S.loc, NOW()) === id ? 1 - .3 * (1 - (NOW() % ESC_JAN) / ESC_JAN) : 1);   // espelho do servidor: em falta = estoque efetivo baixo, que volta ao normal em 10 min
 const stk = id => { const o = S.stock[S.loc]?.[id]; return (o ? recov(o) : 100) * escFator(id); };
 const setStk = (id, v) => { (S.stock[S.loc] ??= {})[id] = { v:Math.max(1, v / escFator(id)), t:Date.now() }; };
+const SIT_JAN = 900000, SITS = { quarentena: ['Quarentena', 'ninguém pousa aqui'], greve: ['Greve', 'vendas rendem 10% menos'], feira: ['Feira', 'vendas rendem 8% mais'], bloqueio: ['Bloqueio', 'viagens até aqui: +50% de tempo e +30% de combustível'] };
+function situacao(planId, now) {   // espelho do servidor: a cada 15 min ~21% dos planetas entram em quarentena, greve, feira ou bloqueio
+  if (S.partida) return null;
+  const h = hash(`sit:${GI()}:${planId}:${Math.floor(now / SIT_JAN)}`) % 100;
+  return h < 4 ? 'quarentena' : h < 10 ? 'greve' : h < 16 ? 'feira' : h < 21 ? 'bloqueio' : null;
+}
+const sitTag = (planId, cls = 'sit') => { const k = situacao(planId, NOW()); return k ? `<span class="${cls} sit-${k}" title="${SITS[k][1]}">${SITS[k][0].toUpperCase()}</span>` : ''; };
 const ESC_JAN = 600000;   // espelho do servidor: a cada 10 min ~35% dos planetas ficam sem um produto (não dá para comprar; preço sobe e desce sozinho)
 function escasso(planId, now) {
   if (S.partida) return null;
@@ -359,7 +366,7 @@ function renderHangar() {   // hangar: minhas naves e loja (50 naves; patente e 
 function renderWorld() {
   renderInfo(); renderShipCard();
   $('#trip').textContent = S.trip ? `Em trânsito para ${plan(S.trip.to)?.nome || ''}…` : '';
-  $('#p-market h2').textContent = 'Terminal de mercado · ' + (S.trip ? 'em trânsito' : (plan(S.loc)?.nome || ''));
+  $('#p-market h2').innerHTML = 'Terminal de mercado · ' + (S.trip ? 'em trânsito' : (plan(S.loc)?.nome || '')) + (S.trip ? '' : ' ' + sitTag(S.loc));
   $('#fleet').innerHTML = (semCasco() ? `<p class="empty">Esta partida não tem desgaste de casco: viagens e lutas não danificam a nave, então não há reparo.</p>` : `<ul class="lj-st up-st hull-st"><li><i class="fa-solid fa-heart-pulse"></i><div><span>Casco <b class="${S.hull < 30 ? 'down' : ''}">${S.hull}%</b> <em class="up-nv">máx. ${S.maxHull}%</em></span><div class="lj-bar up-bar${S.hull < 30 ? ' low' : ''}"><i class="nx" style="width:${S.maxHull}%"></i><i style="width:${S.hull}%"></i></div><small>Casco baixo enfraquece o poder de fogo. A parte clara da barra é a integridade máxima.</small>
       <button class="buy" data-up="fix" ${S.hull >= S.maxHull ? 'disabled' : ''}>${S.hull >= S.maxHull ? 'Casco no máximo' : `Reparar casco · ${fmt(fixCost()).replace(',00', '')} Cr`}</button><small class="up-n">Cada reparo desgasta 1% da integridade máxima.</small></div></li>
     <li><i class="fa-solid fa-screwdriver-wrench"></i><div><span>Revisão completa <em class="up-nv">máx. ${S.maxHull}% → 100%</em></span><small>Restaura a integridade máxima a 100%.</small><button class="buy" data-up="over" ${S.maxHull >= 100 ? 'disabled' : ''}>${S.maxHull >= 100 ? 'Integridade em 100%' : `Revisão completa · ${fmt(overCost()).replace(',00', '')} Cr`}</button></div></li></ul>
@@ -571,6 +578,7 @@ function drawLabels() {
       const baixo = px === l.x && ty === down, box = { x: px - w / 2, y: ty - 9, w, h: 12 }, area = baixo && txt2 ? { x: box.x, y: box.y, w, h: 22 } : box;
       if (l.pr < 3 && (placed.some(o => hit(area, o)) || discs.some(d => d.l !== l && hit(area, d)))) continue;
       cx.globalAlpha = l.lock ? .3 : 1; cx.fillStyle = 'rgba(4,10,20,.7)'; cx.fillRect(box.x, box.y, w, 12); cx.fillStyle = '#e6f1fb'; cx.fillText(p.nome, px, ty);
+      { const sk = situacao(p.id, NOW()); if (sk) { cx.font = '700 6.5px Chakra Petch, sans-serif'; cx.fillStyle = { quarentena: '#ff4d6d', greve: '#ffb347', feira: '#39ff88', bloqueio: '#ff9f43' }[sk]; cx.fillText(SITS[sk][0].toUpperCase(), px, ty - 10); cx.font = `600 ${fs}px Chakra Petch, sans-serif`; cx.fillStyle = '#e6f1fb'; } }
       placed.push(box);
       if (txt2 && baixo) { cx.fillStyle = l.here ? '#39ff88' : '#8fa3b8'; cx.font = '7px Chakra Petch, sans-serif'; cx.fillText(txt2, l.x, ty + 10); placed.push({ x: l.x - w / 2, y: ty + 2, w, h: 10 }); }
       done = true; break;
@@ -857,10 +865,11 @@ function renderInfo() {
   const p = plan(sel), here = !S.trip && p.id === S.loc, m = p.m, t = trip(p.id);
   const chips = Object.keys(m).map(k => `<li class="${m[k] < 1 ? 'up' : 'down'}">${SHORT[k]} ${m[k] < 1 ? '▼' : '▲'} ${Math.abs(Math.round((m[k] - 1) * 100))}%</li>`).join('') || '<li>Hub: preços neutros</li>';
   $('#mapinfo').innerHTML = `<h3>${p.img ? `<img class="pimg" src="assets/planets/${p.img}" alt="">` : ''}${p.nome}</h3><ul class="chips">${chips}</ul>`
+    + (situacao(p.id, NOW()) ? `<p class="evtl">${sitTag(p.id)} ${SITS[situacao(p.id, NOW())][1]}</p>` : '')
     + (S.ev && S.ev.p === p.id ? `<p class="evtl">⚡ ${S.ev.t}</p>` : '')
     + (p.t > S.rank ? `<small>🔒 Exige a patente <b>${RANKS[p.t][1]}</b>.</small>` : here ? '<small>Você está aqui. Toque em outro planeta ou galáxia.</small>'
-            : `<div class="rotas"><button class="buy" data-go="${p.id}" ${S.trip ? 'disabled' : ''}>Rota direta<small>⛽ ${fmt(t.cost)} Cr · ${t.secs}s · pode cruzar inimigos</small></button>`
-              + (CLOUD() && !S.partida && (S.tv === undefined || S.tv > 1) ? `<button class="rt-seg" data-go="${p.id}" data-rota="segura" ${S.trip ? 'disabled' : ''}>Rota segura<small>⛽ ${fmt(Math.round(t.cost * 1.25))} Cr · ${Math.round(t.secs * 1.6)}s · sem inimigos</small></button>` : '') + '</div>');
+            : `<div class="rotas"><button class="buy" data-go="${p.id}" ${S.trip || situacao(p.id, NOW()) === 'quarentena' ? 'disabled' : ''}>Rota direta<small>⛽ ${fmt(t.cost)} Cr · ${t.secs}s · pode cruzar inimigos</small></button>`
+              + (CLOUD() && !S.partida && (S.tv === undefined || S.tv > 1) && situacao(p.id, NOW()) !== 'quarentena' ? `<button class="rt-seg" data-go="${p.id}" data-rota="segura" ${S.trip ? 'disabled' : ''}>Rota segura<small>⛽ ${fmt(Math.round(t.cost * 1.25))} Cr · ${Math.round(t.secs * 1.6)}s · sem inimigos</small></button>` : '') + '</div>');
 }
 
 /* ---------- Vício: som, missões, ranking, gráfico ---------- */

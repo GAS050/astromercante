@@ -185,17 +185,17 @@ function renderContratos() {
   const now = NOW(), b = Math.floor(now / 1200000), ativos = S.ct || [], feitos = new Set([...(S.cf || []), ...ativos.map(x => x.id)]);
   if ((!OF.length || Number(OF[0].id.split(':')[1]) !== b) && ctBucket !== b && !S.trip && CLOUD()) { ctBucket = b; refrescar(true); }   // ofertas ausentes ou de outra janela: pede ao servidor
   const card = (x, atv) => {
-    const aqui = !S.trip && S.gal === x.gal && S.loc === x.dest, h = S.inv[x.r]?.qty || 0, pct = Math.round(100 * (x.q0 ? 1 - x.q / x.q0 : 0));
-    return `<li class="ctc ${atv ? 'on' : ''}"><img src="${resIcon(x.r)}" alt="" onerror="this.style.visibility='hidden'">
-      <div class="ctc__b"><div class="ctc__t">${atv ? '<span class="ctc__tag">ATIVO</span>' : ''}<b>${x.q} × ${resNome(x.r)}</b>${x.falta ? '<span class="ctc__fl">em falta lá</span>' : ''}</div>
-      <div class="ctc__s">→ ${destNome(x.gal, x.dest)} · mercado +${Math.round((x.mult - 1) * 100)}% + combustível</div>
-      ${atv ? `<div class="ctc__s"><span class="ctc__time" data-ate="${x.ate}">⏱ ${ctTempo(x.ate - now)}</span> · porão ${Math.min(h, x.q)}/${x.q}${x.q0 > x.q ? ` · entregue ${pct}%` : ''}</div><div class="ctc__bar"><i style="width:${pct}%"></i></div>`
-        : `<div class="ctc__s">⏱ prazo ${Math.ceil(x.dur / 60)} min</div>`}</div>
-      ${atv ? `<button data-ce="${x.id}" ${aqui && h ? '' : 'disabled'}>${aqui ? (h ? 'Entregar' : 'Sem carga') : (S.trip ? 'Em viagem' : 'Vá até lá')}</button>`
-        : `<button data-ca="${x.id}" ${ativos.length >= 3 || S.trip ? 'disabled' : ''}>Aceitar</button>`}</li>`; };
+    const aqui = !S.trip && S.gal === x.gal && S.loc === x.dest, h = S.inv[x.r]?.qty || 0, pct = Math.round(100 * (x.q0 ? 1 - x.q / x.q0 : 0)), pr = Math.round((x.mult - 1) * 100);
+    return `<li class="ctc ${atv ? 'on' : ''}${x.falta ? ' fl' : ''}"><div class="ctc__ic"><img src="${resIcon(x.r)}" alt="" onerror="this.style.visibility='hidden'"></div>
+      <div class="ctc__b"><div class="ctc__t">${atv ? '<span class="ctc__tag">ATIVO</span>' : ''}<b>${x.q} × ${resNome(x.r)}</b></div>
+      <div class="ctc__s"><i class="fa-solid fa-location-dot"></i> ${destNome(x.gal, x.dest)}${x.falta ? ' <span class="ctc__fl">EM FALTA</span>' : ''}</div>
+      ${atv ? `<div class="ctc__s"><span class="ctc__time" data-ate="${x.ate}">⏱ ${ctTempo(x.ate - now)}</span> · porão ${Math.min(h, x.q)}/${x.q}${x.q0 > x.q ? ` · entregue ${pct}%` : ''}</div><div class="ctc__s">Caução retida: ${fmt(x.cau)} Cr</div><div class="ctc__bar"><i style="width:${pct}%"></i></div>`
+        : `<div class="ctc__s">Mercado <b>+${pr}%</b> + combustível · ⏱ ${Math.ceil(x.dur / 60)} min</div><div class="ctc__s">Caução ${fmt(x.cau)} Cr (volta na entrega)</div>`}</div>
+      ${atv ? `<button class="ctb ctb--ok" data-ce="${x.id}" ${aqui && h ? '' : 'disabled'}>${aqui ? (h ? '<i class="fa-solid fa-box-open"></i> Entregar' : 'Sem carga') : (S.trip ? 'Em viagem' : 'Vá até lá')}</button>`
+        : `<button class="ctb" data-ca="${x.id}" ${ativos.length >= 3 || S.trip || x.cau > S.credits ? 'disabled' : ''}><i class="fa-solid fa-file-signature"></i> Aceitar</button>`}</li>`; };
   const ofs = S.trip ? [] : OF.filter(o => !feitos.has(o.id));
-  const html = (ativos.length || ofs.length) ? `<section class="ct">
-    <h3>Contratos <small>${ativos.length}/3 ativos</small></h3>
+  const html = (ativos.length || ofs.length) ? `<section class="ct${ativos.length ? ' ct--on' : ''}">
+    <h3><span><i class="fa-solid fa-file-contract"></i> Contratos</span><small class="ct__n">${ativos.length}/3 ativos</small></h3>
     ${ativos.length ? `<ul>${ativos.map(x => card(x, true)).join('')}</ul>` : '<p class="ct__vz">Nenhum contrato ativo. Aceite uma oferta abaixo.</p>'}
     ${ofs.length ? `<h4>Ofertas neste planeta</h4><ul>${ofs.map(o => card(o, false)).join('')}</ul>` : ''}</section>` : '';
   const sig = html.replace(/⏱ \d+:\d+/g, ''); if (sig !== ctSig) { ctSig = sig; el.innerHTML = html; }
@@ -258,7 +258,7 @@ const trip = to => { const d = dist(plan(S.loc), plan(to)); return { d, cost:Mat
 const recov = (o, now = NOW()) => 100 - (100 - o.v) * Math.pow(.94, (now - o.t) / 30000);   // a oferta volta a 100% com o tempo: função do relógio, igual em qualquer aparelho
 const stk = id => { const o = S.stock[S.loc]?.[id]; return o ? recov(o) : 100; };
 const setStk = (id, v) => { (S.stock[S.loc] ??= {})[id] = { v:Math.max(1, v), t:Date.now() }; };
-const ESC_JAN = 3 * 3600e3, ESC_M = 1.4;   // espelho do servidor: planeta sem um produto a cada 3 h (+40% de preço)
+const ESC_JAN = 3 * 3600e3, ESC_M = 1.25;   // espelho do servidor: planeta sem um produto a cada 3 h (+25% de preço)
 function escasso(planId, now) {
   if (S.partida) return null;
   const prods = RES.filter(r => (r.t || 0) <= S.rank), h = hash(`esc:${GI()}:${planId}:${Math.floor(now / ESC_JAN)}`);

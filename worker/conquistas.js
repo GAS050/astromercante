@@ -1,12 +1,16 @@
 /* 100 conquistas. Cada família tem uma métrica (m), uma categoria (c), um ícone e uma lista de níveis [meta, nome].
    A métrica vem do estado do jogo gravado pelo servidor (S.st e outros) ou do banco; o aparelho nunca informa nada. */
 const fam = (m, c, ic, d, d1, niveis) => ({ m, c, ic, d, d1, niveis });
-export const CATEGORIAS = { comercio: 'Comércio', explor: 'Exploração', combate: 'Combate', fortuna: 'Fortuna', frota: 'Frota', dedic: 'Dedicação', social: 'Social', torneio: 'Torneios' };
+export const CATEGORIAS = { comercio: 'Comércio', contrato: 'Contratos', explor: 'Exploração', combate: 'Combate', fortuna: 'Fortuna', frota: 'Frota', dedic: 'Dedicação', social: 'Social', torneio: 'Torneios' };
 const FAMILIAS = [
   fam('tr', 'comercio', 'fa-handshake', 'Faça {n} negociações (compras e vendas).', 'Faça a sua primeira negociação.', [[1, 'Primeiro Negócio'], [25, 'Comerciante de Esquina'], [100, 'Mascate Estelar'], [500, 'Corretor Interplanetário'], [2000, 'Barão das Trocas'], [10000, 'Lenda do Balcão']]),
   fam('lx', 'comercio', 'fa-sack-dollar', 'Lucre {n} Cr numa única venda.', '', [[100, 'Bom Faro'], [1000, 'Golpe de Mestre'], [10000, 'Jackpot'], [100000, 'Tacada do Século']]),
   fam('mg', 'comercio', 'fa-percent', 'Venda com {n}% de lucro sobre o custo.', '', [[10, 'Margem Saudável'], [25, 'Olho de Águia'], [50, 'Arbitragem'], [100, 'Dobrou o Capital']]),
   fam('mq', 'comercio', 'fa-boxes-stacked', 'Venda {n} unidades de uma vez.', '', [[40, 'Porão Cheio'], [120, 'Carregamento Pesado'], [400, 'Comboio']]),
+  fam('ct', 'contrato', 'fa-file-signature', 'Cumpra {n} contratos de entrega.', 'Cumpra o seu primeiro contrato de entrega.', [[1, 'Primeira Encomenda'], [10, 'Entregador Confiável'], [40, 'Transportadora Estelar'], [150, 'Rei da Logística'], [500, 'Monopólio de Rotas']]),
+  fam('cg', 'contrato', 'fa-money-bill-trend-up', 'Lucre {n} Cr num único contrato.', '', [[300, 'Bom Frete'], [2000, 'Contrato de Ouro'], [15000, 'Encomenda Milionária']]),
+  fam('cz', 'contrato', 'fa-stopwatch', 'Cumpra {n} contratos com menos de 1 minuto de sobra.', 'Cumpra um contrato com menos de 1 minuto de sobra.', [[1, 'Em Cima da Hora'], [10, 'Nervos de Aço'], [40, 'Relógio Atômico']]),
+  fam('cs', 'contrato', 'fa-truck-medical', 'Entregue {n} contratos para planetas em falta do produto.', 'Entregue um contrato para um planeta em falta do produto.', [[1, 'Socorro Estelar'], [10, 'Herói do Abastecimento'], [40, 'Salvador de Mundos']]),
   fam('vi', 'explor', 'fa-route', 'Conclua {n} viagens.', 'Conclua a sua primeira viagem.', [[1, 'Decolagem'], [10, 'Viajante'], [50, 'Rota Conhecida'], [200, 'Navegador'], [750, 'Cartógrafo Estelar'], [3000, 'Nômade das Estrelas']]),
   fam('ga', 'explor', 'fa-meteor', 'Visite {n} galáxias.', '', [[2, 'Além do Berço'], [3, 'Explorador'], [5, 'Desbravador'], [7, 'Cosmonauta'], [9, 'Peregrino do Infinito'], [11, 'Dono do Mapa']]),
   fam('pi', 'combate', 'fa-skull-crossbones', 'Derrote {n} piratas.', 'Derrote o seu primeiro pirata.', [[1, 'Batismo de Fogo'], [10, 'Caçador de Piratas'], [40, 'Flagelo dos Corsários'], [150, 'Terror do Cinturão'], [500, 'Exterminador']]),
@@ -36,7 +40,7 @@ export const ganhas = (m) => CATALOGO.filter((c) => (m[c.m] || 0) >= c.g).map((c
 export function metricas(S, x) {
   const st = S.st || {}, fr = S.frota || {}, fl = Object.values(fr);
   return {
-    tr: st.tr || 0, lx: Math.floor(st.lx || 0), mg: Math.floor(st.mg || 0), mq: st.mq || 0, vi: st.vi || 0, ga: Object.keys(S.vis || {}).length, pi: st.pi || 0, mo: st.mo || 0, fp: st.fp || 0, lv: st.lv || 0, df: st.df || 0,
+    tr: st.tr || 0, lx: Math.floor(st.lx || 0), mg: Math.floor(st.mg || 0), mq: st.mq || 0, vi: st.vi || 0, ga: Object.keys(S.vis || {}).length, pi: st.pi || 0, mo: st.mo || 0, fp: st.fp || 0, lv: st.lv || 0, df: st.df || 0, ct: st.ct || 0, cg: Math.floor(st.cg || 0), cz: st.cz || 0, cs: st.cs || 0,
     lt: Math.max(0, Math.floor(S.lt || 0)), pk: Math.max(st.pk || 0, Math.floor(x.pat || 0)), na: fl.length, nm: fl.reduce((a, f) => a + (f.c || 1) + (f.m || 1) + (f.a || 1) - 3, 0), mx: fl.filter((f) => f.c >= 5 && f.m >= 5 && f.a >= 5).length,
     sk: Math.max(S.streak || 0, st.bk || 0), mi: st.mi || 0, dt: x.criado ? Math.floor((Date.now() - x.criado) / 864e5) : 0, lo: x.lo || 0, am: x.am || 0, tj: x.tj || 0, tv: x.tv || 0, tf: x.tf || 0, tl: x.tl || 0,
   };

@@ -126,8 +126,8 @@ export const LIQ = .4, TAXA_VENDA = .97, COMBUSTIVEL = .8;
 export const GALK = .4;   // profundidade de mercado por galáxia (calibrado por simulação: bot esperto chega a 100M em ~25 h)
 export const liq = (S) => LIQ / (1 + GALK * S.gal);
 const setStk = (S, id, v, now) => { (S.stock[S.loc] ??= {})[id] = { v: Math.max(1, v), t: now }; };
-/** Escassez: a cada 3 h, cada planeta (70% deles) fica sem um produto — preço +40% ali. Vale só na carreira. */
-export const ESC_JAN = 3 * 3600e3, ESC_M = 1.4;
+/** Escassez: a cada 3 h, cada planeta (70% deles) fica sem um produto — preço +25% ali. Vale só na carreira. */
+export const ESC_JAN = 3 * 3600e3, ESC_M = 1.25;
 export function escasso(S, planId, now) {
   if (S.partida) return null;
   const prods = RES.filter((r) => (r.t || 0) <= S.rank), h = hash(`esc:${S.gal}:${planId}:${Math.floor(now / ESC_JAN)}`);
@@ -270,7 +270,7 @@ export function resolver(S, c, msgs) {
     S.streak = S.lastDay === y ? S.streak + 1 : 1; maxi(S, 'bk', S.streak); S.lastDay = d; S.daily = { day: d, p: { trades: 0, trips: 0, profit: 0 }, done: {} };
     const b = 100 * Math.min(S.streak, 7); S.credits += b; say(msgs, `Bônus diário: ${fmt(b)} Cr (sequência de ${S.streak} dia/s). Volte amanhã para mais!`, 'win'); mudou = true;
   }
-  if (S.ct?.some((x) => c.now > x.ate)) { for (const x of S.ct.filter((x) => c.now > x.ate)) say(msgs, `Contrato expirado: ${x.q} × ${RES_ID[x.r].nome} para ${GALAXIES[x.gal].planetas.find((p) => p.id === x.dest)?.nome || x.dest}.`, 'err'); S.ct = S.ct.filter((x) => c.now <= x.ate); mudou = true; }
+  if (S.ct?.some((x) => c.now > x.ate)) { for (const x of S.ct.filter((x) => c.now > x.ate)) say(msgs, `Contrato expirado: ${x.q} × ${RES_ID[x.r].nome} para ${GALAXIES[x.gal].planetas.find((p) => p.id === x.dest)?.nome || x.dest}. Caução perdida (${fmt(x.cau)} Cr).`, 'err'); S.ct = S.ct.filter((x) => c.now <= x.ate); mudou = true; }
   if (S.trip && c.now >= S.trip.end) {
     const dd = dist(planeta(S, S.trip.from), planeta(S, S.trip.to)); S.loc = S.trip.to; const enc = S.trip.enc; S.trip = null; S.daily.p.trips++; mais(S, 'vi'); chegada(S, dd, msgs, enc);
     const m = planeta(S, S.loc).m, deals = Object.keys(m).filter((k) => m[k] < 1).map((k) => SHORT[k]);
@@ -303,16 +303,18 @@ export function ofertas(S, c) {
     let dest, r;
     if (faltas.length && (k === 0 || h % 2)) { const [pl, id] = faltas[(h >>> 7) % faltas.length]; dest = pl; r = RES_ID[id]; }
     else { r = prods[h % prods.length]; dest = outros[(h >>> 7) % outros.length]; }
-    const id = `${S.loc}:${b}:${k}`, q = clamp(Math.round(S.cap * (.25 + .5 * f1)), 1, S.cap), t = tripInfo(S, dest.id), mult = 1.15 + .15 * f2;
-    out.push({ id, r: r.id, q, dest: dest.id, gal: S.gal, falta: escasso(S, dest.id, c.now) === r.id ? 1 : 0, comb: t.cost, mult: Math.round(mult * 100) / 100, dur: Math.max(300 - 20 * S.gal, 120, Math.round(t.secs * Math.max(1.5, 3 - .15 * S.gal))) });
+    const id = `${S.loc}:${b}:${k}`, q = clamp(Math.round(S.cap * (.25 + .5 * f1)), 1, S.cap), t = tripInfo(S, dest.id), mult = 1.05 + .13 * f2;
+    out.push({ id, r: r.id, q, dest: dest.id, gal: S.gal, falta: escasso(S, dest.id, c.now) === r.id ? 1 : 0, comb: t.cost, cau: Math.round(CAUCAO * q * unitDest(S, dest.id, r.id, c)), mult: Math.round(mult * 100) / 100, dur: Math.max(300 - 20 * S.gal, 120, Math.round(t.secs * Math.max(1.5, 3 - .15 * S.gal))) });
   }
   return out;
 }
-/** Valor de entrega de n unidades: preço de mercado do destino (sem impacto de estoque) × bônus, mais a parte do combustível. */
-function valorContrato(S, x, n, c) {
-  const loc = S.loc; S.loc = x.dest; let unit; try { unit = preco(S, x.r, 100, c); } finally { S.loc = loc; }
-  return Math.round(n * unit * x.mult + x.comb * n / x.q0);
+/** Preço-base do produto no destino, sem a alta temporária da escassez (a escassez já premia quem vende no mercado). */
+function unitDest(S, dest, rid, c) {
+  const loc = S.loc; S.loc = dest; try { return preco(S, rid, 100, c) / (escasso(S, dest, c.now) === rid ? ESC_M : 1); } finally { S.loc = loc; }
 }
+export const CAUCAO = .1;   // caução paga ao aceitar (10% do valor); devolvida na entrega, perdida se o prazo vencer
+/** Valor de entrega de n unidades: preço do destino na hora × bônus, mais 60% da parte do combustível. */
+const valorContrato = (S, x, n, c) => Math.round(n * unitDest(S, x.dest, x.r, c) * x.mult + .6 * x.comb * n / x.q0);
 const acoes = {
   negociar(S, c, msgs, a) {
     const r = RES_ID[a.id], lado = a.lado, n = Math.floor(Number(a.n));
@@ -345,8 +347,10 @@ const acoes = {
     S.ct ??= []; S.cf ??= [];
     if (S.ct.length >= CT_MAX) throw new Regra(`Você já tem ${CT_MAX} contratos ativos.`);
     if (S.ct.some((x) => x.id === o.id) || S.cf.includes(o.id)) throw new Regra('Você já aceitou esta oferta.');
-    const { dur, falta, ...x } = o; S.ct.push({ ...x, q0: o.q, de: S.loc, ate: c.now + dur * 1000 });
-    say(msgs, `Contrato ATIVO: ${o.q} × ${RES_ID[o.r].nome} para ${planeta(S, o.dest).nome} em ${Math.round(dur / 60)} min. Veja em Mercado › Contratos.`, 'ok');
+    if (o.cau > S.credits) throw new Regra(`A caução do contrato é ${fmt(o.cau)} Cr (devolvida na entrega). Créditos insuficientes.`);
+    S.credits -= o.cau;
+    const { dur, ...x } = o; S.ct.push({ ...x, q0: o.q, cau0: o.cau, lc: 0, de: S.loc, ate: c.now + dur * 1000 });
+    say(msgs, `Contrato ATIVO: ${o.q} × ${RES_ID[o.r].nome} para ${planeta(S, o.dest).nome} em ${Math.round(dur / 60)} min. Caução de ${fmt(o.cau)} Cr (volta na entrega). Veja em Mercado › Contratos.`, 'ok');
   },
   contratoEntregar(S, c, msgs, a) {
     if (S.trip) throw new Regra('Nave em trânsito.');
@@ -355,11 +359,14 @@ const acoes = {
     if (c.now > x.ate) throw new Regra('O prazo deste contrato acabou.');
     if (S.gal !== x.gal || S.loc !== x.dest) throw new Regra(`Entregue em ${GALAXIES[x.gal].planetas.find((p) => p.id === x.dest)?.nome}.`);
     const h = S.inv[x.r], n = Math.min(x.q, h?.qty || 0); if (n < 1) throw new Regra(`Você não tem ${RES_ID[x.r].nome} no porão.`);
-    const pay = valorContrato(S, x, n, c), lucro = Math.max(0, pay - n * h.avg);
-    h.qty -= n; if (!h.qty) h.avg = 0; x.q -= n;
-    S.credits += pay; S.lt = (S.lt || 0) + lucro; S.daily.p.profit += lucro; mais(S, 'ct');
-    if (x.q <= 0) { S.ct.splice(i, 1); (S.cf ??= []).push(x.id); if (S.cf.length > 40) S.cf.shift(); say(msgs, `Contrato cumprido! Última entrega: +${fmt(pay)} Cr.`, 'win'); }
-    else say(msgs, `Entregou ${n} × ${RES_ID[x.r].nome}: +${fmt(pay)} Cr. Faltam ${x.q}.`, 'win');
+    const pay = valorContrato(S, x, n, c), ultimo = n >= x.q, dev = ultimo ? x.cau : Math.round(x.cau0 * n / x.q0), lucro = Math.max(0, pay - n * h.avg);
+    h.qty -= n; if (!h.qty) h.avg = 0; x.q -= n; x.cau -= dev; x.lc += lucro;
+    S.credits += pay + dev; S.lt = (S.lt || 0) + lucro; S.daily.p.profit += lucro; mais(S, 'ctn');
+    if (ultimo) {
+      S.ct.splice(i, 1); (S.cf ??= []).push(x.id); if (S.cf.length > 40) S.cf.shift();
+      mais(S, 'ct'); maxi(S, 'cg', x.lc); if (x.ate - c.now < 60000) mais(S, 'cz'); if (x.falta) mais(S, 'cs');
+      say(msgs, `Contrato cumprido! +${fmt(pay)} Cr e caução de ${fmt(dev)} Cr devolvida.`, 'win');
+    } else say(msgs, `Entregou ${n} × ${RES_ID[x.r].nome}: +${fmt(pay)} Cr. Faltam ${x.q}.`, 'win');
   },
   viajar(S, c, msgs, a) {
     const to = planeta(S, a.to);

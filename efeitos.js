@@ -23,6 +23,10 @@
     const g = a.createGain(); if (atk) { g.gain.setValueAtTime(.0001, t0); g.gain.linearRampToValueAtTime(v, t0 + atk); } else g.gain.setValueAtTime(v, t0); g.gain.exponentialRampToValueAtTime(.0001, t0 + d); s.connect(fl).connect(g).connect(mestre); s.start(t0); s.stop(t0 + d + .02);
   }
   const SINT = {
+    // contratos: carimbo grave + sino (aceitar), moeda tilintando (entrega), fanfarra curta (cumprido)
+    aceito: t => { tom(t, 140, .16, { v: .16, f2: 90, lp: 700, atk: .004 }); sino(t + .1, 440, .3, .12); sino(t + .2, 660, .45, .12); },
+    entrega: t => { const p = rnd(.01); sino(t, 988 * p, .22, .12); sino(t + .07, 1319 * p, .3, .12); sino(t + .15, 1760 * p, .4, .07); },
+    cumprido: t => { [523, 659, 784, 1047].forEach((f, i) => sino(t + i * .09, f, .35, .12)); [523, 659, 784].forEach(f => tom(t + .4, f, 1.1, { v: .06, atk: .05 })); sino(t + .5, 1568, .9, .09); },
     compra: t => { const p = rnd(); sino(t, 523 * p, .22, .15); sino(t + .08, 659 * p, .36, .15); },
     venda: t => { const p = rnd(); [659, 784, 988].forEach((f, i) => sino(t + i * .07, f * p, .3, .12)); sino(t + .24, 1319 * p, .4, .06); },
     // partida: ignição grave, rumor subindo e jato de ar suave (como uma nave decolando)
@@ -89,7 +93,10 @@
   let ultima = '';
   window.sfx = function (k) {
     const m = ultima; let s = null;
-    if (/^Comprou|adquirida|Upgrade instalado/.test(m)) s = 'compra';
+    if (/^Contrato ATIVO/.test(m)) s = 'aceito';
+    else if (/^Entregou /.test(m)) s = 'entrega';
+    else if (/^Contrato cumprido/.test(m)) s = 'cumprido';
+    else if (/^Comprou|adquirida|Upgrade instalado/.test(m)) s = 'compra';
     else if (/^Vendeu/.test(m)) s = 'venda';
     else if (/^Rumo a/.test(m)) s = 'viagem';
     else if (/^Chegada em|Salto concluído/.test(m)) s = 'chegada';

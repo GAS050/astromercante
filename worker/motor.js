@@ -580,10 +580,11 @@ export function premiacao(humanos, total, cfg, x = 0) {
 
 
 /* ================= DUELO X1 (arena): dois pilotos, nave equipada de cada um, mesmo mercado, 5 minutos ================= */
-export const DUELO_APOSTAS = [100, 250, 500, 1000, 2000, 3000, 5000, 10000, 25000, 50000];
+/** Um modo de duelo por galáxia: a aposta sobe junto com a progressão (patentes e custo das galáxias) e o saldo inicial é 50× a aposta. */
+export const DUELO_APOSTAS = [100, 250, 500, 1000, 2500, 5000, 10000, 25000, 50000, 100000, 250000];   // índice = galáxia
 export const DUELO = { duracao: 5, saldo: 5000, casa: .1, sumiu: 60000, espera: 60000, alcance: 70, recarga: 40000, prot: 45000, nave: 10, nivel: 3, rank: 3 };
 /** Configuração fixa do duelo: só a aposta muda. Galáxia inicial (aberta a todos), nave padronizada, piratas e casco ligados. */
-export const cfgDuelo = (aposta) => ({ duracao: DUELO.duracao, saldo: DUELO.saldo, galaxias: [0], jogadores: 2, bots: false, dific: 'normal', taxa: aposta, eventos: true, piratas: true, casco: true, duelo: 1 });
+export const cfgDuelo = (gal) => { const aposta = DUELO_APOSTAS[gal]; return { duracao: DUELO.duracao, saldo: aposta * 50, galaxias: [gal], jogadores: 2, bots: false, dific: 'normal', taxa: aposta, eventos: true, piratas: true, casco: true, duelo: 1 }; };
 /** Prêmio do vencedor: as duas apostas menos a taxa da casa (10%). */
 export const premioDuelo = (aposta) => Math.round(2 * aposta * (1 - DUELO.casa));
 /** Posição da nave no mapa (parada no planeta ou no meio da viagem). */

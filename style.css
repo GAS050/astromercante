@@ -778,3 +778,7 @@ body.gated .lp-mus{display:grid}.lp-mus.off{color:var(--mt);border-color:var(--l
 @keyframes pulsa{50%{box-shadow:0 0 10px #ff4d6d}}
 @media(max-width:420px){.apostas{grid-template-columns:repeat(5,1fr);gap:4px}.apostas button{font-size:.78rem}}
 .pcard.aviso{border-color:var(--amber);background:rgba(255,179,71,.08);margin-bottom:12px}.pcard.aviso h3{color:var(--amber)}
+.modos{display:grid;grid-template-columns:repeat(2,1fr);gap:6px}
+.modos button{display:flex;flex-direction:column;align-items:flex-start;gap:1px;padding:8px 10px;border:1px solid #ff4d6d;border-radius:4px;background:none;color:#ffb3c2;text-align:left}
+.modos button .mn{font-size:.78rem;color:var(--cyan)}.modos button b{font-size:1rem}.modos button small{font-size:.62rem;color:var(--mt)}
+.modos button:disabled{opacity:.4;border-color:var(--line)}

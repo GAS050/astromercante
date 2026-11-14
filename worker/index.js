@@ -598,20 +598,21 @@ const tocar = (env, p, id) => env.DB.prepare('UPDATE partida_jog SET visto = ? W
 const dueloLinhas = async (env, cod) => (await env.DB.prepare('SELECT j.usuario AS id, j.estado AS estado, j.visto AS visto, u.nome AS nome, u.google AS google, p.apelido AS ap FROM partida_jog j JOIN usuarios u ON u.id = j.usuario LEFT JOIN perfis p ON p.usuario = u.id WHERE j.codigo = ?').bind(cod).all()).results || [];
 /** Entra na fila da aposta: se já há alguém esperando, o duelo começa na hora; senão cria a sala e espera. */
 async function dueloFila(env, id, corpo) {
-  const aposta = Math.floor(Number(corpo.aposta));
-  if (!DUELO_APOSTAS.includes(aposta)) throw new Erro(400, 'Aposta inválida.');
+  const gal = Math.floor(Number(corpo.gal)), aposta = DUELO_APOSTAS[gal];
+  if (!(aposta > 0)) throw new Erro(400, 'Modo de duelo inválido.');
   if (await ativa(env, id)) throw new Erro(409, 'Você já está em uma partida. Termine ou saia dela antes.');
   const carr = (await carregarJogo(env, id, Date.now())).S;
+  if (!desbloqueada(carr, gal)) throw new Erro(403, `Você ainda não desbloqueou a galáxia ${GALAXIES[gal].nome}, que é o palco deste duelo.`);
   if (avariada(carr)) throw new Erro(412, MSG_REPARO(carr));
   if (carr.credits < aposta) throw new Erro(402, `A aposta é ${aposta} Cr e você tem ${Math.floor(carr.credits)} Cr na carreira.`);
-  const procurar = async () => ((await env.DB.prepare("SELECT * FROM partidas WHERE modo = 'duelo' AND estado = 'espera' AND criador <> ? AND criada > ? ORDER BY criada, codigo LIMIT 30").bind(id, Date.now() - DUELO.espera).all()).results || []).filter((q) => JSON.parse(q.cfg).taxa === aposta);
+  const procurar = async () => ((await env.DB.prepare("SELECT * FROM partidas WHERE modo = 'duelo' AND estado = 'espera' AND criador <> ? AND criada > ? ORDER BY criada, codigo LIMIT 30").bind(id, Date.now() - DUELO.espera).all()).results || []).filter((q) => JSON.parse(q.cfg).galaxias[0] === gal);
   for (let t = 0; t < 3; t++) {
     const outras = await procurar();
     for (const q of outras) {
       try { await entrarNaSala(env, q, id, JSON.parse(q.cfg)); } catch (e) { if (e.status === 409) continue; throw e; }
       return await comecar(env, q, id);
     }
-    const codigo = codigoNovo(), cfg = cfgDuelo(aposta), criada = Date.now();
+    const codigo = codigoNovo(), cfg = cfgDuelo(gal), criada = Date.now();
     await env.DB.prepare("INSERT INTO partidas (codigo, modo, criador, cfg, estado, criada) VALUES (?, 'duelo', ?, ?, 'espera', ?)").bind(codigo, id, JSON.stringify(cfg), criada).run();
     try { await entrarNaSala(env, { codigo, modo: 'duelo' }, id, cfg); }
     catch (e) { await env.DB.prepare('DELETE FROM partidas WHERE codigo = ?').bind(codigo).run(); throw e; }

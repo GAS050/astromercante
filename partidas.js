@@ -6,7 +6,7 @@ try { visto = localStorage.getItem('astromercante_res') || ''; } catch {}
 const esc = t => String(t).replace(/[&<>"]/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;' }[c]));
 const mmss = ms => { const s = Math.max(0, Math.ceil(ms / 1000)); return String(Math.floor(s / 60)).padStart(2, '0') + ':' + String(s % 60).padStart(2, '0'); };
 const galLiberada = g => S.rank >= GALAXIES[g].t && S.engLv >= GALAXIES[g].eng;
-const APOSTAS = [100, 250, 500, 1000, 2000, 3000, 5000, 10000, 25000, 50000], duelo = () => PT && PT.modo === 'duelo', nomeModo = m => m === 'duelo' ? '⚔️ DUELO X1' : m === 'torneio' ? '🏆 TORNEIO' : '🤝 AMIGOS';
+const APOSTAS = [100, 250, 500, 1000, 2500, 5000, 10000, 25000, 50000, 100000, 250000], duelo = () => PT && PT.modo === 'duelo', nomeModo = m => m === 'duelo' ? '⚔️ DUELO X1' : m === 'torneio' ? '🏆 TORNEIO' : '🤝 AMIGOS';
 const noAr = () => PT && PT.estado === 'andamento';
 
 async function partidaPoll(force) {
@@ -88,8 +88,8 @@ function renderPlay() {
   if (FORM) { el.innerHTML = formHtml(); return; }
   const um = location.search.match(/[?&]sala=([A-Za-z0-9]{6})/), pre = um ? um[1].toUpperCase() : '';
   const dano = MODE !== 'partida' && S.hull < 25;
-  el.innerHTML = (dano ? `<div class="pcard aviso"><h3>🔧 Nave danificada</h3><p>Seu casco está em <b>${Math.floor(S.hull)}%</b>, baixo demais para viajar (mínimo 25%). Repare a nave (botão <b>Reparar casco</b>) antes de entrar na Arena. A partida começa com 100% para todos.</p></div>` : '') + `<div class="pcard duelo"><h3>⚔️ Duelo X1</h3><p>Você contra outro piloto, 5 minutos e saldo de 5.000 Cr. Cada um usa a nave que tem equipada na carreira. Os dois dividem o mesmo mercado (o que um compra encarece para o outro), se enxergam o tempo todo e podem <b>atacar e roubar a carga</b> um do outro. Quem tiver mais patrimônio leva o bolo (90%; 10% fica com a casa). Se um sumir por 60 s, perde a aposta.</p>
-    <div class="apostas">${APOSTAS.map(a => `<button type="button" data-aposta="${a}" ${S.credits < a || dano ? 'disabled' : ''}>${a >= 1000 ? a / 1000 + ' mil' : a}<small>Cr</small></button>`).join('')}</div>
+  el.innerHTML = (dano ? `<div class="pcard aviso"><h3>🔧 Nave danificada</h3><p>Seu casco está em <b>${Math.floor(S.hull)}%</b>, baixo demais para viajar (mínimo 25%). Repare a nave (botão <b>Reparar casco</b>) antes de entrar na Arena. A partida começa com 100% para todos.</p></div>` : '') + `<div class="pcard duelo"><h3>⚔️ Duelo X1</h3><p>Você contra outro piloto, 5 minutos, cada um com a própria nave. Há um modo por galáxia (a aposta cresce a cada uma). Vocês dividem o mesmo mercado e podem <b>atacar e roubar a carga</b> um do outro. Mais patrimônio leva o bolo (90%); quem some por 60 s perde.</p>
+    <div class="modos">${GALAXIES.map((g, i) => { const ok = galLiberada(i), ap = APOSTAS[i]; return `<button type="button" data-gal="${i}" ${!ok || dano || S.credits < ap ? 'disabled' : ''}><span class="mn">${ok ? '' : '🔒 '}${g.nome}</span><b>${fmt(ap).replace(',00', '')} Cr</b><small>${ok ? 'prêmio ' + fmt(Math.round(ap * 1.8)).replace(',00', '') : 'desbloqueie a galáxia'}</small></button>`; }).join('')}</div>
     <p class="err" id="d-err">${esc(duelMsg)}</p><p class="empty">A aposta sai dos créditos da carreira. A busca por um rival dura até 60 segundos; sem ninguém, a aposta volta para você.</p></div>
   <div class="pcards">
     <div class="pcard"><h3>🚀 Carreira</h3><p>Seu progresso de sempre: ranking global, missões e patentes.</p><button type="button" data-p="carreira">Continuar</button></div>
@@ -167,7 +167,7 @@ async function pedir(btn, caminho, corpo, errId) {
 }
 $('#play').addEventListener('click', async e => {
   const b = e.target.closest('button'); if (!b) return;
-  if (b.dataset.aposta) { duelMsg = ''; if (await pedir(b, '/duelo/fila', { aposta:+b.dataset.aposta }, '#d-err')) refrescar(true); else if ($('#d-err')) duelMsg = $('#d-err').textContent; return; }
+  if (b.dataset.gal != null && b.closest('.modos')) { duelMsg = ''; if (await pedir(b, '/duelo/fila', { gal:+b.dataset.gal }, '#d-err')) refrescar(true); else if ($('#d-err')) duelMsg = $('#d-err').textContent; return; }
   if (b.id === 'l-inv') { if (typeof AV !== 'undefined') AV.tab = 'amigos'; return document.querySelector('.nav [data-view=amigos]').click(); }
   if (b.dataset.p === 'carreira') return document.querySelector('.nav [data-view=market]').click();
   if (b.dataset.p === 'jogar') return document.querySelector('.nav [data-view=market]').click();

@@ -19,7 +19,7 @@ const FONTES = [   // feeds RSS públicos de veículos; só o título de cada ma
   ['g1-economia', 'https://g1.globo.com/rss/g1/economia/'],
 ];
 // nada de pessoas, países ou empresas reais no texto final
-const PROIBIDO = /trump|biden|putin|zelensk|musk|lula|bolsonaro|powell|xi jinping|netanyahu|china|chin[eê]s|eua\b|estados unidos|r[uú]ssia|ucr[aâ]nia|israel|\bir[aã]\b|gaza|brasil|europa|opep|opec|\bfed\b|binance|coinbase|apple|google|tesla|nvidia|microsoft|amazon|meta\b|openai|sec\b|nasdaq|wall street|dow jones/i;
+const PROIBIDO = /trump|biden|putin|zelensk|musk|lula|bolsonaro|powell|xi jinping|netanyahu|china|chin[eê]s|\beua\b|estados unidos|r[uú]ssia|ucr[aâ]nia|israel|\bir[aã]\b|gaza|brasil|europa|opep|opec|\bfed\b|binance|coinbase|apple|google|tesla|nvidia|microsoft|amazon|\bmeta\b|openai|\bsec\b|nasdaq|wall street|dow jones/i;
 const BASE_ATIVO = { btc: 'Bitcoin', gold: 'ouro (PAXG)', eth: 'Ethereum', fx: 'dólar contra o real' };
 const ativoDe = (src) => BASE_ATIVO[src] || (FEEDS[src] ? `${FEEDS[src].nome} (${FEEDS[src].sym})` : src);
 const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
@@ -62,6 +62,7 @@ REGRAS OBRIGATÓRIAS
 - Escolha 1 a 3 produtos afetados, usando SOMENTE estes ids (o produto segue o ativo real indicado):
 ${prods}
 - "d" é 1 se o preço tende a subir e -1 se tende a cair. "m" é a intensidade de 0.1 a 1. "h" é a duração em horas (1 a 5).
+- Uma notícia por produto (nunca duas para o mesmo produto). Revise a ortografia.
 - Título até 80 caracteres; texto de 1 ou 2 frases, até 220 caracteres. Sem emojis. Não é recomendação financeira.
 - Vale notícia direta (sobre o próprio ativo) e indireta, quando o efeito econômico for plausível. Exemplos: conflito ou tensão entre grandes potências tende a subir o ouro e o dólar e pressionar cripto; juros altos pressionam Bitcoin e altcoins; juros em queda ou estímulo favorecem cripto; regulação favorável ou aprovação de fundos sobe cripto; hack ou proibição derruba cripto; petróleo em alta afeta energia (o produto ligado ao Ethereum); dólar forte derruba o ouro. Escolha os produtos que seguem os ativos afetados.
 - Só crie notícia quando a manchete tiver esse tipo de ligação clara com algum dos ativos reais indicados acima. Não invente nada sem manchete correspondente. Escolha no máximo 4, as mais relevantes e de assuntos diferentes. Se nenhuma manchete servir, devolva [].
@@ -81,7 +82,7 @@ async function gemini(env, texto, diag) {
       method: 'POST', headers: { 'content-type': 'application/json', 'x-goog-api-key': env.GEMINI_KEY },
       body: JSON.stringify({ contents: [{ parts: [{ text: texto }] }], generationConfig: { responseMimeType: 'application/json', temperature: .9, maxOutputTokens: 6000 } }),
     });
-    if (!r.ok) { diag.gemini = `erro ${r.status} em ${modelo}`; if (r.status === 401 || r.status === 403 || r.status === 429) throw new Error(diag.gemini); continue; }   // chave inválida/sem cota: não adianta trocar de modelo
+    if (!r.ok) { diag.gemini = `erro ${r.status} em ${modelo}`; (diag.tentativas ||= []).push(diag.gemini); if (r.status === 401 || r.status === 403 || r.status === 429) throw new Error(diag.gemini); continue; }   // chave inválida/sem cota: não adianta trocar de modelo
     const j = await r.json(); diag.gemini = 'ok ' + modelo;
     return JSON.parse(j?.candidates?.[0]?.content?.parts?.[0]?.text || '[]');
   }
@@ -90,13 +91,16 @@ async function gemini(env, texto, diag) {
 
 const IDS = new Set(RES.map((r) => r.id));
 // valida tudo que vem da IA: só ids conhecidos, intensidade limitada (no máx. ±10%), texto curto e sem nomes reais
-export function validar(lista, agora, titulos = []) {
-  const out = [];
+export function validar(lista, agora, titulos = [], diag = {}, ativos = []) {
+  const out = [], usados = new Set(); diag.recebidas = Array.isArray(lista) ? lista.length : 0; diag.descartadas = 0;
   if (!Array.isArray(lista)) return out;
   for (const n of lista.slice(0, 6)) {
     const ti = limpa(n?.ti, 90), tx = limpa(n?.tx, 260), r = [...new Set((Array.isArray(n?.r) ? n.r : []).filter((x) => IDS.has(x)))].slice(0, 3);
-    if (ti.length < 8 || tx.length < 20 || !r.length || PROIBIDO.test(ti + ' ' + tx)) continue;
+    if (ti.length < 8 || tx.length < 20 || !r.length || PROIBIDO.test(ti + ' ' + tx) || r.some((x) => usados.has(x))) { diag.descartadas++; continue; }   // 1 notícia por produto em cada rodada
     const d = n.d < 0 ? -1 : 1, m = clamp(Number(n.m) || .4, .1, 1), h = clamp(Math.round(Number(n.h)) || 3, 1, 5);
+    const sinal = d, conflito = ativos.some((a) => a.s * sinal < 0 && a.t1 > agora && a.r.some((x) => r.includes(x)));   // não contradiz uma notícia ainda ativa do mesmo produto
+    if (conflito) { diag.descartadas++; continue; }
+    r.forEach((x) => usados.add(x));
     out.push({ id: sha(ti + agora), ti, tx, r, s: +(d * m * .1).toFixed(3), t0: agora, t1: agora + h * 3600000, f: 'ia', orig: titulos[Number(n.o) - 1] || null });   // orig: só para conferência em /noticias/diag, não vai para o jogo
   }
   return out;
@@ -112,7 +116,7 @@ export async function atualizarNoticias(env, forcar = false) {
       const todos = await manchetes(diag), titulos = todos.filter((t) => !vistos.has(sha(t))).slice(0, 40);
       diag.manchetes = todos.length;
       if (!todos.length) falhou = true;
-      else if (titulos.length >= 4) { novos = validar(await gemini(env, prompt(titulos), diag), agora, titulos); titulos.forEach((t) => vistos.add(sha(t))); }
+      else if (titulos.length >= 4) { novos = validar(await gemini(env, prompt(titulos), diag), agora, titulos, diag, ant.itens || []); titulos.forEach((t) => vistos.add(sha(t))); }
     } catch (e) { falhou = true; diag.erro = String(e?.message || e).slice(0, 120); console.log('noticias:', diag.erro); }
   }
   diag.gerou = novos.length;

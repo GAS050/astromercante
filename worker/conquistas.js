@@ -1,4 +1,4 @@
-/* 100 conquistas. Cada família tem uma métrica (m), uma categoria (c), um ícone e uma lista de níveis [meta, nome].
+/* 114 conquistas (29 famílias). Cada família tem uma métrica (m), uma categoria (c), um ícone e uma lista de níveis [meta, nome].
    A métrica vem do estado do jogo gravado pelo servidor (S.st e outros) ou do banco; o aparelho nunca informa nada. */
 const fam = (m, c, ic, d, d1, niveis) => ({ m, c, ic, d, d1, niveis });
 export const CATEGORIAS = { comercio: 'Comércio', contrato: 'Contratos', explor: 'Exploração', combate: 'Combate', fortuna: 'Fortuna', frota: 'Frota', dedic: 'Dedicação', social: 'Social', torneio: 'Torneios' };

@@ -410,8 +410,9 @@ async function ajustarCreditos(env, id, delta, falta = 'Créditos insuficientes 
   throw new Erro(503, 'Servidor ocupado. Tente de novo.');
 }
 const pj = (env, cod, id) => env.DB.prepare('SELECT * FROM partida_jog WHERE codigo = ? AND usuario = ?').bind(cod, id).first();
-async function ativa(env, id) {   // partida em espera/andamento do jogador, ou a última terminada (para mostrar o resultado)
-  return await env.DB.prepare("SELECT p.* FROM partida_jog j JOIN partidas p ON p.codigo = j.codigo WHERE j.usuario = ? AND p.estado IN ('espera','andamento') ORDER BY j.entrou DESC LIMIT 1").bind(id).first();
+async function ativa(env, id) {   // partida em espera/andamento do jogador (quem abandonou deixa de estar nela)
+  await dueloInit(env);
+  return await env.DB.prepare("SELECT p.* FROM partida_jog j JOIN partidas p ON p.codigo = j.codigo WHERE j.usuario = ? AND j.saiu = 0 AND p.estado IN ('espera','andamento') ORDER BY j.entrou DESC LIMIT 1").bind(id).first();
 }
 async function nomes(env, cod) {
   const r = await env.DB.prepare('SELECT j.usuario AS id, j.patrimonio AS w, j.premio AS premio, u.nome AS nome, u.google AS google, p.apelido AS ap, p.avatar AS av FROM partida_jog j JOIN usuarios u ON u.id = j.usuario LEFT JOIN perfis p ON p.usuario = u.id WHERE j.codigo = ? ORDER BY j.entrou').bind(cod).all();
@@ -426,14 +427,16 @@ async function reembolsarTodos(env, p, estadoFinal) {
 async function finalizar(env, p) {
   if (p.estado !== 'andamento' || Date.now() < p.fim) return;
   if (p.modo === 'duelo') return await finalizarDuelo(env, p, 0);
-  const cfg = JSON.parse(p.cfg), feed = await feedAtual(env), js = (await env.DB.prepare('SELECT j.usuario AS id, j.estado AS estado, j.patrimonio AS w0, u.nome AS nome, u.google AS google, p.apelido AS ap FROM partida_jog j JOIN usuarios u ON u.id = j.usuario LEFT JOIN perfis p ON p.usuario = u.id WHERE j.codigo = ?').bind(p.codigo).all()).results || [];
-  const tabela = js.map((j) => ({ id: j.id, n: apelido(j.nome, j.google, j.ap), bot: 0, w: j.estado ? valorFinal(JSON.parse(j.estado), feed) : cfg.saldo }));
+  const cfg = JSON.parse(p.cfg), feed = await feedAtual(env), js = (await env.DB.prepare('SELECT j.usuario AS id, j.estado AS estado, j.patrimonio AS w0, u.nome AS nome, u.google AS google, p.apelido AS ap, j.saiu AS saiu FROM partida_jog j JOIN usuarios u ON u.id = j.usuario LEFT JOIN perfis p ON p.usuario = u.id WHERE j.codigo = ?').bind(p.codigo).all()).results || [];
+  const tabela = js.map((j) => ({ id: j.id, n: apelido(j.nome, j.google, j.ap), bot: 0, saiu: j.saiu, w: j.estado ? valorFinal(JSON.parse(j.estado), feed) : cfg.saldo }));
   for (let i = 0; i < p.bots; i++) tabela.push({ id: 0, n: botNome(p.codigo, i), bot: 1, w: botPatrimonio(cfg, p.codigo, i, p.fim, p.inicio, p.fim) });
-  tabela.sort((a, b) => b.w - a.w || a.bot - b.bot || a.id - b.id);
+  tabela.sort((a, b) => (a.saiu || 0) - (b.saiu || 0) || b.w - a.w || a.bot - b.bot || a.id - b.id);
   tabela.forEach((t, i) => { t.pos = i + 1; t.w = Math.round(t.w * 100) / 100; });
   const x = intensidade(js.filter((j) => j.estado).map((j) => JSON.parse(j.estado).partida), cfg);   // perigo da sala (0 a 1): casco perdido por viagem, igual para qualquer saldo ou taxa
   const premios = premiacao(tabela.filter((t) => !t.bot).map((t) => ({ usuario: t.id, geral: t.pos })), tabela.length, cfg, x);
   tabela.forEach((t) => { if (!t.bot) t.premio = premios.get(t.id) || 0; });
+  { const fora = tabela.filter((t) => t.saiu); let sobra = 0; fora.forEach((t) => { sobra += t.premio || 0; t.premio = 0; t.ab = 1; }); const topo = tabela.find((t) => !t.bot && !t.saiu); if (topo && sobra) topo.premio += sobra; }   // quem abandonou não recebe nada; a parte dele fica com quem ficou
+  tabela.forEach((t) => { delete t.saiu; });
   const ok = await env.DB.prepare("UPDATE partidas SET estado = 'fim', resultado = ? WHERE codigo = ? AND estado = 'andamento'").bind(JSON.stringify(tabela), p.codigo).run();
   if (!(ok.meta?.changes > 0)) return;   // outro pedido já encerrou
   for (const t of tabela) if (!t.bot) await env.DB.prepare('UPDATE partida_jog SET patrimonio = ?, premio = ? WHERE codigo = ? AND usuario = ?').bind(t.w, t.premio || 0, p.codigo, t.id).run();
@@ -543,6 +546,14 @@ async function partidaSair(env, id) {
   if (j && (await env.DB.prepare('DELETE FROM partida_jog WHERE codigo = ? AND usuario = ? AND estado IS NULL').bind(p.codigo, id).run()).meta?.changes && j.taxa > 0) await ajustarCreditos(env, id, j.taxa);
   return { nenhuma: true, agora: Date.now() };
 }
+async function partidaAbandonar(env, id) {
+  const p = await ativa(env, id);
+  if (!p) throw new Erro(404, 'Você não está em nenhuma partida.');
+  if (p.estado !== 'andamento') throw new Erro(409, 'A partida ainda não começou: use "Sair da sala".');
+  if (p.modo === 'duelo') { await finalizarDuelo(env, p, id); return await vista(env, await env.DB.prepare('SELECT * FROM partidas WHERE codigo = ?').bind(p.codigo).first(), id); }
+  await env.DB.prepare('UPDATE partida_jog SET saiu = 1 WHERE codigo = ? AND usuario = ?').bind(p.codigo, id).run();
+  return { nenhuma: true, agora: Date.now(), abandonou: true };
+}
 async function partidaIniciar(env, id) {
   const p = await ativa(env, id);
   if (!p || p.criador !== id) throw new Erro(403, 'Só quem criou a sala pode iniciar a partida.');
@@ -592,6 +603,7 @@ let dueloPronto = false;
 async function dueloInit(env) {   // coluna de presença, criada sozinha (sem migração manual)
   if (dueloPronto) return;
   try { await env.DB.prepare('ALTER TABLE partida_jog ADD COLUMN visto INTEGER NOT NULL DEFAULT 0').run(); } catch { /* já existe */ }
+  try { await env.DB.prepare('ALTER TABLE partida_jog ADD COLUMN saiu INTEGER NOT NULL DEFAULT 0').run(); } catch { /* já existe */ }
   dueloPronto = true;
 }
 const tocar = (env, p, id) => env.DB.prepare('UPDATE partida_jog SET visto = ? WHERE codigo = ? AND usuario = ?').bind(Date.now(), p.codigo, id).run();
@@ -904,6 +916,7 @@ async function rota(req, env, url) {
   if (p === '/partida/entrar' && m === 'POST') return await partidaEntrar(env, eu.id, corpo);
   if (p === '/partida/iniciar' && m === 'POST') return await partidaIniciar(env, eu.id);
   if (p === '/partida/sair' && m === 'POST') return await partidaSair(env, eu.id);
+  if (p === '/partida/abandonar' && m === 'POST') return await partidaAbandonar(env, eu.id);
   if (p === '/partida/acao' && m === 'POST') return await partidaAcao(env, eu.id, String(corpo.acao || ''), corpo);
   if (p === '/conta' && m === 'DELETE') {
     const u = await env.DB.prepare('SELECT senha FROM usuarios WHERE id = ?').bind(eu.id).first();

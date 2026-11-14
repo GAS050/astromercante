@@ -49,6 +49,14 @@ function renderPlacar() {
   if (!PT || !PT.placar) { $('#board').innerHTML = '<li class="empty">Carregando placar…</li>'; return; }
   $('#board').innerHTML = PT.placar.map((r, i) => `<li class="${r.eu ? 'me' : ''}${r.i ? ' pj-link' : ''}"${r.i ? ` data-pj="${r.i}" role="button" tabindex="0"` : ''}><span><i class="pos">${i + 1}</i> ${esc(r.n)}${r.bot ? ' <small>bot</small>' : ''}</span><b class="mono">${fmt(r.w)}</b></li>`).join('');
 }
+const stakeTxt = () => PT && PT.cfg && PT.cfg.taxa ? ` e ${PT.modo === 'duelo' ? 'a aposta' : 'a taxa de entrada'} de ${fmt(PT.cfg.taxa).replace(',00', '')} Cr` : '';
+async function abandonar(btn) {
+  if (!noAr()) return;
+  if (!confirm(`Abandonar a partida? Você PERDE a partida${stakeTxt()} e não poderá voltar. Essa ação não pode ser desfeita.`)) return;
+  btn.disabled = true;
+  try { const r = await api('/partida/abandonar', 'POST', {}); aplicarPartida(r); if (r.nenhuma) say('Você abandonou a partida e perdeu.', 'err'); refrescar(true); }
+  catch (e) { say(e.message, 'err'); } finally { btn.disabled = false; }
+}
 function renderMatchBar() {
   const b = $('#matchbar'); if (!noAr()) { b.hidden = true; b.dataset.h = ''; return; } b.hidden = false;
   const pos = PT.placar ? PT.placar.findIndex(x => x.eu) + 1 : 0, total = PT.placar ? PT.placar.length : 0;
@@ -57,13 +65,14 @@ function renderMatchBar() {
     const di = MODE === 'partida' ? duelInfo() : null, R = PT.rival;
     h = `<span><b>${nomeModo('duelo')}</b> · ${fmt(PT.cfg.taxa).replace(',00', '')} Cr</span><span class="mono" id="mb-t">${mmss(PT.fim - NOW())}</span>`
       + (R ? `<span>vs <b>${esc(R.n)}</b> · casco ${Math.round(R.hull)}% · carga ${R.carga}${R.gal === S.gal && di ? ' · ' + Math.round(di.d) + '/70' : R.gal !== S.gal ? ' · outra galáxia' : ''}${R.on === false ? ' · <i>offline</i>' : ''}</span>` : '<span>rival…</span>')
-      + (MODE === 'partida' ? `<button type="button" id="mb-atk" class="${di && di.alvo ? 'danger' : ''}" ${di && di.alvo ? '' : 'disabled'}>⚔ ${di ? (di.bloq || 'Atacar!') : 'Sem alvo'}</button>` : '<button type="button" id="mb-go" class="buy">Voltar ao duelo</button>');
+      + `<button type="button" id="mb-quit" title="Abandonar a partida">🏳 Abandonar</button>` + (MODE === 'partida' ? `<button type="button" id="mb-atk" class="${di && di.alvo ? 'danger' : ''}" ${di && di.alvo ? '' : 'disabled'}>⚔ ${di ? (di.bloq || 'Atacar!') : 'Sem alvo'}</button>` : '<button type="button" id="mb-go" class="buy">Voltar ao duelo</button>');
   } else h = `<span><b>${nomeModo(PT.modo)}</b> · sala ${PT.codigo}</span><span class="mono" id="mb-t">${mmss(PT.fim - NOW())}</span><span>${pos ? pos + 'º de ' + total : ''}</span>`
-    + (MODE === 'partida' ? '<button type="button" id="mb-go">Ir à carreira</button>' : '<button type="button" id="mb-go" class="buy">Voltar à partida</button>');
+    + '<button type="button" id="mb-quit" title="Abandonar a partida">🏳 Abandonar</button>' + (MODE === 'partida' ? '<button type="button" id="mb-go">Ir à carreira</button>' : '<button type="button" id="mb-go" class="buy">Voltar à partida</button>');
   if (b.dataset.h === h) return; b.dataset.h = h; b.innerHTML = h;
 }
 $('#matchbar').addEventListener('click', async e => {
   const b = e.target.closest('button'); if (!b || b.disabled) return;
+  if (b.id === 'mb-quit') return abandonar(b);
   if (b.id === 'mb-atk') { b.disabled = true; await act('atacar'); partidaPoll(true); return; }
   if (b.id === 'mb-go') return MODE === 'partida' ? voltarCarreira(true) : (ficouCarreira = '', entrarModoPartida());
 });
@@ -92,7 +101,6 @@ function renderPlay() {
     <div class="modos">${GALAXIES.map((g, i) => { const ok = galLiberada(i), ap = APOSTAS[i]; return `<button type="button" data-gal="${i}" ${!ok || dano || S.credits < ap ? 'disabled' : ''}><span class="mn">${ok ? '' : '🔒 '}${g.nome}</span><b>${fmt(ap).replace(',00', '')} Cr</b><small>${ok ? 'prêmio ' + fmt(Math.round(ap * 1.8)).replace(',00', '') : 'desbloqueie a galáxia'}</small></button>`; }).join('')}</div>
     <p class="err" id="d-err">${esc(duelMsg)}</p><p class="empty">A aposta sai dos créditos da carreira. A busca por um rival dura até 60 segundos; sem ninguém, a aposta volta para você.</p></div>
   <div class="pcards">
-    <div class="pcard"><h3>🚀 Carreira</h3><p>Seu progresso de sempre: ranking global, missões e patentes.</p><button type="button" data-p="carreira">Continuar</button></div>
     <div class="pcard"><h3>🏆 Torneio</h3><p>Até 8 pilotos pagam uma taxa de entrada; os melhores levam o prêmio. Bots completam a sala.</p><button type="button" class="buy" data-p="novo-torneio" ${dano ? "disabled" : ""}>Criar torneio</button></div>
     <div class="pcard"><h3>🤝 Entre amigos</h3><p>Sala livre, sem taxa: escolha tempo, galáxias e regras e convide por código.</p><button type="button" class="buy" data-p="novo-amigos" ${dano ? "disabled" : ""}>Criar sala</button></div>
   </div>
@@ -133,12 +141,12 @@ function lobbyHtml() {
   <div class="prow">${PT.host ? '<button type="button" class="buy" id="l-go">Iniciar partida</button>' : '<span class="empty">Aguardando o criador iniciar…</span>'}<button type="button" class="danger" id="l-x">${PT.host ? 'Cancelar sala' : 'Sair da sala'}</button></div>`;
 }
 function emAndamentoHtml() {
-  if (duelo()) { const R = PT.rival; return `<h3>⚔️ Duelo X1 em andamento</h3><p class="pbig mono" id="play-t">${mmss(PT.fim - NOW())}</p><p class="empty">Aposta de ${fmt(PT.cfg.taxa).replace(',00', '')} Cr · rival: <b>${R ? esc(R.n) : '…'}</b></p><div class="prow">${MODE === 'partida' ? '<button type="button" class="buy" data-p="jogar">Voltar ao mercado</button>' : '<button type="button" class="buy" data-p="entrar">Voltar ao duelo</button>'}</div>`; }
+  if (duelo()) { const R = PT.rival; return `<h3>⚔️ Duelo X1 em andamento</h3><p class="pbig mono" id="play-t">${mmss(PT.fim - NOW())}</p><p class="empty">Aposta de ${fmt(PT.cfg.taxa).replace(',00', '')} Cr · rival: <b>${R ? esc(R.n) : '…'}</b></p><div class="prow">${MODE === 'partida' ? '<button type="button" class="buy" data-p="jogar">Voltar ao mercado</button>' : '<button type="button" class="buy" data-p="entrar">Voltar ao duelo</button>'} <button type="button" class="danger" id="p-quit">🏳 Abandonar</button></div>`; }
   const pos = PT.placar ? PT.placar.findIndex(x => x.eu) + 1 : 0;
   return `<h3>${PT.modo === 'torneio' ? '🏆 Torneio' : '🤝 Partida'} em andamento</h3>
   <p class="pbig mono" id="play-t">${mmss(PT.fim - NOW())}</p><p class="empty">${esc(resumo(PT.cfg))}</p>
   ${pos ? `<p>Sua posição: <b>${pos}º</b> de ${PT.placar.length}</p>` : ''}
-  <div class="prow">${MODE === 'partida' ? '<button type="button" class="buy" data-p="jogar">Voltar ao mercado</button>' : '<button type="button" class="buy" data-p="entrar">Voltar à partida</button>'}</div>`;
+  <div class="prow">${MODE === 'partida' ? '<button type="button" class="buy" data-p="jogar">Voltar ao mercado</button>' : '<button type="button" class="buy" data-p="entrar">Voltar à partida</button>'} <button type="button" class="danger" id="p-quit">🏳 Abandonar</button></div>`;
 }
 function mostrarResultado(p) {
   const box = $('#res-box');
@@ -150,7 +158,7 @@ function mostrarResultado(p) {
       const rv = (p.resultado || []).find(r => !r.eu), ap = p.cfg.taxa, f = x => fmt(x).replace(',00', '') + ' Cr';
       const tit = eu && eu.emp ? '🤝 Empate' : eu && eu.pos === 1 ? '🏆 Vitória!' : '💥 Derrota', txt = eu && eu.emp ? `Patrimônio idêntico: a aposta de ${f(ap)} foi devolvida.`
         : eu && eu.pos === 1 ? (rv && rv.ab ? `${esc(rv.n)} sumiu por mais de 60 s e perdeu por abandono. ` : '') + `Prêmio de ${f(eu.premio)} creditado (lucro de ${f(eu.premio - ap)}).`
-        : eu && eu.ab ? `Você ficou mais de 60 s offline e perdeu a aposta de ${f(ap)}.` : `Você perdeu a aposta de ${f(ap)}.`;
+        : eu && eu.ab ? `Você abandonou o duelo (ou ficou mais de 60 s offline) e perdeu a aposta de ${f(ap)}.` : `Você perdeu a aposta de ${f(ap)}.`;
       box.innerHTML = `<h2>${tit}</h2><ol class="board">${(p.resultado || []).map(r => `<li class="${r.eu ? 'me' : ''}"><span><i class="pos">${r.pos}</i> ${esc(r.n)}${r.ab ? ' <small>abandonou</small>' : ''}</span><b class="mono">${f(r.w)}</b></li>`).join('')}</ol><p class="empty">${txt}</p><button class="buy" id="res-x">Fechar</button>`;
       $('#res').hidden = false; $('#res-x').onclick = () => { $('#res').hidden = true; }; return;
     }
@@ -168,6 +176,7 @@ async function pedir(btn, caminho, corpo, errId) {
 $('#play').addEventListener('click', async e => {
   const b = e.target.closest('button'); if (!b) return;
   if (b.dataset.gal != null && b.closest('.modos')) { duelMsg = ''; if (await pedir(b, '/duelo/fila', { gal:+b.dataset.gal }, '#d-err')) refrescar(true); else if ($('#d-err')) duelMsg = $('#d-err').textContent; return; }
+  if (b.id === 'p-quit') return abandonar(b);
   if (b.id === 'l-inv') { if (typeof AV !== 'undefined') AV.tab = 'amigos'; return document.querySelector('.nav [data-view=amigos]').click(); }
   if (b.dataset.p === 'carreira') return document.querySelector('.nav [data-view=market]').click();
   if (b.dataset.p === 'jogar') return document.querySelector('.nav [data-view=market]').click();

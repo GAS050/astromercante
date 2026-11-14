@@ -835,10 +835,12 @@ body.gated .lp-mus{display:grid}.lp-mus.off{color:var(--mt);border-color:var(--l
 .blip{position:absolute;width:8px;height:8px;border-radius:50%;background:#ff5d7a;box-shadow:0 0 10px #ff5d7a;opacity:0;animation:bsblip 4.8s ease-in-out infinite}
 .blip.b1{left:78%;top:22%;animation-delay:.6s}.blip.b2{left:16%;top:64%;animation-delay:2.2s}.blip.b3{left:62%;top:84%;animation-delay:3.8s}
 @keyframes bsblip{0%,6%{opacity:0;transform:scale(.4)}12%{opacity:1;transform:scale(1.3)}30%{opacity:.8;transform:scale(1)}45%,100%{opacity:0}}
-.bs-nave{position:absolute;left:-70px;width:52px;height:12px;background:linear-gradient(90deg,transparent,var(--k));clip-path:polygon(0 42%,68% 42%,68% 0,100% 50%,68% 100%,68% 58%,0 58%);filter:drop-shadow(0 0 4px var(--k));opacity:.9;animation:bsvoa linear infinite}
-.bs-nave.l{left:auto;right:-70px;transform:scaleX(-1);animation-name:bsvol}
-@keyframes bsvoa{to{transform:translateX(calc(100vw + 140px))}}
-@keyframes bsvol{from{transform:scaleX(-1) translateX(0)}to{transform:scaleX(-1) translateX(calc(100vw + 140px))}}
+.bs-nave{position:absolute;left:-90px;width:var(--z);height:var(--z);opacity:.95;animation:bsvoa linear infinite;will-change:transform}
+.bs-nave.l{left:auto;right:-90px;animation-name:bsvol}
+.bs-corpo{position:absolute;inset:0;transform:rotate(90deg)}.bs-nave.l .bs-corpo{transform:rotate(-90deg)}
+.bs-corpo img{position:absolute;inset:0;width:100%;height:100%}
+@keyframes bsvoa{to{transform:translateX(calc(100vw + 180px))}}
+@keyframes bsvol{to{transform:translateX(calc(-100vw - 180px))}}
 .bs-txt{position:absolute;left:0;right:0;bottom:10px;text-align:center;font:700 .72rem 'Chakra Petch',sans-serif;letter-spacing:.28em;color:#bfe9ff;text-shadow:0 0 10px rgba(34,211,238,.6)}
 .bs-pts i{font-style:normal;animation:bspt 1.2s infinite}.bs-pts i:nth-child(2){animation-delay:.2s}.bs-pts i:nth-child(3){animation-delay:.4s}
 @keyframes bspt{0%,60%,100%{opacity:.2}30%{opacity:1}}

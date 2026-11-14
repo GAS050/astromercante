@@ -189,9 +189,9 @@ function formHtml() {
 }
 function lobbyHtml() {
   if (duelo()) {
-    const gi = PT.cfg.galaxias[0], [img, cor] = CAR_ART[gi], seg = Math.max(0, Math.min(60, (NOW() - PT.criada) / 1000)), nave = (c, y, d, t, w) => `<i class="bs-nave ${d}" style="top:${y}%;animation-duration:${t}s;animation-delay:${w}s;--k:${c}"></i>`;
+    const gi = PT.cfg.galaxias[0], [img, cor] = CAR_ART[gi], seg = Math.max(0, Math.min(60, (NOW() - PT.criada) / 1000)), nave = (id, y, d, t, w, z) => { const n = String(id).padStart(2, '0'), u = (pt, l) => `assets/naves/nave_${n}/nave_${n}_${pt}${l ? '_n' + l : ''}.svg`; return `<span class="bs-nave ${d}" style="top:${y}%;animation-duration:${t}s;animation-delay:${w}s;--z:${z}px"><span class="bs-corpo">${[['motor', 3], ['casco', 0], ['porao', 3], ['armas', 3]].map(([pt, l]) => `<img src="${u(pt, l)}" alt="" decoding="async">`).join('')}</span></span>`; };
     return `<div class="busca" id="busca" data-c="${PT.codigo}" style="--c:${cor}">
-      ${nave('#22d3ee', 14, 'r', 5.5, 0)}${nave('#7c8cff', 30, 'l', 7, -2)}${nave('#ffc65c', 72, 'r', 6.5, -3.5)}${nave('#4dffa0', 86, 'l', 8, -1)}${nave('#ff8a9c', 50, 'r', 9, -5)}
+      ${nave(41, 6, 'r', 6, 0, 46)}${nave(29, 24, 'l', 7.5, -2.5, 40)}${nave(35, 66, 'r', 7, -3.5, 42)}${nave(17, 82, 'l', 9, -1, 34)}${nave(45, 44, 'r', 10, -6, 48)}
       <div class="bs-radar"><i class="r1"></i><i class="r2"></i><i class="r3"></i><b class="bs-sweep"></b><img src="assets/planets/${img}.svg" alt="" decoding="async"><u class="blip b1"></u><u class="blip b2"></u><u class="blip b3"></u></div>
       <div class="bs-txt">PROCURANDO RIVAL<span class="bs-pts"><i>.</i><i>.</i><i>.</i></span></div>
     </div>

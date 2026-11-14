@@ -191,11 +191,11 @@ function renderContratos() {
       <div class="ctc__s">Destino: ${destNome(x.gal, x.dest)}${x.falta ? ' <span class="ctc__fl">EM FALTA</span>' : ''}</div>
       ${atv ? `<div class="ctc__s"><span class="ctc__time" data-ate="${x.ate}">⏱ ${ctTempo(x.ate - now)}</span> · porão ${Math.min(h, x.q)}/${x.q}${x.q0 > x.q ? ` · entregue ${pct}%` : ''}</div><div class="ctc__s">Caução retida: ${fmt(x.cau)} Cr</div><div class="ctc__bar"><i style="width:${pct}%"></i></div>`
         : `<div class="ctc__s">Mercado <b>+${pr}%</b> + combustível · ⏱ ${Math.ceil(x.dur / 60)} min</div><div class="ctc__s">Caução ${fmt(x.cau)} Cr (volta na entrega)</div>`}</div>
-      ${atv ? `<button class="buy" data-ce="${x.id}" ${aqui && h ? '' : 'disabled'}>${aqui ? (h ? 'Entregar' : 'Sem carga') : (S.trip ? 'Em viagem' : 'Vá até lá')}</button>`
-        : `<button class="buy" data-ca="${x.id}" ${ativos.length >= 3 || S.trip || x.cau > S.credits ? 'disabled' : ''}>Aceitar</button>`}</li>`; };
+      ${atv ? `<button class="ctb" data-ce="${x.id}" ${aqui && h ? '' : 'disabled'}>${aqui ? (h ? 'Entregar carga' : 'Sem carga') : (S.trip ? 'Em viagem' : 'Vá até lá')}</button>`
+        : `<button class="ctb" data-ca="${x.id}" ${ativos.length >= 3 || S.trip || x.cau > S.credits ? 'disabled' : ''}>Aceitar contrato</button>`}</li>`; };
   const ofs = S.trip ? [] : OF.filter(o => !feitos.has(o.id));
   const html = (ativos.length || ofs.length) ? `<section class="ct${ativos.length ? ' ct--on' : ''}">
-    <h3><span>Contratos</span><small class="ct__n">${ativos.length}/3 ativos</small></h3>
+    <h3><span>Contratos de entrega</span><small class="ct__n">${ativos.length}/3 ativos</small></h3>
     ${ativos.length ? `<ul>${ativos.map(x => card(x, true)).join('')}</ul>` : '<p class="ct__vz">Nenhum contrato ativo. Aceite uma oferta abaixo.</p>'}
     ${ofs.length ? `<h4>Ofertas neste planeta</h4><ul>${ofs.map(o => card(o, false)).join('')}</ul>` : ''}</section>` : '';
   const sig = html.replace(/⏱ \d+:\d+/g, ''); if (sig !== ctSig) { ctSig = sig; el.innerHTML = html; }

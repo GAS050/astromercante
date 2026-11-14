@@ -636,20 +636,20 @@ body[data-view=loja] #p-loja{display:flex}
 .hm-news .nw-c{display:flex;flex-wrap:wrap;gap:4px;margin-top:5px}.hm-news .nw-c span{font-size:.7rem;padding:1px 7px;border-radius:99px;border:1px solid currentColor}
 .hm-news .nw-f{display:block;margin-top:8px;color:var(--mt);font-size:.68rem}
 
-/* contratos de entrega (mesmo visual dos cartões de mercado) */
-.ct{margin:0 0 10px}
-.ct h3{margin:0 0 8px;font-size:1rem;font-weight:600;display:flex;justify-content:space-between;align-items:baseline}
-.ct__n{color:var(--mt);font-size:.78rem;font-weight:400}
-.ct h4{margin:10px 0 6px;font-size:.78rem;color:var(--mt);font-weight:400}
-.ct ul{list-style:none;margin:0;padding:0}.ct__vz{margin:0 0 8px;color:var(--mt);font-size:.84rem}
-.ctc{display:grid;grid-template-columns:56px 1fr auto;gap:10px;align-items:center;padding:10px;margin-bottom:8px;border:1px solid var(--line);border-radius:6px;background:rgba(5,14,26,.7)}
-.ctc.on{border-color:var(--cyan)}
-.ctc__ic{width:56px;height:56px}.ctc__ic img{width:56px;height:56px;border-radius:4px;border:1px solid var(--line);background:#0b1d33;object-fit:cover}
-.ctc__t{font-size:.95rem;font-weight:600}.ctc__s{color:var(--mt);font-size:.82rem;margin-top:2px}.ctc__s b{color:var(--tx);font-weight:600}
-.ctc__tag,.ctc__fl,.falta-tag{display:inline-block;border:1px solid var(--line);color:var(--mt);font-size:.66rem;padding:1px 6px;border-radius:3px;margin-right:6px;letter-spacing:.04em;font-weight:400}
+/* contratos de entrega: bloco próprio (faixa lateral, ficha sem caixa, botão ciano) para não se confundir com o mercado */
+.ct{margin:0 0 14px;padding:10px 12px;border-left:3px solid var(--cyan);background:rgba(62,230,255,.045);border-radius:0 6px 6px 0}
+.ct h3{margin:0 0 6px;font-size:.76rem;font-weight:600;text-transform:uppercase;letter-spacing:.1em;color:var(--cyan);display:flex;justify-content:space-between;align-items:baseline}
+.ct__n{color:var(--mt);font-size:.72rem;font-weight:400;letter-spacing:.04em;text-transform:none}
+.ct h4{margin:10px 0 2px;font-size:.7rem;color:var(--mt);font-weight:400;text-transform:uppercase;letter-spacing:.08em}
+.ct ul{list-style:none;margin:0;padding:0}.ct__vz{margin:0 0 6px;color:var(--mt);font-size:.82rem}
+.ctc{display:grid;grid-template-columns:34px 1fr auto;gap:10px;align-items:center;padding:9px 0;border:0;border-bottom:1px dashed var(--line);background:none}
+.ctc:last-child{border-bottom:0}
+.ctc__ic{width:34px;height:34px;border-radius:50%;overflow:hidden;border:1px solid var(--line)}.ctc__ic img{width:100%;height:100%;object-fit:cover}
+.ctc__t{font-size:.9rem;font-weight:600}.ctc__s{color:var(--mt);font-size:.78rem;margin-top:2px}.ctc__s b{color:var(--tx);font-weight:600}
+.ctc__tag,.ctc__fl,.falta-tag{display:inline-block;border:1px solid var(--line);color:var(--mt);font-size:.62rem;padding:1px 5px;border-radius:3px;margin-right:6px;letter-spacing:.04em;font-weight:400}
 .ctc__tag{border-color:var(--cyan);color:var(--cyan)}.ctc__fl,.falta-tag{border-color:var(--amber);color:var(--amber)}
 .ctc__time.urg{color:var(--red)}
 .ctc__bar{height:3px;background:#0b1d33;border-radius:2px;margin-top:6px;overflow:hidden}.ctc__bar i{display:block;height:100%;background:var(--cyan);transition:width .4s}
-.ctc .buy{background:transparent;border-radius:3px;padding:6px 12px;font-weight:600;font-size:.82rem;text-transform:uppercase;white-space:nowrap}
-.ctc .buy:disabled{opacity:.35;cursor:not-allowed}.ctc .buy:disabled:hover{background:transparent}
+.ctb{background:transparent;border:1px solid var(--cyan);color:var(--cyan);border-radius:3px;padding:6px 10px;font-weight:600;font-size:.74rem;white-space:nowrap;max-width:104px;line-height:1.2}
+.ctb:hover{background:rgba(62,230,255,.12)}.ctb:disabled{opacity:.35;cursor:not-allowed}.ctb:disabled:hover{background:transparent}
 .falta-tag{display:none;margin:0 0 0 6px;vertical-align:middle}.res.falta .falta-tag{display:inline-block}

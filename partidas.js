@@ -92,8 +92,9 @@ const CAR_ART = [['b076_terra', '#e6c84a'], ['a085_gelo', '#9fdcff'], ['b049_ast
 const carImg = (g, i) => ({ img: CAR_ART[i][0] + '.svg', c: CAR_ART[i][1] });
 async function salasPoll() {
   if (!TOK || !CLOUD() || document.hidden || document.body.dataset.view !== 'play' || (PT && (PT.estado === 'espera' || noAr()))) return;
-  try { SALAS = await api('/duelo/salas'); salasAt = Date.now(); if (!document.querySelector('#play .car:active')) renderPlay(); } catch {}
+  try { SALAS = await api('/duelo/salas'); salasAt = Date.now(); document.querySelectorAll('#car .cd-fila').forEach((el, i) => { const h = filaHtml(i); if (el.dataset.h !== h) { el.dataset.h = h; el.innerHTML = h; } }); } catch {}   // só o texto da fila: sem refazer o carrossel
 }
+const filaHtml = i => { const esp = SALAS ? SALAS.esp[i] : 0, jog = SALAS ? SALAS.jog[i] : 0; return `<i class="${esp ? 'on' : ''}"></i>${esp ? esp + ' na fila' : 'fila vazia'}${jog ? ' · ' + jog + ' em duelo' : ''}`; };
 function dueloHtml(dano) {
   if (ARENA_I < 0) ARENA_I = ultimaLiberada();
   const f = x => fmt(x).replace(',00', '');
@@ -101,11 +102,11 @@ function dueloHtml(dano) {
     const ok = galLiberada(i), ap = APOSTAS[i], { img, c } = carImg(g, i), pode = ok && !dano && S.credits >= ap, esp = SALAS ? SALAS.esp[i] : 0, jog = SALAS ? SALAS.jog[i] : 0;
     const motivo = !ok ? `Exige ${RANKS[g.t] ? RANKS[g.t][1] : 'patente ' + g.t}${g.eng > 1 ? ' e motor nv ' + g.eng : ''}` : dano ? 'Repare o casco' : S.credits < ap ? `Faltam ${f(ap - S.credits)} Cr` : '';
     return `<article class="cd${ok ? '' : ' lk'}${i === ARENA_I ? ' on' : ''}" data-i="${i}" style="--c:${c}">
-      <div class="cd-art"><i class="cd-halo"></i><img src="assets/planets/${img}" alt=""></div>
+      <div class="cd-art"><i class="cd-halo"></i><img src="assets/planets/${img}" alt="" decoding="async"></div>
       <h4 class="cd-nome">${g.nome}</h4>
       <div class="cd-aposta"><small>APOSTA</small><b>${f(ap)}<i> Cr</i></b></div>
       <div class="cd-grade"><div><small>PRÊMIO</small><b class="verde">${f(Math.round(ap * 1.8))}</b></div><div><small>SALDO INICIAL</small><b>${f(ap * 50)}</b></div></div>
-      <div class="cd-fila"><i class="${esp ? 'on' : ''}"></i>${esp ? esp + ' na fila' : 'fila vazia'}${jog ? ' · ' + jog + ' em duelo' : ''}</div>
+      <div class="cd-fila" data-h="${esc(filaHtml(i))}">${filaHtml(i)}</div>
       ${ok ? `<button type="button" class="cd-go" data-gal="${i}" ${pode ? '' : 'disabled'}>${pode ? '⚔ ENTRAR NA FILA' : esc(motivo)}</button>` : `<div class="cd-lock">🔒 ${esc(motivo)}</div>`}
     </article>`;
   }).join('');
@@ -124,12 +125,15 @@ function carMarca() {
   document.querySelectorAll('#car .cd').forEach((c, i) => c.classList.toggle('on', i === ARENA_I));
   document.querySelectorAll('.car-dots i').forEach((d, i) => d.classList.toggle('on', i === ARENA_I));
 }
-let carT = 0;
+let carRaf = 0;
 document.addEventListener('scroll', e => {
-  if (!e.target || e.target.id !== 'car') return; const car = e.target, mid = car.scrollLeft + car.clientWidth / 2; let best = 0, bd = 1e9;
-  [...car.children].forEach((c, i) => { const d = Math.abs(c.offsetLeft + c.offsetWidth / 2 - mid); if (d < bd) { bd = d; best = i; } });
-  if (best !== ARENA_I) { ARENA_I = best; carMarca(); }
-}, true);
+  if (!e.target || e.target.id !== 'car' || carRaf) return; const car = e.target;
+  carRaf = requestAnimationFrame(() => {   // no máximo uma leitura por quadro
+    carRaf = 0; const mid = car.scrollLeft + car.clientWidth / 2; let best = 0, bd = 1e9;
+    for (let i = 0; i < car.children.length; i++) { const c = car.children[i], d = Math.abs(c.offsetLeft + c.offsetWidth / 2 - mid); if (d < bd) { bd = d; best = i; } }
+    if (best !== ARENA_I) { ARENA_I = best; carMarca(); }
+  });
+}, { capture: true, passive: true });
 $('#play').addEventListener('click', e => {
   const b = e.target.closest('[data-car]'); if (b) return carIr(ARENA_I + +b.dataset.car, true);
   const d = e.target.closest('[data-d]'); if (d) return carIr(+d.dataset.d, true);

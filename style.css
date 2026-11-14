@@ -793,12 +793,15 @@ body.gated .lp-mus{display:grid}.lp-mus.off{color:var(--mt);border-color:var(--l
 .car::-webkit-scrollbar{display:none}
 .cd{flex:0 0 84%;max-width:400px;scroll-snap-align:center;position:relative;border-radius:18px;padding:14px 14px 16px;text-align:center;overflow:hidden;
   background:radial-gradient(90% 55% at 50% 20%,color-mix(in srgb,var(--c) 34%,transparent),transparent 72%),linear-gradient(180deg,#171d44,#0b0f26);
-  border:1px solid color-mix(in srgb,var(--c) 40%,#2a3160);transform:scale(.9);opacity:.5;filter:saturate(.7);transition:transform .35s,opacity .35s,filter .35s,box-shadow .35s}
-.cd.on{transform:scale(1);opacity:1;filter:none;box-shadow:0 0 0 1px color-mix(in srgb,var(--c) 70%,transparent),0 12px 40px -10px var(--c),inset 0 0 44px -20px var(--c)}
-.cd::after{content:"";position:absolute;inset:0;background:repeating-linear-gradient(0deg,rgba(255,255,255,.02) 0 1px,transparent 1px 4px);pointer-events:none}
+  border:1px solid color-mix(in srgb,var(--c) 40%,#2a3160);transform:scale(.9);opacity:.5;transition:transform .3s,opacity .3s;contain:layout paint;will-change:transform}
+.cd.on{transform:scale(1);opacity:1;border-color:color-mix(in srgb,var(--c) 75%,#fff 0%)}
+.cd.on::before{opacity:1}
+.cd::before{content:"";position:absolute;inset:0;border-radius:inherit;box-shadow:inset 0 0 44px -18px var(--c),inset 0 0 0 1px color-mix(in srgb,var(--c) 60%,transparent);opacity:0;transition:opacity .3s;pointer-events:none}
 .cd-art{position:relative;height:132px;display:grid;place-items:center;margin:2px 0 0}
-.cd-art img{width:116px;height:116px;object-fit:contain;position:relative;animation:cdflut 6s ease-in-out infinite;filter:drop-shadow(0 8px 16px rgba(0,0,0,.6))}
-.cd-halo{position:absolute;width:170px;height:170px;border-radius:50%;background:radial-gradient(circle,color-mix(in srgb,var(--c) 50%,transparent),transparent 68%);animation:cdpulso 3s ease-in-out infinite}
+.cd-art img{width:116px;height:116px;object-fit:contain;position:relative;}
+.cd.on .cd-art img{animation:cdflut 6s ease-in-out infinite}
+.cd-halo{position:absolute;width:170px;height:170px;border-radius:50%;background:radial-gradient(circle,color-mix(in srgb,var(--c) 50%,transparent),transparent 68%)}
+.cd.on .cd-halo{animation:cdpulso 3s ease-in-out infinite}
 @keyframes cdflut{50%{transform:translateY(-6px) rotate(3deg)}}@keyframes cdpulso{50%{transform:scale(1.15);opacity:.7}}
 .cd-nome{font:700 1.5rem/1.1 'Chakra Petch',sans-serif;letter-spacing:.16em;text-transform:uppercase;color:#fff;text-shadow:0 0 18px var(--c);margin:0 0 8px}
 .cd-aposta small,.cd-grade small{display:block;font-size:.55rem;letter-spacing:.14em;color:#8fa0d8;white-space:nowrap}
@@ -811,7 +814,7 @@ body.gated .lp-mus{display:grid}.lp-mus.off{color:var(--mt);border-color:var(--l
 .pcard .cd-go{width:100%;padding:12px;border:0;border-radius:12px;font:700 .85rem 'Chakra Petch',sans-serif;letter-spacing:.12em;color:#04101e;background:linear-gradient(90deg,#22d3ee,#7c8cff);box-shadow:0 0 20px rgba(80,170,255,.45);position:relative;z-index:1;white-space:nowrap}
 .pcard .cd-go:disabled{background:#1f2748;color:#8fa0d8;box-shadow:none;letter-spacing:.03em;font-size:.72rem}
 .cd-lock{padding:12px 8px;border:1px dashed #3a4468;border-radius:12px;color:#8fa3b8;font-size:.74rem;position:relative;z-index:1}
-.cd.lk{filter:grayscale(.85) brightness(.75)}.cd.lk.on{box-shadow:0 0 0 1px #3a4468}.cd.lk .cd-art img{opacity:.5}
+.cd.lk{background:linear-gradient(180deg,#1a1d2c,#0c0e18);border-color:#2a3047}.cd.lk .cd-halo{background:radial-gradient(circle,rgba(150,160,190,.25),transparent 68%)}.cd.lk .cd-art img{opacity:.4;filter:grayscale(1)}.cd.lk .cd-nome{text-shadow:none;color:#aab3c8}.cd.lk .cd-aposta b{color:#b9a47a;text-shadow:none}
 .pcard .car-b{position:absolute;top:50%;left:4px;z-index:3;width:34px;height:34px;margin-top:-17px;border-radius:50%;border:1px solid rgba(140,160,255,.35);background:rgba(10,14,40,.85);color:#fff;font-size:1.3rem;line-height:1;display:grid;place-items:center;padding:0}
 .pcard .car-b.r{left:auto;right:4px}
 .car-dots{display:flex;justify-content:center;gap:5px;margin:4px 0 2px}

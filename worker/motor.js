@@ -236,9 +236,16 @@ function contaDano(S, h0) { if (!S.partida) return; S.partida.viag = (S.partida.
 /** Intensidade (0 a 1) do desgaste da sala: pontos de casco perdidos por viagem, comparados ao esperado na galáxia mais alta da sala. */
 export const intensidade = (jogs, cfg) => { const v = jogs.reduce((a, j) => a + (j?.viag || 0), 0); if (!v) return 0; const ref = 9 + 1.6 * Math.max(...cfg.galaxias); return clamp(jogs.reduce((a, j) => a + (j?.dano || 0), 0) / v / ref, 0, 1); };
 export const semCasco = (S) => !!(S.partida && S.partida.casco === false);
-function chegada(S, d, msgs, enc) {
+function chegada(S, d, msgs, enc, tr) {
   const sc = semCasco(S);
   let dmg = sc ? 0 : desgasteViagem(S, d);
+  if (tr?.seg) dmg = Math.floor(dmg * .5 + Math.random());   // rota segura: metade do desgaste
+  if (tr?.imp) {   // imprevisto da rota direta (não aparece no mapa): decidido na partida, aplicado na chegada
+    const im = tr.imp; if (!sc) dmg += im.dmg;
+    let m = `${im.nm} na rota direta! ${sc ? '' : `Casco -${im.dmg}%. `}`;
+    if (im.id && S.inv[im.id]?.qty > 0) { const q = Math.min(S.inv[im.id].qty, im.q); S.inv[im.id].qty -= q; if (!S.inv[im.id].qty) S.inv[im.id].avg = 0; m += `Perdeu ${q} × ${RES_ID[im.id].nome}.`; }
+    say(msgs, m.trim(), 'err');
+  }
   for (const e of enc || []) {
     if (!sc) dmg += e.dmg;
     if (e.w === 1) { S.credits += e.loot; S.lt = (S.lt || 0) + e.loot; mais(S, e.m ? 'mo' : 'pi'); if (/Leviat/.test(e.nm)) mais(S, 'lv'); else if (/Frota pirata/.test(e.nm)) mais(S, 'fp'); say(msgs, `${e.nm} (poder ${e.lv.toFixed(1)}) derrotados pelo seu poder de fogo ${S.wpLv.toFixed(1)}! Recompensa +${fmt(e.loot)} Cr.`, 'win'); }
@@ -283,7 +290,7 @@ export function resolver(S, c, msgs) {
   }
   if (S.ct?.some((x) => c.now > x.ate)) { for (const x of S.ct.filter((x) => c.now > x.ate)) say(msgs, `Contrato expirado: ${x.q} × ${RES_ID[x.r].nome} para ${GALAXIES[x.gal].planetas.find((p) => p.id === x.dest)?.nome || x.dest}. Caução perdida (${fmt(x.cau)} Cr).`, 'err'); S.ct = S.ct.filter((x) => c.now <= x.ate); mudou = true; }
   if (S.trip && c.now >= S.trip.end) {
-    const dd = dist(planeta(S, S.trip.from), planeta(S, S.trip.to)); S.loc = S.trip.to; const enc = S.trip.enc; S.trip = null; S.daily.p.trips++; mais(S, 'vi'); chegada(S, dd, msgs, enc);
+    const dd = dist(planeta(S, S.trip.from), planeta(S, S.trip.to)); S.loc = S.trip.to; const enc = S.trip.enc, tr = S.trip; S.trip = null; S.daily.p.trips++; mais(S, 'vi'); chegada(S, dd, msgs, enc, tr);
     const m = planeta(S, S.loc).m, deals = Object.keys(m).filter((k) => m[k] < 1).map((k) => SHORT[k]);
     say(msgs, `Chegada em ${planeta(S, S.loc).nome}.` + (deals.length ? ` Compre barato: ${deals.join(', ')}.` : ''), 'ok'); mudou = true;
   }
@@ -407,7 +414,14 @@ const acoes = {
     if (situacao(S, to.id, c.now) === 'quarentena') throw new Regra(`${to.nome} está em quarentena: ninguém pousa lá agora. Tente de novo em alguns minutos.`);
     const t0 = tripInfo(S, to.id, c.now), t = seg ? { ...t0, cost: Math.round(t0.cost * 1.25), secs: Math.round(t0.secs * 1.6) } : t0;
     if (t.cost > S.credits) throw new Regra(`Combustível custa ${fmt(t.cost)} Cr. Créditos insuficientes.`);
-    S.credits -= t.cost; S.trip = { from: S.loc, to: to.id, start: c.now, end: c.now + t.secs * 1000 }; if (seg) S.trip.seg = 1; const enc = seg ? [] : (viagemTutorial(S) ?? encontros(S, S.trip.start, S.trip.end)); if (S.tv !== undefined && !S.partida) S.tv++; if (enc.length) { S.trip.enc = enc; S.trip.end += PAUSA; }
+    S.credits -= t.cost; S.trip = { from: S.loc, to: to.id, start: c.now, end: c.now + t.secs * 1000 }; if (seg) S.trip.seg = 1; const enc = seg ? [] : (viagemTutorial(S) ?? encontros(S, S.trip.start, S.trip.end));
+    if (!seg && !S.partida && (S.tv === undefined || S.tv > 1)) {   // imprevisto invisível: 7% a 22% por viagem (mais em rotas longas, galáxias avançadas e porão cheio)
+      const pr = clamp(.07 + .0004 * t.d + .01 * S.gal, .07, .22) * (.6 + .8 * used(S) / Math.max(1, S.cap));
+      if (Math.random() < pr) {
+        const r = Math.random(), k = 1 + S.gal * .1, own = Object.entries(S.inv).filter(([, h]) => h.qty > 0).sort((a, b) => b[1].qty * b[1].avg - a[1].qty * a[1].avg)[0];
+        S.trip.imp = r < .4 || !own ? { nm: 'Chuva de asteroides', dmg: Math.round((4 + Math.random() * 5) * k) } : r < .7 ? { nm: 'Tempestade solar', dmg: Math.round((3 + Math.random() * 3) * k) } : { nm: 'Avaria no porão', dmg: Math.round((2 + Math.random() * 2) * k), id: own[0], q: Math.max(1, Math.ceil(own[1].qty * (.06 + Math.random() * .06))) };
+      }
+    } if (S.tv !== undefined && !S.partida) S.tv++; if (enc.length) { S.trip.enc = enc; S.trip.end += PAUSA; }
     say(msgs, `Rumo a ${to.nome}${seg ? ' pela rota segura' : ''}: ${t.secs}s, combustível ${fmt(t.cost)} Cr.`, '');
   },
   saltar(S, c, msgs, a) {

@@ -16,6 +16,7 @@ async function partidaPoll(force) {
   pulling = false;
 }
 function aplicarPartida(r) {
+  if (r.nenhuma || r.estado !== 'espera') CONV.clear();
   if (r.agora) SKEW = r.agora - Date.now();
   const antes = PT && PT.estado, cod0 = PT && PT.codigo;
   PT = r.nenhuma ? null : r;
@@ -146,6 +147,37 @@ setInterval(salasPoll, 8000);
 /* ---------- menu ---------- */
 const resumo = c => `${c.duracao} min · saldo ${fmt(c.saldo).replace(',00', '')} Cr · ${c.galaxias.map(i => GALAXIES[i].nome).join(', ')}`
   + ` · ${c.jogadores} jogadores${c.bots ? ' (bots completam, ' + DIFIC[c.dific] + ')' : ''}${c.eventos ? '' : ' · sem eventos'}${c.piratas ? '' : ' · sem piratas'}${c.casco === false ? ' · sem desgaste de casco' + (c.taxa ? ' (prêmio −10%)' : '') : (c.taxa ? ' · com casco (1º pode levar até 70% do bolo)' : '')}`;
+
+/* ---------- Torneio (dourado, pódio) e Entre amigos (verde-água, seus amigos): visuais próprios, diferentes do Duelo ---------- */
+const CONV = new Set();   // amigos já chamados para a sala atual
+const meusAmigos = () => (typeof AM !== 'undefined' && AM && AM.amigos) || [];
+function torneioHtml(dano) {
+  const f = x => fmt(x).replace(',00', '');
+  return `<div class="pcard arena-t"><div class="at-top"><div><h3>🏆 Torneio</h3><p>Pilotos pagam a entrada, o bolo vai para o pódio.</p></div></div>
+    <div class="at-pod" aria-hidden="true"><div class="p2"><b>2º</b><i>30%</i></div><div class="p1"><b>👑</b><i>60%</i></div><div class="p3"><b>3º</b><i>10%</i></div></div>
+    <ul class="at-chips"><li>👥 2 a 8 pilotos</li><li>💰 entrada ${f(TAXAS[0])} a ${f(TAXAS[TAXAS.length - 1])} Cr</li><li>🤖 bots completam</li></ul>
+    <button type="button" class="at-go" data-p="novo-torneio" ${dano ? 'disabled' : ''}>🏆 CRIAR TORNEIO</button></div>`;
+}
+function amigosHtml(dano, pre) {
+  const L = meusAmigos().slice(0, 12);
+  const bolhas = L.map(a => `<button type="button" class="aa-b${CONV.has(a.id) ? ' ok' : ''}" data-chamar="${a.id}" data-nome="${esc(a.n)}" ${dano || CONV.has(a.id) ? 'disabled' : ''}><span class="aa-av">${avImg(a.a)}</span><b>${esc(a.n)}</b><small>${CONV.has(a.id) ? '✓ chamado' : 'Chamar'}</small></button>`).join('')
+    + `<button type="button" class="aa-b mais" data-p="add-amigo"><span class="aa-av">＋</span><b>Novo amigo</b><small>Adicionar</small></button>`;
+  return `<div class="pcard arena-a"><h3>🤝 Entre amigos <small>sem taxa · você define as regras</small></h3>
+    <div class="aa-lista">${bolhas}</div>
+    <div class="aa-acoes"><button type="button" class="aa-go" data-p="novo-amigos" ${dano ? 'disabled' : ''}>⚙ Criar sala personalizada</button>
+    <form class="aa-cod" id="join"><input id="join-cod" maxlength="6" autocomplete="off" placeholder="CÓDIGO" value="${pre}"><button type="submit">Entrar</button></form></div></div>`;
+}
+async function chamar(b) {
+  const id = +b.dataset.chamar; b.disabled = true;
+  try {
+    if (!(PT && PT.estado === 'espera')) {
+      const g0 = Math.max(0, GALAXIES.findIndex((_, i) => galLiberada(i)));
+      aplicarPartida(await api('/partida/criar', 'POST', { modo:'amigos', cfg:{ duracao:15, saldo:5000, galaxias:[g0], jogadores:4, bots:false, dific:'normal', eventos:true, piratas:true, casco:true, taxa:0 } }));
+    }
+    await api('/amigos/convidar', 'POST', { id }); CONV.add(id); say(`Convite enviado para ${b.dataset.nome}!`, 'win');
+  } catch (e) { say(e.message, 'err'); }
+  renderPlay();
+}
 function renderPlay() {
   const el = $('#play'); if (!el) return;
   if (PT && duelo() && PT.estado === 'espera' && $('#busca') && $('#busca').dataset.c === PT.codigo) return;   // não reinicia a animação da busca
@@ -158,13 +190,9 @@ function renderPlay() {
   const um = location.search.match(/[?&]sala=([A-Za-z0-9]{6})/), pre = um ? um[1].toUpperCase() : '';
   const dano = MODE !== 'partida' && S.hull < 25;
   el.innerHTML = (dano ? `<div class="pcard aviso"><h3>🔧 Nave danificada</h3><p>Seu casco está em <b>${Math.floor(S.hull)}%</b>, baixo demais para viajar (mínimo 25%). Repare a nave (botão <b>Reparar casco</b>) antes de entrar na Arena. A partida começa com 100% para todos.</p></div>` : '') + `${dueloHtml(dano)}
-  <div class="pcards">
-    <div class="pcard"><h3>🏆 Torneio</h3><p>Até 8 pilotos pagam uma taxa de entrada; os melhores levam o prêmio. Bots completam a sala.</p><button type="button" class="buy" data-p="novo-torneio" ${dano ? "disabled" : ""}>Criar torneio</button></div>
-    <div class="pcard"><h3>🤝 Entre amigos</h3><p>Sala livre, sem taxa: escolha tempo, galáxias e regras e convide por código.</p><button type="button" class="buy" data-p="novo-amigos" ${dano ? "disabled" : ""}>Criar sala</button></div>
-  </div>
-  <form class="prow" id="join"><label>Tem um código? <input id="join-cod" maxlength="6" autocomplete="off" placeholder="ABC123" value="${pre}"></label><button class="buy" type="submit">Entrar na sala</button></form>
-  <p class="err" id="join-err">${esc(joinMsg)}</p>
-  <p class="empty">Você só joga em galáxias que já desbloqueou. A partida usa sua nave atual (porão, motor e armamento), mas é um jogo à parte: seus créditos e itens da carreira não mudam, exceto a taxa e o prêmio do torneio.</p>`;
+  ${torneioHtml(dano)}
+  ${amigosHtml(dano, pre)}
+  <p class="err" id="join-err">${esc(joinMsg)}</p>`;
 
   if (digitado) { $('#join-cod').value = digitado; if (tinhaFoco) $('#join-cod').focus(); }
   carIr(ARENA_I, false); }
@@ -201,13 +229,14 @@ function lobbyHtml() {
     <p class="err" id="l-err"></p><div class="prow"><button type="button" class="danger" id="l-x">Cancelar e recuperar a aposta</button></div>`;
   }
   const c = PT.cfg, link = location.origin + location.pathname + '?sala=' + PT.codigo, hum = PT.jogadores.length;
-  return `<h3>${PT.modo === 'torneio' ? '🏆 Torneio' : '🤝 Sala entre amigos'} · aguardando</h3>
+  const tor = PT.modo === 'torneio', dentro = new Set(PT.jogadores.map(j => j.i)), am = meusAmigos().filter(a => !dentro.has(a.id));
+  return `<div class="lob ${tor ? 'lob-t' : 'lob-a'}"><h3>${tor ? '🏆 Torneio' : '🤝 Sala entre amigos'} · aguardando</h3>
   <div class="pcode"><small>Código da sala</small><b class="mono">${PT.codigo}</b><button type="button" id="l-cp">Copiar convite</button></div>
-  <div class="prow"><button type="button" class="buy" id="l-inv"><i class="fa-solid fa-user-group"></i> Convidar amigos</button></div>
+  <div class="lob-am"><small>CHAMAR AMIGOS</small><div class="aa-lista">${am.map(a => `<button type="button" class="aa-b${CONV.has(a.id) ? ' ok' : ''}" data-chamar="${a.id}" data-nome="${esc(a.n)}" ${CONV.has(a.id) ? 'disabled' : ''}><span class="aa-av">${avImg(a.a)}</span><b>${esc(a.n)}</b><small>${CONV.has(a.id) ? '✓ chamado' : 'Chamar'}</small></button>`).join('')}<button type="button" class="aa-b mais" id="l-inv"><span class="aa-av">＋</span><b>Novo amigo</b><small>Adicionar</small></button></div></div>
   <p class="empty">${esc(resumo(c))}${PT.modo === 'torneio' ? ` · taxa ${fmt(c.taxa).replace(',00', '')} Cr` : ''}</p>
   <ul class="board">${PT.jogadores.map(j => `<li class="${j.eu ? 'me' : ''}${j.i ? ' pj-link' : ''}"${j.i ? ` data-pj="${j.i}" role="button" tabindex="0"` : ''}><span>${esc(j.n)}${j.host ? ' 👑' : ''}</span></li>`).join('')}<li class="tot"><span>${hum} de ${c.jogadores} vagas${c.bots ? ` · ${c.jogadores - hum} bot(s) entram ao iniciar` : ''}</span></li></ul>
   <p class="err" id="l-err"></p>
-  <div class="prow">${PT.host ? '<button type="button" class="buy" id="l-go">Iniciar partida</button>' : '<span class="empty">Aguardando o criador iniciar…</span>'}<button type="button" class="danger" id="l-x">${PT.host ? 'Cancelar sala' : 'Sair da sala'}</button></div>`;
+  <div class="prow">${PT.host ? '<button type="button" class="buy" id="l-go">Iniciar partida</button>' : '<span class="empty">Aguardando o criador iniciar…</span>'}<button type="button" class="danger" id="l-x">${PT.host ? 'Cancelar sala' : 'Sair da sala'}</button></div></div>`;
 }
 function emAndamentoHtml() {
   if (duelo()) { const R = PT.rival; return `<h3>⚔️ Duelo X1 em andamento</h3><p class="pbig mono" id="play-t">${mmss(PT.fim - NOW())}</p><p class="empty">Aposta de ${fmt(PT.cfg.taxa).replace(',00', '')} Cr · rival: <b>${R ? esc(R.n) : '…'}</b></p><div class="prow">${MODE === 'partida' ? '<button type="button" class="buy" data-p="jogar">Voltar ao mercado</button>' : '<button type="button" class="buy" data-p="entrar">Voltar ao duelo</button>'} <button type="button" class="danger" id="p-quit">🏳 Abandonar</button></div>`; }
@@ -245,6 +274,8 @@ async function pedir(btn, caminho, corpo, errId) {
 $('#play').addEventListener('click', async e => {
   const b = e.target.closest('button'); if (!b) return;
   if (b.dataset.gal != null && b.closest('.cd')) { duelMsg = ''; if (await pedir(b, '/duelo/fila', { gal:+b.dataset.gal }, '#d-err')) refrescar(true); else if ($('#d-err')) duelMsg = $('#d-err').textContent; return; }
+  if (b.dataset.chamar) return chamar(b);
+  if (b.dataset.p === 'add-amigo') { if (typeof AV !== 'undefined') AV.tab = 'amigos'; return document.querySelector('.nav [data-view=amigos]').click(); }
   if (b.id === 'p-quit') return abandonar(b);
   if (b.id === 'l-inv') { if (typeof AV !== 'undefined') AV.tab = 'amigos'; return document.querySelector('.nav [data-view=amigos]').click(); }
   if (b.dataset.p === 'carreira') return document.querySelector('.nav [data-view=market]').click();
@@ -284,7 +315,7 @@ $('#play').addEventListener('submit', async e => {
   if (cod.length !== 6) { joinMsg = 'O código tem 6 caracteres.'; $('#join-err').textContent = joinMsg; return; }
   joinMsg = ''; if (await pedir(b, '/partida/entrar', { codigo:cod }, '#join-err')) { try { history.replaceState(null, '', location.pathname); } catch {} }
 });
-document.querySelector('.nav [data-view=play]').addEventListener('click', () => { ARENA_I = -1; renderPlay(); partidaPoll(true); setTimeout(() => carIr(ARENA_I, false), 60); setTimeout(salasPoll, 150); });
+document.querySelector('.nav [data-view=play]').addEventListener('click', () => { ARENA_I = -1; renderPlay(); partidaPoll(true); if (typeof amLoad === 'function') amLoad(true).then(() => { if (!PT || PT.estado !== 'espera') renderPlay(); }); setTimeout(() => carIr(ARENA_I, false), 60); setTimeout(salasPoll, 150); });
 $('#res').onclick = e => { if (e.target.id === 'res') $('#res').hidden = true; };
 { const boot = setInterval(() => { if (!CLOUD() || !TOK) { clearInterval(boot); renderPlay(); return; } if (READY) { clearInterval(boot); partidaPoll(true).then(() => { renderPlay(); if (/[?&]sala=/.test(location.search) && !PT) document.querySelector('.nav [data-view=play]').click(); }); } }, 300); }
 renderPlay();

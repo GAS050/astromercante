@@ -848,3 +848,32 @@ body.gated .lp-mus{display:grid}.lp-mus.off{color:var(--mt);border-color:var(--l
 .bs-bar{height:5px;border-radius:3px;background:#1b2150;overflow:hidden;margin-bottom:12px}.bs-bar i{display:block;height:100%;width:100%;background:linear-gradient(90deg,#22d3ee,#7c8cff);transform-origin:left;animation:bsbar 60s linear forwards}
 @keyframes bsbar{from{transform:scaleX(1)}to{transform:scaleX(0)}}
 @media(prefers-reduced-motion:reduce){.bs-nave,.bs-sweep,.bs-radar>i,.blip{animation:none}}
+
+/* Torneio: dourado + pódio */
+.pcard.arena-t{margin-top:12px;border-color:#b8872a;background:radial-gradient(90% 70% at 85% 0,rgba(255,196,70,.22),transparent 60%),linear-gradient(160deg,#2b1d07,#120c04);box-shadow:inset 0 0 40px -22px #ffc646}
+.arena-t h3{color:#ffd77a}.arena-t p{color:#d9c08a;margin:2px 0 0;font-size:.8rem}
+.at-pod{display:flex;align-items:flex-end;justify-content:center;gap:6px;height:92px;margin:12px 0 8px}
+.at-pod>div{width:64px;border-radius:8px 8px 0 0;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;padding-top:6px;background:linear-gradient(180deg,#c9922f,#6b4712);box-shadow:inset 0 1px 0 rgba(255,255,255,.35)}
+.at-pod .p1{height:92px;background:linear-gradient(180deg,#ffd35a,#a56f12)}.at-pod .p2{height:68px;background:linear-gradient(180deg,#d7dbe6,#7d8497)}.at-pod .p3{height:52px;background:linear-gradient(180deg,#d9945a,#7a4720)}
+.at-pod b{font:700 .95rem 'Chakra Petch',sans-serif;color:#23160a}.at-pod i{font:700 .72rem 'Chakra Petch',monospace;font-style:normal;color:#23160a;opacity:.8}
+.at-chips{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;list-style:none;margin:0 0 12px;padding:0}.at-chips li{font-size:.7rem;color:#f0d9a2;border:1px solid rgba(255,200,90,.3);border-radius:999px;padding:3px 9px;background:rgba(255,200,90,.06)}
+.pcard .at-go{width:100%;padding:12px;border:0;border-radius:12px;font:700 .85rem 'Chakra Petch',sans-serif;letter-spacing:.14em;color:#2a1a04;background:linear-gradient(90deg,#ffd35a,#ffa52e);box-shadow:0 0 20px rgba(255,180,50,.4)}
+.pcard .at-go:disabled{background:#3a2e17;color:#a08850;box-shadow:none}
+/* Entre amigos: verde-água, bolhas de amigos */
+.pcard.arena-a{margin-top:12px;border-radius:22px;border-color:#2c8f84;background:radial-gradient(80% 70% at 10% 0,rgba(45,212,191,.2),transparent 60%),linear-gradient(170deg,#08262b,#07161c)}
+.arena-a h3{color:#7ff0dc}.arena-a h3 small{display:block;font:400 .72rem 'Chakra Petch',sans-serif;color:#7fb7b0;margin-top:2px}
+.aa-lista{display:flex;gap:10px;overflow-x:auto;padding:8px 2px 10px;scrollbar-width:none}.aa-lista::-webkit-scrollbar{display:none}
+.pcard .aa-b,.lob-am .aa-b{flex:0 0 74px;display:flex;flex-direction:column;align-items:center;gap:3px;padding:6px 2px;border:0;background:none;color:#d8fbf4;min-width:0}
+.aa-av{width:52px;height:52px;border-radius:50%;display:grid;place-items:center;background:linear-gradient(145deg,#12495a,#0b2a36);border:2px solid #2dd4bf;box-shadow:0 0 14px -2px rgba(45,212,191,.6);overflow:hidden;font-size:1.4rem;color:#7ff0dc}
+.aa-av img{width:100%;height:100%;border-radius:0}
+.aa-b b{font-size:.72rem;max-width:72px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.aa-b small{font-size:.62rem;color:#2dd4bf;letter-spacing:.06em}
+.aa-b.ok .aa-av{border-color:#8aff9c;box-shadow:0 0 14px -2px #8aff9c}.aa-b.ok small{color:#8aff9c}.aa-b:disabled{opacity:.85}
+.aa-b.mais .aa-av{border-style:dashed;background:none}.aa-b.mais small{color:#7fb7b0}
+.aa-acoes{display:flex;gap:8px;align-items:stretch;margin-top:2px}
+.pcard .aa-go{flex:1;padding:10px;border:1px solid #2dd4bf;border-radius:999px;background:rgba(45,212,191,.1);color:#9ff5e6;font:700 .74rem 'Chakra Petch',sans-serif;letter-spacing:.04em}
+.aa-cod{display:flex;margin:0;border:1px solid #2c8f84;border-radius:999px;overflow:hidden;background:#061418}.aa-cod input{width:76px;border:0;background:none;color:#fff;text-align:center;font:700 .8rem 'Chakra Petch',monospace;letter-spacing:.12em;text-transform:uppercase;padding:0 6px}
+.pcard .aa-cod button{border:0;border-radius:0;background:#2dd4bf;color:#05211f;font-weight:700;padding:0 12px}
+/* salas de espera com a cor do modo */
+.lob{border-radius:16px;padding:14px}.lob-t{background:linear-gradient(160deg,#2b1d07,#120c04);border:1px solid #b8872a}.lob-t h3{color:#ffd77a}
+.lob-a{background:linear-gradient(170deg,#08262b,#07161c);border:1px solid #2c8f84}.lob-a h3{color:#7ff0dc}
+.lob-am small{font-size:.6rem;letter-spacing:.2em;color:#8fa6a8}

@@ -78,6 +78,7 @@ $('#matchbar').addEventListener('click', async e => {
 });
 setInterval(() => {
   if (noAr()) { if (duelo() && MODE === 'partida') renderMatchBar(); const t = $('#mb-t'); if (t) t.textContent = mmss(PT.fim - NOW()); if (NOW() >= PT.fim + 800 && !pulling) partidaPoll(true); }
+  if (PT && PT.estado === 'espera' && $('#bs-t')) $('#bs-t').textContent = Math.max(0, Math.ceil(60 - (NOW() - PT.criada) / 1000));
   if (PT && PT.estado === 'andamento' && $('#play-t')) $('#play-t').textContent = mmss(PT.fim - NOW());
 }, 1000);
 setInterval(() => { if (TOK && CLOUD() && PT && (PT.estado === 'espera' || (noAr() && duelo())) && !document.hidden) partidaPoll(true); }, 5000);   // duelo: o rival e a presença precisam de consulta curta
@@ -146,6 +147,7 @@ const resumo = c => `${c.duracao} min · saldo ${fmt(c.saldo).replace(',00', '')
   + ` · ${c.jogadores} jogadores${c.bots ? ' (bots completam, ' + DIFIC[c.dific] + ')' : ''}${c.eventos ? '' : ' · sem eventos'}${c.piratas ? '' : ' · sem piratas'}${c.casco === false ? ' · sem desgaste de casco' + (c.taxa ? ' (prêmio −10%)' : '') : (c.taxa ? ' · com casco (1º pode levar até 70% do bolo)' : '')}`;
 function renderPlay() {
   const el = $('#play'); if (!el) return;
+  if (PT && duelo() && PT.estado === 'espera' && $('#busca') && $('#busca').dataset.c === PT.codigo) return;   // não reinicia a animação da busca
   const digitado = $('#join-cod') ? $('#join-cod').value : null, tinhaFoco = document.activeElement && document.activeElement.id === 'join-cod';   // a atualização da tela não pode apagar o que a pessoa está digitando
   if (!CLOUD()) { el.innerHTML = '<p class="empty">As partidas precisam do servidor do jogo (modo online).</p>'; return; }
   if (!TOK) { el.innerHTML = '<p class="empty">Entre na sua conta para jogar duelos, torneios e salas de amigos.</p>'; return; }
@@ -186,7 +188,17 @@ function formHtml() {
   <div class="prow"><button type="button" id="f-x">Voltar</button><button type="button" class="buy" id="f-ok">Criar sala${t ? ' e pagar taxa' : ''}</button></div>`;
 }
 function lobbyHtml() {
-  if (duelo()) return `<h3>⚔️ Duelo X1 · procurando rival</h3><p class="pbig"><i class="fa-solid fa-satellite-dish fa-beat-fade"></i></p><p class="empty">Aposta de <b>${fmt(PT.cfg.taxa).replace(',00', '')} Cr</b> já reservada. Assim que outro piloto escolher a mesma aposta, o duelo começa sozinho. Se ninguém entrar em 60 segundos, a aposta volta para você.</p><p class="err" id="l-err"></p><div class="prow"><button type="button" class="danger" id="l-x">Cancelar e recuperar a aposta</button></div>`;
+  if (duelo()) {
+    const gi = PT.cfg.galaxias[0], [img, cor] = CAR_ART[gi], seg = Math.max(0, Math.min(60, (NOW() - PT.criada) / 1000)), nave = (c, y, d, t, w) => `<i class="bs-nave ${d}" style="top:${y}%;animation-duration:${t}s;animation-delay:${w}s;--k:${c}"></i>`;
+    return `<div class="busca" id="busca" data-c="${PT.codigo}" style="--c:${cor}">
+      ${nave('#22d3ee', 14, 'r', 5.5, 0)}${nave('#7c8cff', 30, 'l', 7, -2)}${nave('#ffc65c', 72, 'r', 6.5, -3.5)}${nave('#4dffa0', 86, 'l', 8, -1)}${nave('#ff8a9c', 50, 'r', 9, -5)}
+      <div class="bs-radar"><i class="r1"></i><i class="r2"></i><i class="r3"></i><b class="bs-sweep"></b><img src="assets/planets/${img}.svg" alt="" decoding="async"><u class="blip b1"></u><u class="blip b2"></u><u class="blip b3"></u></div>
+      <div class="bs-txt">PROCURANDO RIVAL<span class="bs-pts"><i>.</i><i>.</i><i>.</i></span></div>
+    </div>
+    <div class="bs-info"><span>Aposta <b>${fmt(PT.cfg.taxa).replace(',00', '')} Cr</b> reservada</span><span><b id="bs-t">${Math.ceil(60 - seg)}</b> s</span></div>
+    <div class="bs-bar"><i style="animation-delay:-${seg.toFixed(1)}s"></i></div>
+    <p class="err" id="l-err"></p><div class="prow"><button type="button" class="danger" id="l-x">Cancelar e recuperar a aposta</button></div>`;
+  }
   const c = PT.cfg, link = location.origin + location.pathname + '?sala=' + PT.codigo, hum = PT.jogadores.length;
   return `<h3>${PT.modo === 'torneio' ? '🏆 Torneio' : '🤝 Sala entre amigos'} · aguardando</h3>
   <div class="pcode"><small>Código da sala</small><b class="mono">${PT.codigo}</b><button type="button" id="l-cp">Copiar convite</button></div>

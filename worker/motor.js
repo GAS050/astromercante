@@ -295,23 +295,29 @@ export function ofertas(S, c) {
   if (S.partida || S.trip) return [];
   const b = Math.floor(c.now / CT_JANELA), outros = planetas(S).filter((p) => p.id !== S.loc && p.t <= S.rank), prods = RES.filter((r) => (r.t || 0) <= S.rank);
   if (!outros.length || !prods.length) return [];
-    const out = [];
+  const out = [], push = (o) => out.push({ ...o, cau: Math.round(CAUCAO * o.q * unitDest(S, o.dest, o.r, c, o.gal)) });
+  // 2 pedidos na galáxia atual: prazo = tempo da viagem + uma folga curta (comprar e partir) que encolhe a cada galáxia
   for (let k = 0; k < 2; k++) {
-    const h = hash(`${S.gal}:${S.loc}:${b}:${k}`), f1 = (h >>> 14) % 1000 / 1000, f2 = (h >>> 3) % 1000 / 1000;
-    let dest, r;
-    r = prods[h % prods.length]; dest = outros[(h >>> 7) % outros.length];
-    const id = `${S.loc}:${b}:${k}`, q = clamp(Math.round(S.cap * (.25 + .5 * f1)), 1, S.cap), t = tripInfo(S, dest.id), mult = 1.05 + .13 * f2;
-    out.push({ id, r: r.id, q, dest: dest.id, gal: S.gal, falta: 1, comb: t.cost, cau: Math.round(CAUCAO * q * unitDest(S, dest.id, r.id, c)), mult: Math.round(mult * 100) / 100, dur: Math.max(100 - 8 * S.gal, 50, Math.round(t.secs * Math.max(1.15, 1.6 - .05 * S.gal))) });
+    const h = hash(`${S.gal}:${S.loc}:${b}:${k}`), r = prods[h % prods.length], dest = outros[(h >>> 7) % outros.length], f1 = (h >>> 14) % 1000 / 1000, f2 = (h >>> 3) % 1000 / 1000;
+    const t = tripInfo(S, dest.id), mult = 1.05 + .13 * f2;
+    push({ id: `${S.loc}:${b}:${k}`, r: r.id, q: clamp(Math.round(S.cap * (.25 + .5 * f1)), 1, S.cap), dest: dest.id, gal: S.gal, falta: 1, comb: t.cost, mult: Math.round(mult * 100) / 100, dur: Math.round(Math.max(12, t.secs + Math.max(6, 14 - S.gal))) });
+  }
+  // 1 pedido para outra galáxia que você já pode visitar: paga mais, devolve o custo do salto e dá um prazo um pouco maior
+  const gs = GALAXIES.map((g, i) => i).filter((i) => i !== S.gal && S.rank >= GALAXIES[i].t && S.engLv >= GALAXIES[i].eng);
+  if (gs.length && S.hull >= 25) {
+    const h = hash(`x:${S.gal}:${S.loc}:${b}`), gi = gs[h % gs.length], ps = GALAXIES[gi].planetas.filter((p) => p.t <= S.rank), dest = ps[(h >>> 7) % ps.length], r = prods[(h >>> 11) % prods.length], f1 = (h >>> 14) % 1000 / 1000;
+    const salto = jumpCost(S, gi), mult = 1.2 + .15 * ((h >>> 3) % 1000 / 1000);
+    push({ id: `${S.loc}:${b}:x`, r: r.id, q: clamp(Math.round(S.cap * (.25 + .5 * f1)), 1, S.cap), dest: dest.id, gal: gi, falta: 1, comb: salto, mult: Math.round(mult * 100) / 100, dur: 45 });
   }
   return out;
 }
-/** Preço-base do produto no destino, sem a alta temporária da escassez (a escassez já premia quem vende no mercado). */
-function unitDest(S, dest, rid, c) {
-  const loc = S.loc; S.loc = dest; try { return preco(S, rid, 100, c); } finally { S.loc = loc; }
+/** Preço-base do produto no destino (na galáxia dele), sem alta de escassez. */
+function unitDest(S, dest, rid, c, gal = S.gal) {
+  const loc = S.loc, g = S.gal; S.loc = dest; S.gal = gal; try { return preco(S, rid, 100, c); } finally { S.loc = loc; S.gal = g; }
 }
 export const CAUCAO = .1;   // caução paga ao aceitar (10% do valor); devolvida na entrega, perdida se o prazo vencer
 /** Valor de entrega de n unidades: preço do destino na hora × bônus, mais 60% da parte do combustível. */
-const valorContrato = (S, x, n, c) => Math.round(n * unitDest(S, x.dest, x.r, c) * x.mult + .6 * x.comb * n / x.q0);
+const valorContrato = (S, x, n, c) => Math.round(n * unitDest(S, x.dest, x.r, c, x.gal) * x.mult + .6 * x.comb * n / x.q0);
 const acoes = {
   negociar(S, c, msgs, a) {
     const r = RES_ID[a.id], lado = a.lado, n = Math.floor(Number(a.n));
@@ -348,7 +354,7 @@ const acoes = {
     if (o.cau > S.credits) throw new Regra(`A caução do contrato é ${fmt(o.cau)} Cr (devolvida na entrega). Créditos insuficientes.`);
     S.credits -= o.cau;
     const { dur, ...x } = o; S.ct.push({ ...x, q0: o.q, cau0: o.cau, lc: 0, de: S.loc, ate: c.now + dur * 1000 });
-    say(msgs, `Contrato ATIVO: ${o.q} × ${RES_ID[o.r].nome} para ${planeta(S, o.dest).nome} em ${Math.round(dur / 60)} min. Caução de ${fmt(o.cau)} Cr (volta na entrega). Veja em Mercado › Contratos.`, 'ok');
+    say(msgs, `Contrato ATIVO: ${o.q} × ${RES_ID[o.r].nome} para ${GALAXIES[o.gal].planetas.find((p) => p.id === o.dest)?.nome}${o.gal !== S.gal ? ` (galáxia ${GALAXIES[o.gal].nome})` : ''} em ${dur} s. Caução de ${fmt(o.cau)} Cr (volta na entrega). Veja em Mercado › Contratos.`, 'ok');
   },
   contratoEntregar(S, c, msgs, a) {
     if (S.trip) throw new Regra('Nave em trânsito.');

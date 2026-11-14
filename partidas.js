@@ -36,7 +36,7 @@ async function entrarModoPartida() {
   const r = await api('/partida?v=0').catch(() => null); if (!r || r.estado !== 'andamento') { document.body.classList.remove('loading'); return; }
   MODE = 'partida'; PT = r; firstState = true; clearTimeout(tripT); document.body.classList.add('inmatch');
   $('#board-h').textContent = 'Placar da partida'; $('#mis-h').hidden = $('#mis').hidden = true;
-  aplicarEstado(r); document.querySelector('.nav [data-view=market]').click(); say(r.modo === 'duelo' ? `Duelo X1 contra ${r.rival ? r.rival.n : 'o rival'} iniciado! Maior patrimônio em 10 min leva o bolo. Você pode atacar a carga dele!` : `Partida ${r.modo === 'torneio' ? 'de torneio' : 'entre amigos'} iniciada! Vença com o maior patrimônio.`, 'win');
+  aplicarEstado(r); document.querySelector('.nav [data-view=market]').click(); say(r.modo === 'duelo' ? `Duelo X1 contra ${r.rival ? r.rival.n : 'o rival'} iniciado! Maior patrimônio em 5 min leva o bolo. Você pode atacar a carga dele!` : `Partida ${r.modo === 'torneio' ? 'de torneio' : 'entre amigos'} iniciada! Vença com o maior patrimônio.`, 'win');
   renderPlay(); renderMatchBar(); renderPlacar();
 }
 function voltarCarreira(manual) {
@@ -87,7 +87,7 @@ function renderPlay() {
   if (noAr()) { el.innerHTML = emAndamentoHtml(); return; }
   if (FORM) { el.innerHTML = formHtml(); return; }
   const um = location.search.match(/[?&]sala=([A-Za-z0-9]{6})/), pre = um ? um[1].toUpperCase() : '';
-  el.innerHTML = `<div class="pcard duelo"><h3>⚔️ Duelo X1</h3><p>Você contra outro piloto, 10 minutos, nave igual para os dois e saldo de 5.000 Cr. Os dois dividem o mesmo mercado (o que um compra encarece para o outro), se enxergam o tempo todo e podem <b>atacar e roubar a carga</b> um do outro. Quem tiver mais patrimônio leva o bolo (90%; 10% fica com a casa). Se um sumir por 60 s, perde a aposta.</p>
+  el.innerHTML = `<div class="pcard duelo"><h3>⚔️ Duelo X1</h3><p>Você contra outro piloto, 5 minutos e saldo de 5.000 Cr. Cada um usa a nave que tem equipada na carreira. Os dois dividem o mesmo mercado (o que um compra encarece para o outro), se enxergam o tempo todo e podem <b>atacar e roubar a carga</b> um do outro. Quem tiver mais patrimônio leva o bolo (90%; 10% fica com a casa). Se um sumir por 60 s, perde a aposta.</p>
     <div class="apostas">${APOSTAS.map(a => `<button type="button" data-aposta="${a}" ${S.credits < a ? 'disabled' : ''}>${a >= 1000 ? a / 1000 + ' mil' : a}<small>Cr</small></button>`).join('')}</div>
     <p class="err" id="d-err">${esc(duelMsg)}</p><p class="empty">A aposta sai dos créditos da carreira. Sem rival na fila, você espera até 10 minutos e a aposta é devolvida.</p></div>
   <div class="pcards">

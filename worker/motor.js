@@ -533,8 +533,7 @@ export function validarCfg(cfg, carr, modo) {
 export function novoPartida(carr, cfg, codigo, now, fim) {
   const S = novo(now), g0 = cfg.galaxias[0]; delete S.tv;   // o roteiro do tutorial vale só para a carreira
   S.credits = cfg.saldo;
-  if (cfg.duelo) { S.rank = DUELO.rank; S.nave = DUELO.nave; S.frota = { [DUELO.nave]: { c: DUELO.nivel, m: DUELO.nivel, a: DUELO.nivel, h: 100, mh: 100 } }; }   // duelo: os dois pilotam a mesma nave (a da carreira não conta)
-  else { S.rank = carr.rank; S.nave = carr.nave; S.frota = { [carr.nave]: { ...carr.frota[carr.nave], h: 100, mh: 100 } }; }
+  S.rank = carr.rank; S.nave = carr.nave; S.frota = { [carr.nave]: { ...carr.frota[carr.nave], h: 100, mh: 100 } };   // duelo e partidas: vale a nave equipada na carreira
   recalc(S);
   S.gal = g0; S.loc = GALAXIES[g0].planetas[0].id; S.vis = { [g0]: 1 };
   S.daily = { day: 'partida', p: { trades: 0, trips: 0, profit: 0 }, done: { trades: 1, trips: 1, profit: 1 } };
@@ -580,9 +579,9 @@ export function premiacao(humanos, total, cfg, x = 0) {
 }
 
 
-/* ================= DUELO X1 (arena): dois pilotos, mesma nave, mesmo mercado, 10 minutos ================= */
+/* ================= DUELO X1 (arena): dois pilotos, nave equipada de cada um, mesmo mercado, 5 minutos ================= */
 export const DUELO_APOSTAS = [100, 250, 500, 1000, 2000, 3000, 5000, 10000, 25000, 50000];
-export const DUELO = { duracao: 10, saldo: 5000, casa: .1, sumiu: 60000, espera: 600000, alcance: 70, recarga: 40000, prot: 45000, nave: 10, nivel: 3, rank: 3 };
+export const DUELO = { duracao: 5, saldo: 5000, casa: .1, sumiu: 60000, espera: 600000, alcance: 70, recarga: 40000, prot: 45000, nave: 10, nivel: 3, rank: 3 };
 /** Configuração fixa do duelo: só a aposta muda. Galáxia inicial (aberta a todos), nave padronizada, piratas e casco ligados. */
 export const cfgDuelo = (aposta) => ({ duracao: DUELO.duracao, saldo: DUELO.saldo, galaxias: [0], jogadores: 2, bots: false, dific: 'normal', taxa: aposta, eventos: true, piratas: true, casco: true, duelo: 1 });
 /** Prêmio do vencedor: as duas apostas menos a taxa da casa (10%). */

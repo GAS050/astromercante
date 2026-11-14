@@ -308,6 +308,7 @@ async function carregarJogo(env, id, now) {
 }
 async function jogo(env, id, nome, args) {
   await garantirBase(env, id);
+  if (nome === 'contratoAceitar') { const pa = await ativa(env, id); if (pa && (pa.estado === 'espera' || pa.estado === 'andamento')) throw new Erro(409, 'Você está numa sala da Arena (esperando rival ou jogando). Termine ou cancele antes de aceitar contratos.'); }   // o contrato correria sem você poder cumpri-lo
   for (let i = 0; i < 5; i++) {
     const now = Date.now(), c = { now, feed: await feedAtual(env) }, { row, S } = await carregarJogo(env, id, now), msgs = [];
     let base = row ? row.atualizado : 0, mudou = !row || (row && JSON.parse(row.estado).v !== 3);

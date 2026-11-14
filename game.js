@@ -180,6 +180,7 @@ const resNome = id => RES.find(x => x.id === id)?.nome || id;
 const resIcon = id => { const r = RES.find(x => x.id === id); return r ? iconSrc(r) : ''; };
 const destNome = (g, id) => GALAXIES[g]?.planetas.find(p => p.id === id)?.nome || id;
 const ctTempo = ms => { const t = Math.max(0, Math.ceil(ms / 1000)); return Math.floor(t / 60) + ":" + String(t % 60).padStart(2, "0"); };
+const naArena = () => typeof PT !== 'undefined' && !!PT && (PT.estado === 'espera' || PT.estado === 'andamento');   // sala da Arena aberta: sem contratos novos
 function renderContratos() {
   const el = $('#contratos'); if (!el) return;
   if (MODE === 'partida' || !TOK) { el.innerHTML = ''; ctSig = ''; return; }
@@ -194,7 +195,7 @@ function renderContratos() {
       ${atv ? `<div class="ctc__s"><span class="ctc__time" data-ate="${x.ate}">⏱ ${ctTempo(x.ate - now)}</span> · porão ${Math.min(h, x.q)}/${x.q}${x.q0 > x.q ? ` · entregue ${pct}%` : ''}</div><div class="ctc__s">Caução retida: ${fmt(x.cau)} Cr</div><div class="ctc__bar"><i style="width:${pct}%"></i></div>`
         : `<div class="ctc__s">Mercado <b>+${pr}%</b> + combustível · ⏱ ${x.dur} s${x.gal !== S.gal ? ' · salto custa ' + fmt(x.comb).replace(',00', '') + ' Cr (60% volta)' : ''}</div><div class="ctc__s">Caução ${fmt(x.cau)} Cr (volta na entrega)</div>${x.esp ? '<div class="ctc__s">Se houver luta no caminho, o contrato é perdido. A rota segura evita lutas.</div>' : ''}`}</div>
       ${atv ? `<button class="ctb" data-ce="${x.id}" ${aqui && h ? '' : 'disabled'}>${aqui ? (h ? 'Entregar carga' : 'Sem carga') : (S.trip ? 'Em viagem' : 'Vá até lá')}</button>`
-        : `<button class="ctb" data-ca="${x.id}" ${ativos.length >= 3 || S.trip || x.cau > S.credits ? 'disabled' : ''}>Aceitar contrato</button>`}</li>`; };
+        : `<button class="ctb" data-ca="${x.id}" ${ativos.length >= 3 || S.trip || x.cau > S.credits || naArena() ? 'disabled' : ''}>${naArena() ? 'Indisponível na Arena' : 'Aceitar contrato'}</button>`}</li>`; };
   const ofs = S.trip ? [] : OF.filter(o => !feitos.has(o.id));
   const html = (ativos.length || ofs.length) ? `<section class="ct${ativos.length ? ' ct--on' : ''}">
     <h3><span>Contratos de entrega</span><small class="ct__n">${ativos.length}/3 ativos</small></h3>

@@ -19,6 +19,7 @@ function aplicarPartida(r) {
   if (r.agora) SKEW = r.agora - Date.now();
   const antes = PT && PT.estado, cod0 = PT && PT.codigo;
   PT = r.nenhuma ? null : r;
+  if ((antes === 'espera' || antes === 'andamento') !== (PT && (PT.estado === 'espera' || PT.estado === 'andamento')) && typeof renderContratos === 'function') setTimeout(renderContratos, 0);   // libera/bloqueia o botão de contrato
   if (PT && (PT.estado === 'fim' || PT.estado === 'cancelada')) {
     if (PT.codigo !== visto) { visto = PT.codigo; try { localStorage.setItem('astromercante_res', visto); } catch {} mostrarResultado(PT); }
     if (MODE === 'partida') voltarCarreira();

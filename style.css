@@ -662,3 +662,13 @@ body[data-view=loja] #p-loja{display:flex}
 .sit{display:inline-block;font-size:.62rem;font-weight:700;letter-spacing:.05em;padding:1px 6px;border-radius:3px;border:1px solid;margin-left:4px;vertical-align:middle}
 .sit-quarentena{color:#ff4d6d}.sit-greve{color:#ffb347}.sit-feira{color:#39ff88}.sit-bloqueio{color:#ff9f43}
 .ctc__fr{display:inline-block;border:1px solid var(--red);color:var(--red);font-size:.62rem;padding:1px 5px;border-radius:3px;margin-right:6px;letter-spacing:.04em}
+
+/* botões de rota: um embaixo do outro, texto em duas colunas (nome à esquerda, custo à direita) */
+.rotas{display:flex;flex-direction:column;gap:6px}
+.mapinfo .rotas button{display:grid;grid-template-columns:1fr auto;grid-template-areas:"n c" "d d";align-items:baseline;gap:1px 10px;width:100%;margin:0;padding:9px 12px;text-align:left;text-transform:none;font-weight:400}
+.mapinfo .rotas button b{grid-area:n;font-weight:600;font-size:.9rem}
+.mapinfo .rotas button small{grid-area:c;display:block;margin:0;font-size:.78rem;color:inherit;opacity:.85;white-space:nowrap}
+.mapinfo .rotas button em{grid-area:d;font-style:normal;font-size:.72rem;opacity:.65}
+.mapsheet .rotas button{grid-template-columns:1fr;grid-template-areas:"n" "c" "d";gap:2px;padding:8px 10px}
+.mapsheet .rotas button small{white-space:nowrap}
+.mapsheet .rotas button em{font-size:.7rem}

@@ -329,7 +329,7 @@ export function ofertas(S, c) {
   const hf = hash(`f:${S.gal}:${S.loc}:${b}`);
   if (hf % 100 < 45) {
     const r = prods[(hf >>> 5) % prods.length], dest = outros[(hf >>> 12) % outros.length], t = tripInfo(S, dest.id, c.now), f1 = (hf >>> 16) % 1000 / 1000, mult = 1.4 + .2 * ((hf >>> 3) % 1000 / 1000);
-    push({ id: `${S.loc}:${b}:f`, r: r.id, q: clamp(Math.round(S.cap * (.2 + .4 * f1)), 1, S.cap), dest: dest.id, gal: S.gal, falta: escasso(S, dest.id, c.now) === r.id ? 1 : 0, comb: t.cost, mult: Math.round(mult * 100) / 100, esp: 'fragil', dur: Math.round(clamp(Math.max(12 + 13 * (hash(`df:${S.gal}:${S.loc}:${b}`) % 1000 / 1000), t.secs + 5), 12, 25)) });
+    push({ id: `${S.loc}:${b}:f`, r: r.id, q: clamp(Math.round(S.cap * (.2 + .4 * f1)), 1, S.cap), dest: dest.id, gal: S.gal, falta: escasso(S, dest.id, c.now) === r.id ? 1 : 0, comb: t.cost, mult: Math.round(mult * 100) / 100, esp: 'fragil', dur: Math.round(clamp(Math.max(12 + 13 * (hash(`df:${S.gal}:${S.loc}:${b}`) % 1000 / 1000), t.secs * 1.6 + 5), 12, 32)) });   // folga para a rota segura (1,6× o tempo) caber no prazo
   }
   return out;
 }

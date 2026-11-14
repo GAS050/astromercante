@@ -868,8 +868,8 @@ function renderInfo() {
     + (situacao(p.id, NOW()) ? `<p class="evtl">${sitTag(p.id)} ${SITS[situacao(p.id, NOW())][1]}</p>` : '')
     + (S.ev && S.ev.p === p.id ? `<p class="evtl">⚡ ${S.ev.t}</p>` : '')
     + (p.t > S.rank ? `<small>🔒 Exige a patente <b>${RANKS[p.t][1]}</b>.</small>` : here ? '<small>Você está aqui. Toque em outro planeta ou galáxia.</small>'
-            : `<div class="rotas"><button class="buy" data-go="${p.id}" ${S.trip || situacao(p.id, NOW()) === 'quarentena' ? 'disabled' : ''}>Rota direta<small>⛽ ${fmt(t.cost)} Cr · ${t.secs}s · pode cruzar inimigos</small></button>`
-              + (CLOUD() && !S.partida && (S.tv === undefined || S.tv > 1) && situacao(p.id, NOW()) !== 'quarentena' ? `<button class="rt-seg" data-go="${p.id}" data-rota="segura" ${S.trip ? 'disabled' : ''}>Rota segura<small>⛽ ${fmt(Math.round(t.cost * 1.25))} Cr · ${Math.round(t.secs * 1.6)}s · sem inimigos</small></button>` : '') + '</div>');
+            : `<div class="rotas"><button class="buy" data-go="${p.id}" ${S.trip || situacao(p.id, NOW()) === 'quarentena' ? 'disabled' : ''}><b>Rota direta</b><small>⛽ ${fmt(t.cost).replace(',00', '')} Cr · ${t.secs}s</small><em>Rápida, mas pode cruzar inimigos</em></button>`
+              + (CLOUD() && !S.partida && (S.tv === undefined || S.tv > 1) && situacao(p.id, NOW()) !== 'quarentena' ? `<button class="rt-seg" data-go="${p.id}" data-rota="segura" ${S.trip ? 'disabled' : ''}><b>Rota segura</b><small>⛽ ${fmt(Math.round(t.cost * 1.25)).replace(',00', '')} Cr · ${Math.round(t.secs * 1.6)}s</small><em>Mais longa, sem inimigos</em></button>` : '') + '</div>');
 }
 
 /* ---------- Vício: som, missões, ranking, gráfico ---------- */

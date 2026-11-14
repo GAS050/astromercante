@@ -8,7 +8,7 @@ Object.entries(FEEDS).forEach(([k, v]) => { CG_IDS[k] = v.cg; });
 const FEED_KEYS = ['fx', ...Object.keys(CG_IDS)];
 const CG = 'https://api.coingecko.com/api/v3/simple/price?ids=' + Object.values(CG_IDS).join(',') + '&vs_currencies=usd&include_24hr_change=true';
 const FX = 'https://economia.awesomeapi.com.br/json/last/USD-BRL';
-import { Regra, novo, normalizar, migrar, resolver, precisaResolver, fechar, executar, patrimonio, patrimonioTotal, RANKS, validarCfg, novoPartida, valorFinal, botPatrimonio, botNome, premiacao, desbloqueada, intensidade } from './motor.js';
+import { ofertas, Regra, novo, normalizar, migrar, resolver, precisaResolver, fechar, executar, patrimonio, patrimonioTotal, RANKS, validarCfg, novoPartida, valorFinal, botPatrimonio, botNome, premiacao, desbloqueada, intensidade } from './motor.js';
 import { GALAXIES } from './dados.js';
 import { NAVES, capDe, engDe, wpDe } from './naves.js';
 import { CATALOGO as CONQ, CATEGORIAS as CQ_CAT, ganhas, metricas } from './conquistas.js';
@@ -321,14 +321,14 @@ async function jogo(env, id, nome, args) {
   }
   throw new Erro(503, 'Servidor ocupado. Tente de novo.');
 }
-const resposta = (S, c, msgs, v) => ({ estado: publico(S), v, agora: c.now, feed: c.feed, msgs });
+const resposta = (S, c, msgs, v) => ({ estado: publico(S), v, agora: c.now, feed: c.feed, msgs, of: ofertas(S, c) });
 async function jogoLer(env, id, url) {
   const now = Date.now(), row = await lerSave(env, id), v = Number(url.searchParams.get('v'));
   if (row && JSON.parse(row.estado).v === 3) {
     const S = JSON.parse(row.estado);
     if (!precisaResolver(S, now)) {
       if (v && v === row.atualizado) return { igual: true, agora: now };
-      return { estado: publico(S), v: row.atualizado, agora: now, feed: await feedAtual(env), msgs: [] };
+      const feed = await feedAtual(env); return { estado: publico(S), v: row.atualizado, agora: now, feed, msgs: [], of: ofertas(S, { now, feed }) };
     }
   }
   return (await jogo(env, id, null)) || { igual: true, agora: now };

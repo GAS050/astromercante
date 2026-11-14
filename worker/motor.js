@@ -254,7 +254,7 @@ function desgaste(S, d, msgs) {   // saltos entre galáxias: só desgaste do cas
 }
 
 /* ---------- efeitos do tempo (chegada, dia novo): aplicados pelo servidor, nunca pelo aparelho ---------- */
-export const precisaResolver = (S, now) => !!(S.trip && now >= S.trip.end) || (!S.partida && (!S.daily || S.daily.day !== dia(now)));
+export const precisaResolver = (S, now) => !!(S.trip && now >= S.trip.end) || (S.ct || []).some((x) => now > x.ate) || (!S.partida && (!S.daily || S.daily.day !== dia(now)));
 export function resolver(S, c, msgs) {
   let mudou = false;
   const d = dia(c.now);
@@ -263,6 +263,7 @@ export function resolver(S, c, msgs) {
     S.streak = S.lastDay === y ? S.streak + 1 : 1; maxi(S, 'bk', S.streak); S.lastDay = d; S.daily = { day: d, p: { trades: 0, trips: 0, profit: 0 }, done: {} };
     const b = 100 * Math.min(S.streak, 7); S.credits += b; say(msgs, `Bônus diário: ${fmt(b)} Cr (sequência de ${S.streak} dia/s). Volte amanhã para mais!`, 'win'); mudou = true;
   }
+  if (S.ct?.some((x) => c.now > x.ate)) { for (const x of S.ct.filter((x) => c.now > x.ate)) say(msgs, `Contrato expirado: ${x.q} × ${RES_ID[x.r].nome} para ${GALAXIES[x.gal].planetas.find((p) => p.id === x.dest)?.nome || x.dest}.`, 'err'); S.ct = S.ct.filter((x) => c.now <= x.ate); mudou = true; }
   if (S.trip && c.now >= S.trip.end) {
     const dd = dist(planeta(S, S.trip.from), planeta(S, S.trip.to)); S.loc = S.trip.to; const enc = S.trip.enc; S.trip = null; S.daily.p.trips++; mais(S, 'vi'); chegada(S, dd, msgs, enc);
     const m = planeta(S, S.loc).m, deals = Object.keys(m).filter((k) => m[k] < 1).map((k) => SHORT[k]);
@@ -282,6 +283,22 @@ export function fechar(S, c, msgs) {   // missões e patente, sempre calculadas 
 }
 
 /* ---------- ações ---------- */
+/* ---------- contratos de entrega: o planeta oferece 3 pedidos por janela de 20 min (determinísticos, sem estado); o jogador aceita até 3 e entrega no destino antes do prazo ---------- */
+export const CT_JANELA = 20 * 60000, CT_MAX = 3;
+export function ofertas(S, c) {
+  if (S.partida || S.trip) return [];
+  const b = Math.floor(c.now / CT_JANELA), here = planeta(S, S.loc), outros = planetas(S).filter((p) => p.id !== S.loc && p.t <= S.rank), prods = RES.filter((r) => (r.t || 0) <= S.rank);
+  if (!outros.length || !prods.length) return [];
+  const out = [];
+  for (let k = 0; k < 3; k++) {
+    const h = hash(`${S.gal}:${S.loc}:${b}:${k}`), r = prods[h % prods.length], dest = outros[(h >>> 7) % outros.length], f1 = (h >>> 14) % 1000 / 1000, f2 = (h >>> 3) % 1000 / 1000;
+    const id = `${S.loc}:${b}:${k}`, q = clamp(Math.round(S.cap * (.25 + .5 * f1)), 1, S.cap), t = tripInfo(S, dest.id);
+    const loc = S.loc; S.loc = dest.id; let unit; try { unit = preco(S, r.id, 100, c); } finally { S.loc = loc; }
+    const mult = 1.2 + .25 * f2;
+    out.push({ id, r: r.id, q, dest: dest.id, gal: S.gal, pay: Math.round(q * unit * mult + t.cost), mult: Math.round(mult * 100) / 100, dur: Math.max(300, Math.round(t.secs * 3)) });
+  }
+  return out;
+}
 const acoes = {
   negociar(S, c, msgs, a) {
     const r = RES_ID[a.id], lado = a.lado, n = Math.floor(Number(a.n));
@@ -305,6 +322,30 @@ const acoes = {
       say(msgs, `Vendeu ${n} × ${r.nome} por ${fmt(total)}.`);
     }
     S.daily.p.trades++;
+  },
+  contratoAceitar(S, c, msgs, a) {
+    if (S.partida) throw new Regra('Contratos existem só na carreira.');
+    if (S.trip) throw new Regra('Nave em trânsito.');
+    const o = ofertas(S, c).find((x) => x.id === a.id);
+    if (!o) throw new Regra('Esta oferta não está mais disponível.');
+    S.ct ??= []; S.cf ??= [];
+    if (S.ct.length >= CT_MAX) throw new Regra(`Você já tem ${CT_MAX} contratos ativos.`);
+    if (S.ct.some((x) => x.id === o.id) || S.cf.includes(o.id)) throw new Regra('Você já aceitou esta oferta.');
+    const { dur, mult, ...x } = o; S.ct.push({ ...x, de: S.loc, ate: c.now + dur * 1000 });
+    say(msgs, `Contrato aceito: ${o.q} × ${RES_ID[o.r].nome} para ${planeta(S, o.dest).nome} em ${Math.round(dur / 60)} min. Pagamento: ${fmt(o.pay)} Cr.`, 'ok');
+  },
+  contratoEntregar(S, c, msgs, a) {
+    if (S.trip) throw new Regra('Nave em trânsito.');
+    const i = (S.ct || []).findIndex((x) => x.id === a.id); if (i < 0) throw new Regra('Contrato não encontrado.');
+    const x = S.ct[i];
+    if (c.now > x.ate) throw new Regra('O prazo deste contrato acabou.');
+    if (S.gal !== x.gal || S.loc !== x.dest) throw new Regra(`Entregue em ${GALAXIES[x.gal].planetas.find((p) => p.id === x.dest)?.nome}.`);
+    const h = S.inv[x.r]; if (!h || h.qty < x.q) throw new Regra(`Faltam ${x.q - (h?.qty || 0)} × ${RES_ID[x.r].nome} no porão.`);
+    const lucro = Math.max(0, x.pay - x.q * h.avg);
+    h.qty -= x.q; if (!h.qty) h.avg = 0;
+    S.credits += x.pay; S.lt = (S.lt || 0) + lucro; S.daily.p.profit += lucro; mais(S, 'ct');
+    S.ct.splice(i, 1); (S.cf ??= []).push(x.id); if (S.cf.length > 40) S.cf.shift();
+    say(msgs, `Contrato cumprido! +${fmt(x.pay)} Cr.`, 'win');
   },
   viajar(S, c, msgs, a) {
     const to = planeta(S, a.to);

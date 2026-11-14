@@ -174,7 +174,24 @@ function buildMarket() {
     </article>`).join('');
 }
 
+let OF = [], ctSig = '', ctBucket = 0;   // ofertas de contrato (vêm do servidor)
+const resNome = id => RES.find(x => x.id === id)?.nome || id;
+const destNome = (g, id) => GALAXIES[g]?.planetas.find(p => p.id === id)?.nome || id;
+function renderContratos() {
+  const el = $('#contratos'); if (!el) return;
+  if (MODE === 'partida' || S.trip || !TOK) { el.innerHTML = ''; ctSig = ''; return; }
+  const now = NOW(), b = Math.floor(now / 1200000), ativos = S.ct || [], feitos = new Set([...(S.cf || []), ...ativos.map(x => x.id)]);
+  if (OF.length && Number(OF[0].id.split(':')[1]) !== b && ctBucket !== b) { ctBucket = b; refrescar(true); }
+  const min = t => Math.max(0, Math.ceil((t - now) / 60000));
+  const act = ativos.map(x => { const h = S.inv[x.r]?.qty || 0, aqui = S.gal === x.gal && S.loc === x.dest, ok = aqui && h >= x.q;
+    return `<li><b>${x.q} × ${resNome(x.r)}</b> → ${destNome(x.gal, x.dest)}<small>${fmt(x.pay)} Cr · prazo ${min(x.ate)} min · porão ${Math.min(h, x.q)}/${x.q}</small><button data-ce="${x.id}" ${ok ? '' : 'disabled'}>${aqui ? 'Entregar' : 'Em rota'}</button></li>`; }).join('');
+  const of = OF.filter(o => !feitos.has(o.id)).map(o => `<li><b>${o.q} × ${resNome(o.r)}</b> → ${destNome(o.gal, o.dest)}<small>${fmt(o.pay)} Cr (+${Math.round((o.mult - 1) * 100)}%) · ${Math.ceil(o.dur / 60)} min</small><button data-ca="${o.id}" ${ativos.length >= 3 ? 'disabled' : ''}>Aceitar</button></li>`).join('');
+  const html = (act || of) ? `<section class="ct"><h3>Contratos</h3>${act ? `<ul>${act}</ul>` : ''}${of ? `<h4>Ofertas aqui</h4><ul>${of}</ul>` : ''}</section>` : '';
+  if (html !== ctSig) { ctSig = html; el.innerHTML = html; }
+}
+$('#contratos')?.addEventListener('click', e => { const a = e.target.closest('[data-ca]'), d = e.target.closest('[data-ce]'); if (a && !a.disabled) act('contratoAceitar', { id:a.dataset.ca }); else if (d && !d.disabled) act('contratoEntregar', { id:d.dataset.ce }); });
 function render() {
+  renderContratos();
   $('#hud-credits').textContent = fmt(S.credits);
   $('#hud-networth').textContent = fmt(patTotal());
   RES.forEach(r => {
@@ -986,6 +1003,7 @@ function aplicarEstado(r) {   // o servidor manda; este aparelho só mostra
     change = c; ant = a; feedAt = r.feed.feedAt || 0; live = Object.keys(c).length > 0; if (Array.isArray(r.feed.news)) NEWS = r.feed.news; setFeed();
   }
   if (r.v) V = r.v;
+  if ('of' in r) OF = r.of || [];
   const e = r.estado_jogo || (r.estado && typeof r.estado === 'object' ? r.estado : null);
   if (e) {
     const gal0 = S.gal; SERVER_KEYS.forEach(k => { S[k] = e[k]; });

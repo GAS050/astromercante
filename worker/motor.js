@@ -386,10 +386,13 @@ const acoes = {
     if (to.id === S.loc) throw new Regra('Você já está aqui.');
     if (to.t > S.rank) throw new Regra('Setor bloqueado: suba de patente.');
     if (S.hull < 15) throw new Regra('Casco crítico: repare a nave na aba Frotas.');
-    const t = tripInfo(S, to.id);
+    const seg = a.rota === 'segura';   // rota segura: contorna os inimigos do mapa, mas é 60% mais longa e gasta 25% mais combustível
+    if (seg && S.partida) throw new Regra('A rota segura existe só na carreira.');
+    if (seg && S.tv !== undefined && S.tv <= 1) throw new Regra('A rota segura é liberada depois do tutorial.');
+    const t0 = tripInfo(S, to.id), t = seg ? { ...t0, cost: Math.round(t0.cost * 1.25), secs: Math.round(t0.secs * 1.6) } : t0;
     if (t.cost > S.credits) throw new Regra(`Combustível custa ${fmt(t.cost)} Cr. Créditos insuficientes.`);
-    S.credits -= t.cost; S.trip = { from: S.loc, to: to.id, start: c.now, end: c.now + t.secs * 1000 }; const enc = viagemTutorial(S) ?? encontros(S, S.trip.start, S.trip.end); if (S.tv !== undefined && !S.partida) S.tv++; if (enc.length) { S.trip.enc = enc; S.trip.end += PAUSA; }
-    say(msgs, `Rumo a ${to.nome}: ${t.secs}s, combustível ${fmt(t.cost)} Cr.`, '');
+    S.credits -= t.cost; S.trip = { from: S.loc, to: to.id, start: c.now, end: c.now + t.secs * 1000 }; if (seg) S.trip.seg = 1; const enc = seg ? [] : (viagemTutorial(S) ?? encontros(S, S.trip.start, S.trip.end)); if (S.tv !== undefined && !S.partida) S.tv++; if (enc.length) { S.trip.enc = enc; S.trip.end += PAUSA; }
+    say(msgs, `Rumo a ${to.nome}${seg ? ' pela rota segura' : ''}: ${t.secs}s, combustível ${fmt(t.cost)} Cr.`, '');
   },
   saltar(S, c, msgs, a) {
     const i = Math.floor(Number(a.i)), g = GALAXIES[i];

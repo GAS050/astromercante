@@ -270,10 +270,10 @@ function escasso(planId, now) {
 function pxAt(id, st) { return S.price[id] * (plan(S.loc).m[id] || 1) * (1 + .12 * GI()) * clamp((100 / Math.max(st, 5)) ** .4, .6, 2.5) * (S.ev && S.ev.r === id && (!S.ev.p || S.ev.p === S.loc) ? S.ev.m : 1); }
 function px(id) { return pxAt(id, stk(id)); }
 
-function goTo(to) {
+function goTo(to, rota) {
   if (S.trip) return say('Nave em trânsito.', 'err');
   if (to === S.loc) return;
-  if (CLOUD()) return act('viajar', { to }).then(ok => { if (ok) { sel = selG = null; const g = GALAXIES[S.gal]; flyTo(g.wx, g.wy, 1, 700); renderInfo(); } });
+  if (CLOUD()) return act('viajar', { to, rota }).then(ok => { if (ok) { sel = selG = null; const g = GALAXIES[S.gal]; flyTo(g.wx, g.wy, 1, 700); renderInfo(); } });
   if (plan(to).t > S.rank) return say('Setor bloqueado: suba de patente.', 'err');
   if (S.hull < 15) return say('Casco crítico: repare a nave na aba Frotas.', 'err');
   const t = trip(to);
@@ -859,7 +859,8 @@ function renderInfo() {
   $('#mapinfo').innerHTML = `<h3>${p.img ? `<img class="pimg" src="assets/planets/${p.img}" alt="">` : ''}${p.nome}</h3><ul class="chips">${chips}</ul>`
     + (S.ev && S.ev.p === p.id ? `<p class="evtl">⚡ ${S.ev.t}</p>` : '')
     + (p.t > S.rank ? `<small>🔒 Exige a patente <b>${RANKS[p.t][1]}</b>.</small>` : here ? '<small>Você está aqui. Toque em outro planeta ou galáxia.</small>'
-            : `<button class="buy" data-go="${p.id}" ${S.trip ? 'disabled' : ''}>Viajar<small>⛽ ${fmt(t.cost)} Cr · ${t.secs}s</small></button>`);
+            : `<div class="rotas"><button class="buy" data-go="${p.id}" ${S.trip ? 'disabled' : ''}>Rota direta<small>⛽ ${fmt(t.cost)} Cr · ${t.secs}s · pode cruzar inimigos</small></button>`
+              + (CLOUD() && !S.partida && (S.tv === undefined || S.tv > 1) ? `<button class="rt-seg" data-go="${p.id}" data-rota="segura" ${S.trip ? 'disabled' : ''}>Rota segura<small>⛽ ${fmt(Math.round(t.cost * 1.25))} Cr · ${Math.round(t.secs * 1.6)}s · sem inimigos</small></button>` : '') + '</div>');
 }
 
 /* ---------- Vício: som, missões, ranking, gráfico ---------- */
@@ -938,7 +939,7 @@ $('#chart').onclick = e => { if (e.target.id === 'chart' || e.target.id === 'cha
 document.body.classList.toggle('still', !S.fx);
 $('#set-fx').checked = S.fx; $('#set-fx').onchange = e => { S.fx = e.target.checked; document.body.classList.toggle('still', !S.fx); save(); };
 $('#set-sound').checked = S.sound; $('#set-sound').onchange = e => { S.sound = e.target.checked; save(); };
-$('#mapinfo').addEventListener('click', e => { const b = e.target.closest('[data-go]'); if (b) goTo(b.dataset.go); const j = e.target.closest('[data-jump]'); if (j) jump(...j.dataset.jump.split(',').map(Number)); });
+$('#mapinfo').addEventListener('click', e => { const b = e.target.closest('[data-go]'); if (b) goTo(b.dataset.go, b.dataset.rota); const j = e.target.closest('[data-jump]'); if (j) jump(...j.dataset.jump.split(',').map(Number)); });
 $('#shipcard').onclick = () => document.querySelector('.nav [data-view=fleet]').click();
 $('#fleet').addEventListener('pointerover', e => { const b = e.target.closest('[data-up]'), k = b && b.dataset.up; pvHover = PVN[k] ? k : null; });
 $('#fleet').addEventListener('pointerleave', () => { pvHover = null; });

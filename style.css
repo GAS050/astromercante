@@ -657,3 +657,5 @@ body[data-view=loja] #p-loja{display:flex}
 .ctc__ig{display:inline-block;border:1px solid #b9a0ff;color:#b9a0ff;font-size:.62rem;padding:1px 5px;border-radius:3px;margin-right:6px;letter-spacing:.06em}
 .ctc.ig .ctc__s b{color:#d8c9ff}.ctc.ig .ctb{border-color:#b9a0ff;color:#b9a0ff}.ctc.ig .ctb:hover{background:rgba(185,160,255,.14)}
 .ctc__tags{margin-bottom:4px}
+.rotas{display:flex;gap:8px}.rotas button{flex:1;margin-top:6px}.rotas button small{font-size:.72rem;margin-top:3px}
+.mapinfo .rt-seg{border:1px solid var(--cyan);color:var(--cyan)}.mapinfo .rt-seg:hover{background:rgba(62,230,255,.12)}

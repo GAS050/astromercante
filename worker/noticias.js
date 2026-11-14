@@ -66,7 +66,7 @@ ${prods}
 - Vale notícia direta (sobre o próprio ativo) e indireta, quando o efeito econômico for plausível. Exemplos: conflito ou tensão entre grandes potências tende a subir o ouro e o dólar e pressionar cripto; juros altos pressionam Bitcoin e altcoins; juros em queda ou estímulo favorecem cripto; regulação favorável ou aprovação de fundos sobe cripto; hack ou proibição derruba cripto; petróleo em alta afeta energia (o produto ligado ao Ethereum); dólar forte derruba o ouro. Escolha os produtos que seguem os ativos afetados.
 - Só crie notícia quando a manchete tiver esse tipo de ligação clara com algum dos ativos reais indicados acima. Não invente nada sem manchete correspondente. Escolha no máximo 4, as mais relevantes e de assuntos diferentes. Se nenhuma manchete servir, devolva [].
 
-SAÍDA: apenas JSON, um array: [{"ti":"...","tx":"...","r":["id1","id2"],"d":1,"m":0.5,"h":3}]
+SAÍDA: apenas JSON, um array: [{"o":3,"ti":"...","tx":"...","r":["id1","id2"],"d":1,"m":0.5,"h":3}]  ("o" = número da manchete real que inspirou a notícia)
 
 MANCHETES REAIS:
 ${titulos.map((t, i) => `${i + 1}. ${t}`).join('\n')}`;
@@ -90,14 +90,14 @@ async function gemini(env, texto, diag) {
 
 const IDS = new Set(RES.map((r) => r.id));
 // valida tudo que vem da IA: só ids conhecidos, intensidade limitada (no máx. ±10%), texto curto e sem nomes reais
-export function validar(lista, agora) {
+export function validar(lista, agora, titulos = []) {
   const out = [];
   if (!Array.isArray(lista)) return out;
   for (const n of lista.slice(0, 6)) {
     const ti = limpa(n?.ti, 90), tx = limpa(n?.tx, 260), r = [...new Set((Array.isArray(n?.r) ? n.r : []).filter((x) => IDS.has(x)))].slice(0, 3);
     if (ti.length < 8 || tx.length < 20 || !r.length || PROIBIDO.test(ti + ' ' + tx)) continue;
     const d = n.d < 0 ? -1 : 1, m = clamp(Number(n.m) || .4, .1, 1), h = clamp(Math.round(Number(n.h)) || 3, 1, 5);
-    out.push({ id: sha(ti + agora), ti, tx, r, s: +(d * m * .1).toFixed(3), t0: agora, t1: agora + h * 3600000, f: 'ia' });
+    out.push({ id: sha(ti + agora), ti, tx, r, s: +(d * m * .1).toFixed(3), t0: agora, t1: agora + h * 3600000, f: 'ia', orig: titulos[Number(n.o) - 1] || null });   // orig: só para conferência em /noticias/diag, não vai para o jogo
   }
   return out;
 }
@@ -112,7 +112,7 @@ export async function atualizarNoticias(env, forcar = false) {
       const todos = await manchetes(diag), titulos = todos.filter((t) => !vistos.has(sha(t))).slice(0, 40);
       diag.manchetes = todos.length;
       if (!todos.length) falhou = true;
-      else if (titulos.length >= 4) { novos = validar(await gemini(env, prompt(titulos), diag), agora); titulos.forEach((t) => vistos.add(sha(t))); }
+      else if (titulos.length >= 4) { novos = validar(await gemini(env, prompt(titulos), diag), agora, titulos); titulos.forEach((t) => vistos.add(sha(t))); }
     } catch (e) { falhou = true; diag.erro = String(e?.message || e).slice(0, 120); console.log('noticias:', diag.erro); }
   }
   diag.gerou = novos.length;

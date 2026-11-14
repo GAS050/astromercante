@@ -763,3 +763,7 @@ body.lp-rolou .lp-evt{opacity:0!important}
 @media(min-width:900px){.lp-qs{display:grid;grid-template-columns:1fr 1fr;align-items:start}}
 @media(max-width:519px){.lp-chips{gap:4px}.lp-chips li{padding:5px 6px;font-size:.66rem;gap:3px;flex:1 1 auto;justify-content:center;min-width:0}.lp-chips b{font-size:.86rem}}
 @media(max-width:350px){.lp-chips li{padding:4px 4px;font-size:.58rem}.lp-chips b{font-size:.76rem}}
+
+/* botão de som da tela de login */
+.lp-mus{position:fixed;right:12px;top:calc(12px + env(safe-area-inset-top));z-index:22;width:42px;height:42px;border-radius:50%;display:none;place-items:center;border:1px solid rgba(62,230,255,.45);background:rgba(7,16,32,.8);color:var(--cyan);font-size:1.05rem;backdrop-filter:blur(6px)}
+body.gated .lp-mus{display:grid}.lp-mus.off{color:var(--mt);border-color:var(--line)}

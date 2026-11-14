@@ -69,7 +69,7 @@
   function faixa(k) { const src = MUSICAS[k] || MUSICAS.jogo || MUSICAS.intro; if (!src) return null; const id = src; if (!faixas[id]) { const a = new Audio(src); a.loop = true; a.volume = 0; a.preload = 'none'; a.onerror = () => { MUSICAS.intro = MUSICAS.jogo = null; }; faixas[id] = a; } return faixas[id]; }
   function musicaTick() {
     if (!temMus() || typeof S === 'undefined') return;
-    const b = document.body.classList, k = b.contains('histon') || b.contains('tuton') ? 'intro' : 'jogo', a = faixa(k), mudo = document.hidden || !cfg.mus || !S.sound || document.body.classList.contains('gated');
+    const b = document.body.classList, k = b.contains('histon') || b.contains('tuton') || b.contains('gated') ? 'intro' : 'jogo', a = faixa(k), mudo = document.hidden || !cfg.mus || !S.sound;   // na tela de login toca a faixa de abertura; ela segue na história sem recomeçar
     Object.entries(faixas).forEach(([id, f]) => {   // fade suave entre as faixas
       const ativa = a && f === a && !mudo, meta = ativa ? vol() : 0, v = f.volume + (meta - f.volume) * .06;
       f.volume = Math.min(1, Math.max(0, Math.abs(meta - v) < .005 ? meta : v));
@@ -77,13 +77,17 @@
     });
     if (a && !mudo && a.paused && userTocou) a.play().catch(() => {});
   }
-  let userTocou = false; addEventListener('pointerdown', () => { userTocou = true; try { ctx(); } catch {} }, { once: true });   // já deixa o áudio pronto no primeiro toque: o primeiro som não atrasa
+  let userTocou = false; const destrava = () => { userTocou = true; try { ctx(); } catch {} }; addEventListener('pointerdown', destrava, { once: true }); addEventListener('keydown', destrava, { once: true });   // já deixa o áudio pronto no primeiro toque: o primeiro som não atrasa
   setInterval(musicaTick, 120);
   // botão rápido de música no cabeçalho
   const acts = document.querySelector('.hud-acts');
   if (acts && temMus()) { const b = document.createElement('button'); b.type = 'button'; b.className = 'mus-btn'; b.id = 'hud-mus'; acts.prepend(b);
     const pinta = () => { b.innerHTML = `<i class="fa-solid ${cfg.mus ? 'fa-volume-low' : 'fa-volume-xmark'}"></i>`; b.setAttribute('aria-label', cfg.mus ? 'Desligar música' : 'Ligar música'); b.title = b.getAttribute('aria-label'); b.classList.toggle('off', !cfg.mus); const c = $('#set-mus'); if (c) c.checked = cfg.mus; };
     b.onclick = () => { cfg.mus = !cfg.mus; salva(); pinta(); }; pinta(); const c = $('#set-mus'); if (c) c.addEventListener('change', pinta); }
+  // botão de som da tela de login (o do cabeçalho só existe depois de entrar)
+  const lpm = $('#lp-mus');
+  if (lpm && temMus()) { const pl = () => { lpm.innerHTML = `<i class="fa-solid ${cfg.mus ? 'fa-volume-high' : 'fa-volume-xmark'}"></i>`; lpm.classList.toggle('off', !cfg.mus); lpm.setAttribute('aria-label', cfg.mus ? 'Desligar música' : 'Ligar música'); lpm.title = lpm.getAttribute('aria-label'); const h = $('#hud-mus'); if (h) h.dispatchEvent(new Event('mus')); };
+    lpm.onclick = () => { cfg.mus = !cfg.mus; salva(); pl(); const c = $('#set-mus'); if (c) c.checked = cfg.mus; }; pl(); }
   // configurações: só aparecem quando há música cadastrada
   const linha = $('#set-mus-row');
   if (linha) { linha.hidden = !temMus(); $('#set-mus').checked = cfg.mus; $('#set-vm').value = Math.round(cfg.vm * 100);

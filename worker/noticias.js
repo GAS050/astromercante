@@ -109,14 +109,15 @@ export function validar(lista, agora, titulos = [], diag = {}, ativos = []) {
 export async function atualizarNoticias(env, forcar = false) {
   const agora = Date.now(), ant = JSON.parse((await env.PRECOS.get('news')) || '{}');
   if (!forcar && ant.t && agora - ant.t < INTERVALO) return ant;
-  const vistos = new Set(ant.vistos || []), diag = { t: agora, chave: !!env.GEMINI_KEY, manchetes: 0, gemini: env.GEMINI_KEY ? '—' : 'GEMINI_KEY não encontrada', gerou: 0 };
+  const vistos = new Set(ant.vistos || []), diag = { v: 'v7', t: agora, chave: !!env.GEMINI_KEY, manchetes: 0, gemini: env.GEMINI_KEY ? '—' : 'GEMINI_KEY não encontrada', gerou: 0 };
   let novos = [], falhou = !env.GEMINI_KEY;
   if (env.GEMINI_KEY) {
     try {
       const todos = await manchetes(diag), titulos = todos.filter((t) => !vistos.has(sha(t))).slice(0, 40);
       diag.manchetes = todos.length;
       if (!todos.length) falhou = true;
-      else if (titulos.length >= 4) { novos = validar(await gemini(env, prompt(titulos), diag), agora, titulos, diag, ant.itens || []); if (novos.length || !diag.recebidas) titulos.forEach((t) => vistos.add(sha(t))); }   // só "gasta" as manchetes se saiu notícia ou se o Gemini achou todas irrelevantes
+      else if (titulos.length < 4) diag.motivo = `só ${titulos.length} manchetes novas (as demais já foram vistas); use ?rodar=1&limpar=1`;
+      else { novos = validar(await gemini(env, prompt(titulos), diag), agora, titulos, diag, ant.itens || []); if (novos.length || !diag.recebidas) titulos.forEach((t) => vistos.add(sha(t))); }   // só "gasta" as manchetes se saiu notícia ou se o Gemini achou todas irrelevantes
     } catch (e) { falhou = true; diag.erro = String(e?.message || e).slice(0, 120); console.log('noticias:', diag.erro); }
   }
   diag.gerou = novos.length;

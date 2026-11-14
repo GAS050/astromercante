@@ -258,15 +258,16 @@ const used = () => RES.reduce((s, r) => s + S.inv[r.id].qty, 0);
 const dist = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
 const trip = to => { const d = dist(plan(S.loc), plan(to)); return { d, cost:Math.round(d * .8 * .8 * (1 + .3 * (S.engLv - 1) + .25 * (S.capLv - 1)) * (1 + (100 - S.hull) / 150)), secs:Math.max(3, Math.round(d / (18 + S.engLv * 7) * (S.hull < 40 ? 1.3 : 1))) }; };
 const recov = (o, now = NOW()) => 100 - (100 - o.v) * Math.pow(.94, (now - o.t) / 30000);   // a oferta volta a 100% com o tempo: função do relógio, igual em qualquer aparelho
-const stk = id => { const o = S.stock[S.loc]?.[id]; return o ? recov(o) : 100; };
-const setStk = (id, v) => { (S.stock[S.loc] ??= {})[id] = { v:Math.max(1, v), t:Date.now() }; };
-const ESC_JAN = 600000, ESC_M = 1.2;   // espelho do servidor: a cada 10 min ~35% dos planetas ficam sem um produto (não dá para comprar; vende +20%)
+const escFator = id => (escasso(S.loc, NOW()) === id ? 1 - .3 * (1 - (NOW() % ESC_JAN) / ESC_JAN) : 1);   // espelho do servidor: em falta = estoque efetivo baixo, que volta ao normal em 10 min
+const stk = id => { const o = S.stock[S.loc]?.[id]; return (o ? recov(o) : 100) * escFator(id); };
+const setStk = (id, v) => { (S.stock[S.loc] ??= {})[id] = { v:Math.max(1, v / escFator(id)), t:Date.now() }; };
+const ESC_JAN = 600000;   // espelho do servidor: a cada 10 min ~35% dos planetas ficam sem um produto (não dá para comprar; preço sobe e desce sozinho)
 function escasso(planId, now) {
   if (S.partida) return null;
   const prods = RES.filter(r => (r.t || 0) <= S.rank), h = hash(`esc:${GI()}:${planId}:${Math.floor(now / ESC_JAN)}`);
   return prods.length && h % 100 < 35 ? prods[(h >>> 8) % prods.length].id : null;
 }
-function pxAt(id, st) { return S.price[id] * (plan(S.loc).m[id] || 1) * (1 + .12 * GI()) * clamp((100 / Math.max(st, 5)) ** .4, .6, 2.5) * (S.ev && S.ev.r === id && (!S.ev.p || S.ev.p === S.loc) ? S.ev.m : 1) * (escasso(S.loc, NOW()) === id ? ESC_M : 1); }
+function pxAt(id, st) { return S.price[id] * (plan(S.loc).m[id] || 1) * (1 + .12 * GI()) * clamp((100 / Math.max(st, 5)) ** .4, .6, 2.5) * (S.ev && S.ev.r === id && (!S.ev.p || S.ev.p === S.loc) ? S.ev.m : 1); }
 function px(id) { return pxAt(id, stk(id)); }
 
 function goTo(to) {

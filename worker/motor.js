@@ -119,15 +119,17 @@ const say = (msgs, m, k = 'ok') => msgs.push({ m, k });
 const note = (msgs, m, k = '') => msgs.push({ m, k, n: 1 });
 const fmt = (n) => n.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
-function stk(S, id, now) { const o = S.stock[S.loc]?.[id]; return o ? 100 - (100 - o.v) * Math.pow(.94, (now - o.t) / 30000) : 100; }
+/** Em falta = estoque efetivo baixo: começa 30% menor (preço ~+15%) e volta ao normal em linha reta até o fim da janela de 10 min. Vendas ali sobem o estoque e derrubam a alta. */
+const escFator = (S, id, now) => (escasso(S, S.loc, now) === id ? 1 - .3 * (1 - (now % ESC_JAN) / ESC_JAN) : 1);
+function stk(S, id, now) { const o = S.stock[S.loc]?.[id]; return (o ? 100 - (100 - o.v) * Math.pow(.94, (now - o.t) / 30000) : 100) * escFator(S, id, now); }
 /** Liquidez do mercado: cada unidade negociada mexe LIQ do estoque (preço e estoque usam a mesma conta, então comprar e vender no mesmo lugar nunca dá lucro). */
 export const LIQ = .4, TAXA_VENDA = .97, COMBUSTIVEL = .8;
 /** Profundidade do mercado: em galáxias avançadas os planetas movimentam muito mais unidades (os porões lá são maiores), sem mudar a lógica de preço. */
 export const GALK = .4;   // profundidade de mercado por galáxia (calibrado por simulação: bot esperto chega a 100M em ~25 h)
 export const liq = (S) => LIQ / (1 + GALK * S.gal);
-const setStk = (S, id, v, now) => { (S.stock[S.loc] ??= {})[id] = { v: Math.max(1, v), t: now }; };
-/** Escassez natural: a cada 10 min, ~35% dos planetas ficam sem um produto. Não dá para comprá-lo lá, e quem leva de fora vende mais caro (+20%). Só na carreira. */
-export const ESC_JAN = 600000, ESC_M = 1.2;
+const setStk = (S, id, v, now) => { (S.stock[S.loc] ??= {})[id] = { v: Math.max(1, v / escFator(S, id, now)), t: now }; };
+/** Escassez natural: a cada 10 min, ~35% dos planetas ficam sem um produto. Não dá para comprá-lo lá; o estoque baixo encarece o produto no começo (~+15%) e a alta some em linha reta até o fim da janela ou antes, se você vender ali. Só na carreira. */
+export const ESC_JAN = 600000;
 export function escasso(S, planId, now) {
   if (S.partida) return null;
   const prods = RES.filter((r) => (r.t || 0) <= S.rank), h = hash(`esc:${S.gal}:${planId}:${Math.floor(now / ESC_JAN)}`);
@@ -135,7 +137,7 @@ export function escasso(S, planId, now) {
 }
 export function preco(S, id, st, c) {
   const r = RES_ID[id], ev = S.partida && !S.partida.eventos ? null : evAt(c.now);
-  return precoBase(r, cyc(c.now), S.partida && !S.partida.eventos ? { ...c.feed, news: [] } : c.feed) * (planeta(S, S.loc).m[id] || 1) * (1 + .12 * S.gal) * clamp((100 / Math.max(st, 5)) ** .4, .6, 2.5) * (ev && ev.r === id && (!ev.p || ev.p === S.loc) ? ev.m : 1) * (escasso(S, S.loc, c.now) === id ? ESC_M : 1);
+  return precoBase(r, cyc(c.now), S.partida && !S.partida.eventos ? { ...c.feed, news: [] } : c.feed) * (planeta(S, S.loc).m[id] || 1) * (1 + .12 * S.gal) * clamp((100 / Math.max(st, 5)) ** .4, .6, 2.5) * (ev && ev.r === id && (!ev.p || ev.p === S.loc) ? ev.m : 1);
 }
 const carga = (S, c) => Object.keys(S.inv).reduce((s, id) => s + S.inv[id].qty * preco(S, id, stk(S, id, c.now), c), 0);
 export const patrimonio = (S, c) => S.credits + carga(S, c);
@@ -304,20 +306,20 @@ export function ofertas(S, c) {
     let r, dest;
     if (faltas.length && (k === 0 || h % 2)) { const [pl, id] = faltas[(h >>> 7) % faltas.length]; dest = pl; r = RES_ID[id]; }
     else { r = prods[h % prods.length]; dest = outros[(h >>> 7) % outros.length]; }
-    const t = tripInfo(S, dest.id), mult = 1.03 + .1 * f2;
+    const t = tripInfo(S, dest.id), mult = 1.15 + .15 * f2;
     push({ id: `${S.loc}:${b}:${k}`, r: r.id, q: clamp(Math.round(S.cap * (.25 + .5 * f1)), 1, S.cap), dest: dest.id, gal: S.gal, falta: escasso(S, dest.id, c.now) === r.id ? 1 : 0, comb: t.cost, mult: Math.round(mult * 100) / 100, dur: Math.round(clamp(Math.max(12 + 13 * (hash(`d:${S.gal}:${S.loc}:${b}:${k}`) % 1000 / 1000), t.secs + 5), 12, 25)) });
   }
   // 1 pedido para outra galáxia que você já pode visitar: paga mais, devolve o custo do salto e dá um prazo um pouco maior
   const gs = GALAXIES.map((g, i) => i).filter((i) => i !== S.gal && S.rank >= GALAXIES[i].t && S.engLv >= GALAXIES[i].eng);
   if (gs.length && S.hull >= 25) {
     const h = hash(`x:${S.gal}:${S.loc}:${b}`), gi = gs[h % gs.length], ps = GALAXIES[gi].planetas.filter((p) => p.t <= S.rank), dest = ps[(h >>> 7) % ps.length], r = prods[(h >>> 11) % prods.length], f1 = (h >>> 14) % 1000 / 1000;
-    const salto = jumpCost(S, gi), mult = 1.15 + .15 * ((h >>> 3) % 1000 / 1000);
+    const salto = jumpCost(S, gi), mult = 1.25 + .15 * ((h >>> 3) % 1000 / 1000);
     push({ id: `${S.loc}:${b}:x`, r: r.id, q: clamp(Math.round(S.cap * (.25 + .5 * f1)), 1, S.cap), dest: dest.id, gal: gi, falta: 0, comb: salto, mult: Math.round(mult * 100) / 100, dur: 45 });
   }
   return out;
 }
 /** Preço-base do produto no destino (na galáxia dele), sem alta de escassez. */
-function unitDest(S, dest, rid, c, gal = S.gal) {   // preço no destino na hora, já com a alta da escassez se houver
+function unitDest(S, dest, rid, c, gal = S.gal) {   // preço-base no destino na hora (estoque 100%: a escassez não entra, o bônus do contrato é fixo)
   const loc = S.loc, g = S.gal; S.loc = dest; S.gal = gal; try { return preco(S, rid, 100, c); } finally { S.loc = loc; S.gal = g; }
 }
 export const CAUCAO = .1;   // caução paga ao aceitar (10% do valor); devolvida na entrega, perdida se o prazo vencer

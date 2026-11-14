@@ -187,9 +187,9 @@ function renderContratos() {
   if ((!OF.length || Number(OF[0].id.split(':')[1]) !== b) && ctBucket !== b && !S.trip && CLOUD()) { ctBucket = b; refrescar(true); }   // ofertas ausentes ou de outra janela: pede ao servidor
   const card = (x, atv) => {
     const aqui = !S.trip && S.gal === x.gal && S.loc === x.dest, h = S.inv[x.r]?.qty || 0, pct = Math.round(100 * (x.q0 ? 1 - x.q / x.q0 : 0)), pr = Math.round((x.mult - 1) * 100);
-    return `<li class="ctc ${atv ? 'on' : ''}${x.falta ? ' fl' : ''}"><div class="ctc__ic"><img src="${resIcon(x.r)}" alt="" onerror="this.style.visibility='hidden'"></div>
-      <div class="ctc__b"><div class="ctc__t">${atv ? '<span class="ctc__tag">ATIVO</span>' : ''}<b>${x.q} × ${resNome(x.r)}</b></div>
-      <div class="ctc__s">Destino: ${destNome(x.gal, x.dest)}${x.gal !== S.gal ? ' · ' + GALAXIES[x.gal].nome : ''}${x.falta ? ' <span class="ctc__fl">EM FALTA</span>' : ''}</div>
+    return `<li class="ctc ${atv ? 'on' : ''}${x.gal !== S.gal ? ' ig' : ''}"><div class="ctc__ic"><img src="${resIcon(x.r)}" alt="" onerror="this.style.visibility='hidden'"></div>
+      <div class="ctc__b"><div class="ctc__t">${x.gal !== S.gal ? '<span class="ctc__ig">INTERGALÁCTICO</span>' : ''}${atv ? '<span class="ctc__tag">ATIVO</span>' : ''}<b>${x.q} × ${resNome(x.r)}</b></div>
+      <div class="ctc__s">${x.gal !== S.gal ? `Galáxia <b>${GALAXIES[x.gal].nome}</b> › ` : 'Destino: '}${destNome(x.gal, x.dest)}${x.falta ? ' <span class="ctc__fl">EM FALTA</span>' : ''}</div>
       ${atv ? `<div class="ctc__s"><span class="ctc__time" data-ate="${x.ate}">⏱ ${ctTempo(x.ate - now)}</span> · porão ${Math.min(h, x.q)}/${x.q}${x.q0 > x.q ? ` · entregue ${pct}%` : ''}</div><div class="ctc__s">Caução retida: ${fmt(x.cau)} Cr</div><div class="ctc__bar"><i style="width:${pct}%"></i></div>`
         : `<div class="ctc__s">Mercado <b>+${pr}%</b> + combustível · ⏱ ${x.dur} s${x.gal !== S.gal ? ' · salto custa ' + fmt(x.comb).replace(',00', '') + ' Cr (60% volta)' : ''}</div><div class="ctc__s">Caução ${fmt(x.cau)} Cr (volta na entrega)</div>`}</div>
       ${atv ? `<button class="ctb" data-ce="${x.id}" ${aqui && h ? '' : 'disabled'}>${aqui ? (h ? 'Entregar carga' : 'Sem carga') : (S.trip ? 'Em viagem' : 'Vá até lá')}</button>`

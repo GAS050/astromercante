@@ -300,7 +300,7 @@ export function ofertas(S, c) {
   for (let k = 0; k < 2; k++) {
     const h = hash(`${S.gal}:${S.loc}:${b}:${k}`), r = prods[h % prods.length], dest = outros[(h >>> 7) % outros.length], f1 = (h >>> 14) % 1000 / 1000, f2 = (h >>> 3) % 1000 / 1000;
     const t = tripInfo(S, dest.id), mult = 1.05 + .13 * f2;
-    push({ id: `${S.loc}:${b}:${k}`, r: r.id, q: clamp(Math.round(S.cap * (.25 + .5 * f1)), 1, S.cap), dest: dest.id, gal: S.gal, falta: 1, comb: t.cost, mult: Math.round(mult * 100) / 100, dur: Math.round(clamp(t.secs + Math.max(6, 14 - S.gal), 17, 25)) });
+    push({ id: `${S.loc}:${b}:${k}`, r: r.id, q: clamp(Math.round(S.cap * (.25 + .5 * f1)), 1, S.cap), dest: dest.id, gal: S.gal, falta: 1, comb: t.cost, mult: Math.round(mult * 100) / 100, dur: Math.round(clamp(Math.max(12 + 13 * (hash(`d:${S.gal}:${S.loc}:${b}:${k}`) % 1000 / 1000), t.secs + 5), 12, 25)) });
   }
   // 1 pedido para outra galáxia que você já pode visitar: paga mais, devolve o custo do salto e dá um prazo um pouco maior
   const gs = GALAXIES.map((g, i) => i).filter((i) => i !== S.gal && S.rank >= GALAXIES[i].t && S.engLv >= GALAXIES[i].eng);

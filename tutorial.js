@@ -24,7 +24,7 @@
     // meta sempre visível: progresso até a próxima patente
     const g = $('#goal'); if (g) { if (CLOUD() && TOK && MODE !== 'partida' && READY && S.rank + 1 < RANKS.length) { const a = RANKS[S.rank][0], b = RANKS[S.rank + 1][0], w = patTotal(); g.hidden = false; $('#goal-t').innerHTML = `Próxima patente: <b>${RANKS[S.rank + 1][1]}</b> · ${fmt(Math.min(w, b)).replace(',00', '')} / ${fmt(b).replace(',00', '')} Cr`; $('#goal-i').style.width = clamp((w - a) / (b - a) * 100, 0, 100) + '%'; } else g.hidden = true; }
     if (!ativo()) { el.hidden = true; document.body.classList.remove('tuton'); return; }
-    if (i < 0) { const s = rd(); if (s === 'done') return; if (s === null) { if (!novata()) { wr('done'); return; } passo(0); } else i = +s; if (!(i >= 0 && i <= 18)) { fim(); return; } }
+    if (i < 0) { const s = rd(); if (s === 'done') return; if (s === null) { if (!novata()) { wr('done'); return; } passo(0); } else i = +s; if (!(i >= 0 && i <= ULT())) { fim(); return; } }
     el.hidden = false; document.body.classList.add('tuton');
     const seg = i >= 6 && i <= 10, j = seg ? i - 5 : i;   // a 2ª viagem (passos 6 a 10) repete a lógica dos passos 1 a 5, com o encontro com piratas
     if (i === 0) { mark(null); say2('Bem-vindo a bordo, comandante! Eu sou o Capitão. Nas estrelas lucra quem <b>compra barato</b> e <b>vende caro</b>. Vou te mostrar em 1 minuto.', 'Vamos lá!'); }
@@ -57,15 +57,17 @@
     } else if (i === 10) {
       mark(null);
       say2('Você enfrentou piratas e venceu: o <b>saque</b> vai para o seu caixa. Nem toda luta termina assim: se o poder deles for maior, você perde <b>carga e casco</b>. Compare o número antes de viajar (verde vence, amarelo é incerto, vermelho é perigo) e melhore as <b>armas</b> em Frotas.', 'Continuar');
-    } else if (i >= 11 && i <= 18) {
-      const T = TOUR[i - 11]; mark(T.m); say2(T.t, i === 18 ? 'Vamos jogar!' : 'Próximo');
+    } else if (i >= 11 && i <= ULT()) {
+      const T = TOUR[i - 11]; mark(T.m); say2(T.t, i === ULT() ? 'Vamos jogar!' : 'Próximo');
     }
   }
-  /* visita guiada pelos menus (passos 11 a 18): cada passo troca de tela e destaca o botão */
+  /* visita guiada pelos menus (passos 11 em diante): cada passo troca de tela e destaca o botão */
+  const ULT = () => 10 + TOUR.length;   // último passo da visita
   const TOUR = [
-    { v: 'home', m: '.nav [data-view=home]', t: '<b>Início</b>: o seu perfil completo (nave, conquistas, selos e troféus), patente, missões do dia e atalhos. É o seu ponto de partida sempre que abrir o jogo.' },
-    { v: 'market', m: '.nav [data-view=market]', t: '<b>Negociação</b>: o mapa e o mercado. Compre barato, venda caro e viaje entre planetas e galáxias.' },
-    { v: 'play', m: '.nav [data-view=play]', t: '<b>Torneios</b>: salas contra outros pilotos, com prêmio para os melhores. Também dá para criar uma partida com amigos.' },
+    { v: 'home', m: '.nav [data-view=home]', t: '<b>Início</b>: o seu perfil completo (nave, conquistas, selos e troféus), patente, missões do dia e atalhos. Aqui também fica o <b>Noticiário Interplanetário</b>: notícias do mundo real viram eventos no jogo e mexem no preço dos produtos (▲ sobe, ▼ cai) por algumas horas.' },
+    { v: 'market', m: '.nav [data-view=market]', t: '<b>Negociação</b>: o mapa e o mercado. Compre barato, venda caro e viaje entre planetas e galáxias. Os preços seguem o mercado real e mudam a cada 30 segundos. Quando um produto está <b>EM FALTA</b> num planeta, ele paga mais caro ali por algumas horas.' },
+    { v: 'market', m: '#contratos', t: '<b>Contratos</b>: cada planeta oferece pedidos de entrega. Aceite até 3, leve a carga ao destino <b>antes do prazo</b> e receba o preço de mercado mais um bônus. Dá para entregar aos poucos. O prazo diminui nas galáxias avançadas, e o preço ainda pode subir ou cair no caminho: o risco continua seu.' },
+    { v: 'play', m: '.nav [data-view=play]', t: '<b>Torneios</b>: salas contra outros pilotos, com prêmio para os melhores. Também dá para criar uma partida com amigos. Sem adversários humanos, os bots ficam mais fortes ou mais fracos conforme a sua patente.' },
     { v: 'fleet', m: '.nav [data-view=fleet]', t: '<b>Frotas</b>: reparo do casco e melhorias da sua nave (porão, motor e armas).' },
     { v: 'loja', m: '.nav [data-view=loja]', t: '<b>Loja</b>: naves novas, avatares e molduras, tudo comprado com os créditos do jogo. Avatares e molduras são só aparência; as naves mudam o jogo.' },
     { v: 'amigos', m: '.nav [data-view=amigos]', t: '<b>Amigos</b>: veja todos os pilotos, adicione amigos, aceite pedidos e receba <b>convites para partidas</b>. No Início há o ranking entre amigos, por semana e por mês.' },
@@ -79,8 +81,8 @@
     if (i === 0) { if (soTour) { passo(11); vai(TOUR[0].v); } else { passo(1); vai('market'); } }
     else if (i === 5) { passo(6); rec = null; tutSel = 0; c0 = S.credits; }
     else if (i === 10) { passo(11); vai(TOUR[0].v); }
-    else if (i >= 11 && i < 18) { const prox = TOUR[i - 10].v; passo(i + 1); vai(prox); }
-    else if (i === 18) { fim(); vai('market'); }
+    else if (i >= 11 && i < ULT()) { const prox = TOUR[i - 10].v; passo(i + 1); vai(prox); }
+    else if (i === ULT()) { fim(); vai('market'); }
   };
   $('#tut-skip').onclick = fim;
   const redo = $('#tut-redo'); if (redo) redo.onclick = () => { rec = null; tutSel = 0; soTour = !(S.tv !== undefined && S.tv < 2); wr(0); i = 0; shown = ''; document.querySelector('.nav [data-view=market]').click(); tick(); };

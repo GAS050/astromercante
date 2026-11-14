@@ -73,11 +73,12 @@
     Object.entries(faixas).forEach(([id, f]) => {   // fade suave entre as faixas
       const ativa = a && f === a && !mudo, meta = ativa ? vol() : 0, v = f.volume + (meta - f.volume) * .06;
       f.volume = Math.min(1, Math.max(0, Math.abs(meta - v) < .005 ? meta : v));
-      if (ativa && f.paused && userTocou) f.play().catch(() => {}); else if (!ativa && f.volume === 0 && !f.paused) f.pause();
+      if (ativa && f.paused && (userTocou || !bloqueado)) f.play().catch(() => { if (!userTocou) bloqueado = true; }); else if (!ativa && f.volume === 0 && !f.paused) f.pause();
     });
-    if (a && !mudo && a.paused && userTocou) a.play().catch(() => {});
+    if (a && !mudo && a.paused && (userTocou || !bloqueado)) a.play().catch(() => { if (!userTocou) bloqueado = true; });
   }
-  let userTocou = false; const destrava = () => { userTocou = true; try { ctx(); } catch {} }; addEventListener('pointerdown', destrava, { once: true }); addEventListener('keydown', destrava, { once: true });   // já deixa o áudio pronto no primeiro toque: o primeiro som não atrasa
+  /* tenta tocar sozinha ao abrir; se o navegador barrar (acontece na maioria das vezes), começa no primeiro toque, tecla ou rolagem */
+  let userTocou = false, bloqueado = false; const destrava = () => { userTocou = true; try { ctx(); } catch {} ['pointerdown', 'touchstart', 'keydown', 'wheel', 'click'].forEach(e => removeEventListener(e, destrava)); }; ['pointerdown', 'touchstart', 'keydown', 'wheel', 'click'].forEach(e => addEventListener(e, destrava, { passive: true }));   // já deixa o áudio pronto no primeiro toque: o primeiro som não atrasa
   setInterval(musicaTick, 120);
   // botão rápido de música no cabeçalho
   const acts = document.querySelector('.hud-acts');

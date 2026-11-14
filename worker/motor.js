@@ -621,7 +621,7 @@ export function ataque(A, D, now) {
     D.hull = Math.max(Math.min(D.hull, 5), D.hull - dD); A.hull = Math.max(Math.min(A.hull, 5), A.hull - dA); pd.prot = now + DUELO.prot;
     say(msgs, `Ataque certeiro! Você levou ${itens.join(', ')} do rival${sc ? '' : ` (casco dele -${dD}%, o seu -${dA}%)`}.`, 'win');
     aviso(`Você foi atacado! O rival levou ${itens.join(', ')}${sc ? '' : ` e seu casco caiu ${dD}%`}. Fique protegido por ${DUELO.prot / 1000} s ou fuja pela rota segura.`);
-    mais(A, 'dkx');
+    mais(A, 'dkx'); if (tomado > 0 && A.partida) A.partida.rb = (A.partida.rb || 0) + 1;   // roubos bem-sucedidos (conquistas da Arena)
   } else if (r >= .75) {
     const dd = sc ? 0 : Math.round(v(3, 6)); A.hull = Math.max(Math.min(A.hull, 5), A.hull - dd); D.hull = Math.max(Math.min(D.hull, 5), D.hull - dd);
     say(msgs, `Combate empatado: o rival resistiu e ninguém levou nada${sc ? '' : ` (casco -${dd}% nos dois)`}.`, 'ok');

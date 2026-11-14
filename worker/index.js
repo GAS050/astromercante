@@ -149,7 +149,25 @@ async function fecharPeriodos(env) {
 /** Números do banco que alimentam as conquistas (amigos, itens da loja, torneios e troféus de período). */
 async function extrasConq(env, id) {
   const r = await env.DB.prepare("SELECT u.criado AS criado, p.tj AS tj, p.vit AS tv, (SELECT COUNT(*) FROM loja_itens WHERE usuario = ?1) AS lo, (SELECT COUNT(*) FROM amigos WHERE estado = 'aceito' AND (a = ?1 OR b = ?1)) AS am, (SELECT COUNT(*) FROM trofeus WHERE usuario = ?1 AND tipo = 'patrimonio') AS tf, (SELECT COUNT(*) FROM trofeus WHERE usuario = ?1 AND tipo = 'lucro') AS tl FROM usuarios u LEFT JOIN perfis p ON p.usuario = u.id WHERE u.id = ?1").bind(id).first();
-  return r || {};
+  const x = r || {};
+  try { Object.assign(x, await extrasArena(env, id)); } catch { /* sem as tabelas da Arena ainda: zeros */ }
+  return x;
+}
+/** Duelos X1 e salas de amigos: tudo sai das partidas já terminadas (o aparelho não informa nada). */
+async function extrasArena(env, id) {
+  await dueloInit(env);
+  const out = { dj: 0, dv: 0, ds: 0, dl: 0, dg: 0, da: 0, aj: 0, ac: 0 };
+  const rows = (await env.DB.prepare("SELECT p.cfg AS cfg, p.resultado AS res, j.premio AS premio, j.taxa AS taxa FROM partida_jog j JOIN partidas p ON p.codigo = j.codigo WHERE j.usuario = ? AND p.modo = 'duelo' AND p.estado = 'fim' ORDER BY p.fim ASC LIMIT 600").bind(id).all()).results || [], gals = new Set();
+  let seq = 0;
+  for (const q of rows) {
+    out.dj++; const ganhou = (q.premio || 0) > (q.taxa || 0);
+    if (ganhou) { out.dv++; out.dl += q.premio - q.taxa; seq++; out.ds = Math.max(out.ds, seq); try { gals.add(JSON.parse(q.cfg).galaxias[0]); } catch { /* cfg ilegível */ } } else seq = 0;
+    try { const eu = (JSON.parse(q.res || '[]').find((t) => t.id === id) || {}); out.da += eu.rb || 0; } catch { /* resultado ilegível */ }
+  }
+  out.dg = gals.size;
+  out.aj = (await env.DB.prepare("SELECT COUNT(*) AS n FROM partida_jog j JOIN partidas p ON p.codigo = j.codigo WHERE j.usuario = ? AND p.modo = 'amigos' AND p.estado = 'fim'").bind(id).first())?.n || 0;
+  out.ac = (await env.DB.prepare('SELECT COUNT(*) AS n FROM convites WHERE de = ?').bind(id).first())?.n || 0;
+  return out;
 }
 async function conquistasDe(env, id, S, pat) {
   const x = await extrasConq(env, id), m = metricas(S || {}, { ...x, pat }), ids = ganhas(m);
@@ -688,7 +706,7 @@ async function dueloSumiu(env, p) {
 async function finalizarDuelo(env, p, saiu) {
   if (p.estado !== 'andamento') return false;
   const cfg = JSON.parse(p.cfg), feed = await feedAtual(env), js = await dueloLinhas(env, p.codigo), now = Date.now();
-  const t = js.map((j) => ({ id: j.id, n: apelido(j.nome, j.google, j.ap), bot: 0, w: j.estado ? valorFinal(JSON.parse(j.estado), feed) : cfg.saldo }));
+  const t = js.map((j) => { let rb = 0; try { rb = JSON.parse(j.estado).partida.rb || 0; } catch { /* sem estado */ } return { id: j.id, n: apelido(j.nome, j.google, j.ap), bot: 0, rb, w: j.estado ? valorFinal(JSON.parse(j.estado), feed) : cfg.saldo }; });
   t.sort((a, b) => (saiu ? (a.id === saiu ? 1 : 0) - (b.id === saiu ? 1 : 0) : 0) || b.w - a.w || a.id - b.id);
   t.forEach((x, i) => { x.pos = i + 1; x.w = Math.round(x.w * 100) / 100; });
   const empate = !saiu && t.length === 2 && Math.abs(t[0].w - t[1].w) < .005;

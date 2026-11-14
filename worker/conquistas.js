@@ -1,7 +1,7 @@
-/* 117 conquistas (30 famílias). Cada família tem uma métrica (m), uma categoria (c), um ícone e uma lista de níveis [meta, nome].
+/* 145 conquistas (38 famílias). Cada família tem uma métrica (m), uma categoria (c), um ícone e uma lista de níveis [meta, nome].
    A métrica vem do estado do jogo gravado pelo servidor (S.st e outros) ou do banco; o aparelho nunca informa nada. */
 const fam = (m, c, ic, d, d1, niveis) => ({ m, c, ic, d, d1, niveis });
-export const CATEGORIAS = { comercio: 'Comércio', contrato: 'Contratos', explor: 'Exploração', combate: 'Combate', fortuna: 'Fortuna', frota: 'Frota', dedic: 'Dedicação', social: 'Social', torneio: 'Torneios' };
+export const CATEGORIAS = { comercio: 'Comércio', contrato: 'Contratos', explor: 'Exploração', combate: 'Combate', fortuna: 'Fortuna', frota: 'Frota', dedic: 'Dedicação', social: 'Social', torneio: 'Arena' };
 const FAMILIAS = [
   fam('tr', 'comercio', 'fa-handshake', 'Faça {n} negociações (compras e vendas).', 'Faça a sua primeira negociação.', [[1, 'Primeiro Negócio'], [25, 'Comerciante de Esquina'], [100, 'Mascate Estelar'], [500, 'Corretor Interplanetário'], [2000, 'Barão das Trocas'], [10000, 'Lenda do Balcão']]),
   fam('lx', 'comercio', 'fa-sack-dollar', 'Lucre {n} Cr numa única venda.', '', [[100, 'Bom Faro'], [1000, 'Golpe de Mestre'], [10000, 'Jackpot'], [100000, 'Tacada do Século']]),
@@ -33,6 +33,14 @@ const FAMILIAS = [
   fam('tv', 'torneio', 'fa-trophy', 'Vença {n} torneios.', 'Vença um torneio.', [[1, 'Campeão!'], [5, 'Dinastia'], [20, 'Lenda dos Torneios']]),
   fam('tf', 'torneio', 'fa-crown', 'Termine {n} semanas ou meses em 1º no ganho de patrimônio.', 'Termine uma semana ou um mês em 1º no ganho de patrimônio.', [[1, 'Rei do Período'], [5, 'Soberano do Ranking']]),
   fam('tl', 'torneio', 'fa-medal', 'Termine {n} semanas ou meses em 1º no lucro.', 'Termine uma semana ou um mês em 1º no lucro.', [[1, 'Mestre do Lucro'], [5, 'Imperador do Mercado']]),
+  fam('dj', 'torneio', 'fa-hand-fist', 'Dispute {n} duelos X1.', 'Dispute o seu primeiro duelo X1.', [[1, 'Primeiro Duelo'], [10, 'Duelista'], [40, 'Veterano da Arena'], [150, 'Lenda do Ringue']]),
+  fam('dv', 'torneio', 'fa-bolt', 'Vença {n} duelos X1.', 'Vença um duelo X1.', [[1, 'Primeiro Sangue'], [10, 'Espadachim Estelar'], [40, 'Campeão da Arena'], [150, 'Imbatível']]),
+  fam('ds', 'torneio', 'fa-fire-flame-curved', 'Vença {n} duelos X1 seguidos.', '', [[2, 'Embalado'], [4, 'Em Chamas'], [8, 'Invencível']]),
+  fam('dl', 'torneio', 'fa-hand-holding-dollar', 'Lucre {n} Cr em duelos X1.', '', [[500, 'Apostador'], [5000, 'Mão Cheia'], [50000, 'Rei da Aposta'], [500000, 'Barão da Arena']]),
+  fam('dg', 'torneio', 'fa-globe', 'Vença duelos X1 em {n} galáxias diferentes.', '', [[2, 'Dois Palcos'], [5, 'Circuito Galáctico'], [11, 'Campeão do Universo']]),
+  fam('da', 'torneio', 'fa-crosshairs', 'Roube a carga do rival em {n} ataques nos duelos X1.', 'Roube a carga do rival num ataque em um duelo X1.', [[1, 'Pirata por um Dia'], [10, 'Saqueador'], [50, 'Terror dos Rivais'], [200, 'Rei do Saque']]),
+  fam('aj', 'torneio', 'fa-champagne-glasses', 'Jogue {n} partidas entre amigos.', 'Jogue a sua primeira partida entre amigos.', [[1, 'Primeira Rodada'], [10, 'Noite de Jogos'], [40, 'Alma da Festa']]),
+  fam('ac', 'social', 'fa-door-open', 'Chame {n} amigos para as suas salas.', 'Chame um amigo para a sua sala.', [[1, 'Anfitrião'], [10, 'Sala Cheia'], [40, 'Cerimonialista']]),
 ];
 export const CATALOGO = FAMILIAS.flatMap((f) => f.niveis.map(([g, n], i) => ({ id: f.m + (i + 1), m: f.m, c: f.c, n, g, ic: f.ic, r: f.niveis.length > 1 ? 1 + Math.round((i * 4) / (f.niveis.length - 1)) : 3, d: g === 1 && f.d1 ? f.d1 : f.d.replace('{n}', g.toLocaleString('pt-BR')) })));
 /** m: valores das métricas. Devolve os ids das conquistas já ganhas. */
@@ -44,5 +52,6 @@ export function metricas(S, x) {
     tr: st.tr || 0, lx: Math.floor(st.lx || 0), mg: Math.floor(st.mg || 0), mq: st.mq || 0, vi: st.vi || 0, ga: Object.keys(S.vis || {}).length, pi: st.pi || 0, mo: st.mo || 0, fp: st.fp || 0, lv: st.lv || 0, df: st.df || 0, ct: st.ct || 0, cg: Math.floor(st.cg || 0), cz: st.cz || 0, cs: st.cs || 0, cq: st.cq || 0,
     lt: Math.max(0, Math.floor(S.lt || 0)), pk: Math.max(st.pk || 0, Math.floor(x.pat || 0)), na: fl.length, nm: fl.reduce((a, f) => a + (f.c || 1) + (f.m || 1) + (f.a || 1) - 3, 0), mx: fl.filter((f) => f.c >= 5 && f.m >= 5 && f.a >= 5).length,
     sk: Math.max(S.streak || 0, st.bk || 0), mi: st.mi || 0, dt: x.criado ? Math.floor((Date.now() - x.criado) / 864e5) : 0, lo: x.lo || 0, am: x.am || 0, tj: x.tj || 0, tv: x.tv || 0, tf: x.tf || 0, tl: x.tl || 0,
+    dj: x.dj || 0, dv: x.dv || 0, ds: x.ds || 0, dl: Math.floor(x.dl || 0), dg: x.dg || 0, da: x.da || 0, aj: x.aj || 0, ac: x.ac || 0,
   };
 }

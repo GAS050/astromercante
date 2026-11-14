@@ -116,7 +116,7 @@ export async function atualizarNoticias(env, forcar = false) {
       const todos = await manchetes(diag), titulos = todos.filter((t) => !vistos.has(sha(t))).slice(0, 40);
       diag.manchetes = todos.length;
       if (!todos.length) falhou = true;
-      else if (titulos.length >= 4) { novos = validar(await gemini(env, prompt(titulos), diag), agora, titulos, diag, ant.itens || []); titulos.forEach((t) => vistos.add(sha(t))); }
+      else if (titulos.length >= 4) { novos = validar(await gemini(env, prompt(titulos), diag), agora, titulos, diag, ant.itens || []); if (novos.length || !diag.recebidas) titulos.forEach((t) => vistos.add(sha(t))); }   // só "gasta" as manchetes se saiu notícia ou se o Gemini achou todas irrelevantes
     } catch (e) { falhou = true; diag.erro = String(e?.message || e).slice(0, 120); console.log('noticias:', diag.erro); }
   }
   diag.gerou = novos.length;

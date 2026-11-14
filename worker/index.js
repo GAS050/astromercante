@@ -677,7 +677,7 @@ async function rota(req, env, url) {
   const m = req.method, p = url.pathname;
   const corpo = m === 'GET' ? {} : await req.json().catch(() => ({}));
   if (p === '/noticias/diag' && m === 'GET') {   // só diagnóstico (nada secreto). ?rodar=1 força uma rodada agora, no máximo 1 a cada 10 min
-    if (url.searchParams.get('rodar') === '1') { const ult = Number(await env.PRECOS.get('newsman')) || 0; if (Date.now() - ult > 600000) { await env.PRECOS.put('newsman', String(Date.now())); await rodarNoticias(env, true); } else return { aviso: 'espere alguns minutos para rodar de novo', diag: JSON.parse((await env.PRECOS.get('news')) || '{}').diag || null }; }
+    if (url.searchParams.get('rodar') === '1') { const ult = Number(await env.PRECOS.get('newsman')) || 0; if (Date.now() - ult > 600000) { await env.PRECOS.put('newsman', String(Date.now())); if (url.searchParams.get('limpar') === '1') { const a = JSON.parse((await env.PRECOS.get('news')) || '{}'); await env.PRECOS.put('news', JSON.stringify({ ...a, vistos: [] })); } await rodarNoticias(env, true); } else return { aviso: 'espere alguns minutos para rodar de novo', diag: JSON.parse((await env.PRECOS.get('news')) || '{}').diag || null }; }
     const n = JSON.parse((await env.PRECOS.get('news')) || '{}');
     return n.diag ? { ...n.diag, itens: (n.itens || []).map((i) => ({ jogo: i.ti, texto: i.tx, produtos: i.r, efeito: i.s, horas: Math.round((i.t1 - i.t0) / 36e5), manchete_real: i.orig || null })) } : { aviso: 'a rotina de notícias ainda não rodou (roda a cada 5 min pelo Cron). Tente abrir com ?rodar=1' };
   }

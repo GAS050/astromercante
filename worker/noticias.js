@@ -24,7 +24,7 @@ const BASE_ATIVO = { btc: 'Bitcoin', gold: 'ouro (PAXG)', eth: 'Ethereum', fx: '
 const ativoDe = (src) => BASE_ATIVO[src] || (FEEDS[src] ? `${FEEDS[src].nome} (${FEEDS[src].sym})` : src);
 const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
 const sha = (s) => { let h = 2166136261; for (const c of s) { h ^= c.charCodeAt(0); h = Math.imul(h, 16777619); } return (h >>> 0).toString(36); };
-const limpa = (s, n) => String(s ?? '').replace(/<[^>]*>/g, '').replace(/\s+/g, ' ').trim().slice(0, n);
+const limpa = (s, n) => String(s ?? '').replace(/&apos;|&#0?39;/g, "'").replace(/&quot;/g, '"').replace(/&amp;/g, '&').replace(/<[^>]*>/g, '').replace(/\s+/g, ' ').trim().slice(0, n);
 
 // lê só o começo de cada feed (as primeiras manchetes ficam nos primeiros KB): poupa CPU, que no plano grátis é de só 10 ms por execução
 async function comecoDe(u, max = 14000) {
@@ -98,7 +98,7 @@ export function validar(lista, agora, titulos = [], diag = {}, ativos = []) {
     const ti = limpa(n?.ti, 90), tx = limpa(n?.tx, 260), r = [...new Set((Array.isArray(n?.r) ? n.r : []).filter((x) => IDS.has(x)))].slice(0, 3);
     if (ti.length < 8 || tx.length < 20 || !r.length || PROIBIDO.test(ti + ' ' + tx) || r.some((x) => usados.has(x))) { diag.descartadas++; continue; }   // 1 notícia por produto em cada rodada
     const d = n.d < 0 ? -1 : 1, m = clamp(Number(n.m) || .4, .1, 1), h = clamp(Math.round(Number(n.h)) || 3, 1, 5);
-    const sinal = d, conflito = ativos.some((a) => a.s * sinal < 0 && a.t1 > agora && a.r.some((x) => r.includes(x)));   // não contradiz uma notícia ainda ativa do mesmo produto
+    const sinal = d, conflito = ativos.some((a) => a.s && a.t1 > agora && a.r.some((x) => r.includes(x)));   // no máximo 1 notícia ativa por produto (evita somar efeitos ou contradizer)
     if (conflito) { diag.descartadas++; continue; }
     r.forEach((x) => usados.add(x));
     out.push({ id: sha(ti + agora), ti, tx, r, s: +(d * m * .1).toFixed(3), t0: agora, t1: agora + h * 3600000, f: 'ia', orig: titulos[Number(n.o) - 1] || null });   // orig: só para conferência em /noticias/diag, não vai para o jogo
